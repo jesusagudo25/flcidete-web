@@ -2,20 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
@@ -26,31 +22,18 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
   TextField,
-  Button,
-  DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
+  Button,
+  DialogTitle,
   FormControl,
 } from '@mui/material';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -180,6 +163,36 @@ function applySortFilter(array, comparator, query) {
 
 const ObservationsPage = () => {
 
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('Observación agregada con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('Observación actualizada con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* useForm */
+
+  const { control, handleSubmit, reset, setValue } = useForm({
+    reValidateMode: 'onBlur'
+  });
+
   /* Obs */
 
   const [id, setId] = useState(0);
@@ -204,29 +217,35 @@ const ObservationsPage = () => {
 
   const handleCreateDialog = (event) => {
     setId('');
-    setTitle('');
-    setDescription('');
+    reset();
+    /*     setTitle('');
+        setDescription(''); */
     setOpen(true);
   };
 
   const handleCloseDialog = () => {
     setOpen(false);
+    reset();
   };
 
   const handleSubmitDialog = async (event) => {
-    event.preventDefault();
+    /* event.preventDefault(); */
+    /* HandleSubmit de useForm */
+
     if (id) {
       await axios.put(`/api/observations/${id}`, {
-        title,
-        description,
+        title: event.title,
+        description: event.description,
       });
     } else {
       await axios.post('/api/observations', {
-        title,
-        description,
+        title: event.title,
+        description: event.description,
         'user_id': localStorage.getItem('id'),
       });
     }
+    showToastMessage();
+    reset();
     handleCloseDialog();
     getObservations();
   };
@@ -298,7 +317,7 @@ const ObservationsPage = () => {
                 {observations.length > 0 ? (
                   <TableBody>
                     {filteredObservations.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, user, title, description,  created_at: createdAt, active } = row;
+                      const { id, user, title, description, created_at: createdAt, active } = row;
 
                       return (
                         <TableRow hover key={id} tabIndex={-1} role="checkbox">
@@ -322,6 +341,12 @@ const ObservationsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Observación desactivada')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Observación activada')
+                                )
                                 setObservations(observations.map((observation) => {
                                   if (observation.id === id) {
                                     return { ...observation, active: !active };
@@ -338,8 +363,10 @@ const ObservationsPage = () => {
                           <TableCell align="right">
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-                              setTitle(title);
-                              setDescription(description);
+                              /*                               setTitle(title);
+                                                            setDescription(description); */
+                              setValue('title', title);
+                              setValue('description', description);
                               setOpen(true);
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -422,6 +449,10 @@ const ObservationsPage = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -437,32 +468,73 @@ const ObservationsPage = () => {
           <Stack spacing={3} sx={{ minWidth: 550 }}>
 
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Título"
-                variant="outlined"
-                size="small"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value)
+              <Controller
+                name="title"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El título es requerido',
+                  minLength: {
+                    value: 3,
+                    message: 'El título debe tener al menos 3 caracteres'
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'El título debe tener máximo 50 caracteres'
+                  }
                 }}
-                required
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Título"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+
+                )}
               />
             </FormControl>
 
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Descripción"
-                variant="outlined"
-                size="small"
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value)
+              <Controller
+                name="description"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'La descripción es requerida',
+                  minLength: {
+                    value: 3,
+                    message: 'La descripción debe tener al menos 3 caracteres'
+                  },
+                  maxLength: {
+                    value: 100,
+                    message: 'La descripción debe tener máximo 100 caracteres'
+                  }
                 }}
-                required
-                multiline
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Descripción"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                    required
+                    multiline
+                  />
+                )}
               />
+
             </FormControl>
 
           </Stack>
@@ -471,7 +543,7 @@ const ObservationsPage = () => {
           <Button size="large" onClick={handleCloseDialog}  >
             Cancelar
           </Button>
-          <Button size="large" autoFocus onClick={handleSubmitDialog}>
+          <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
             Guardar
           </Button>
         </DialogActions>

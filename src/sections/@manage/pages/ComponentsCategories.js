@@ -2,20 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
@@ -26,31 +22,18 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
   TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
   FormControl,
 } from '@mui/material';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -177,6 +160,36 @@ function applySortFilter(array, comparator, query) {
 }
 const ComponentsCategories = () => {
 
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('Categoría agregada con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('Categoría actualizada con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* React Form Hook */
+
+  const { control, handleSubmit, reset, setValue, getValues, formState: { errors }, } = useForm({
+    reValidateMode: 'onBlur'
+  });
+
   /* Create - edit */
 
   const [id, setId] = useState('');
@@ -201,27 +214,29 @@ const ComponentsCategories = () => {
 
   const handleCreateDialog = (event) => {
     setId('');
-    setName('');
-
+    reset();
+    /* setName(''); */
     setOpen(true);
   };
 
   const handleCloseDialog = () => {
     setOpen(false);
+    reset();
   };
 
   const handleSubmitDialog = async (event) => {
-    event.preventDefault();
+    handleCloseDialog();
     if (id) {
       await axios.put(`/api/component-categories/${id}`, {
-        name,
+        name: event.name,
       });
     } else {
       await axios.post('/api/component-categories', {
-        name,
+        name: event.name,
       });
     }
-    handleCloseDialog();
+    showToastMessage();
+    reset();
     getCategories();
   };
 
@@ -311,6 +326,12 @@ const ComponentsCategories = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Categoría desactivada')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Categoría activada')
+                                )
                                 setCategories(categories.map((category) => {
                                   if (category.id === id) {
                                     return { ...category, active: !active };
@@ -327,7 +348,8 @@ const ComponentsCategories = () => {
                           <TableCell align="right">
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-                              setName(name);
+/*                               setName(name); */
+                              setValue('name', name);
                               setOpen(true);
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -410,6 +432,10 @@ const ComponentsCategories = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -419,21 +445,40 @@ const ComponentsCategories = () => {
         maxWidth='sm'
       >
         <BootstrapDialogTitle id="customized-dialog-title" onClose={handleCloseDialog}>
-          Gestión de Áreas
+          Gestión de Categorías
         </BootstrapDialogTitle>
         <DialogContent dividers>
           <Stack spacing={4} sx={{ minWidth: 550 }}>
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Nombre del componente"
-                variant="outlined"
-                size="small"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
+              <Controller
+                name="name"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El nombre de la categoría es requerido',
+                  minLength: {
+                    value: 3,
+                    message: 'El nombre de la categoría debe tener al menos 3 caracteres'
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'El nombre de la categoría debe tener máximo 50 caracteres'
+                  }
                 }}
-                required
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Nombre de la categoría"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
               />
             </FormControl>
           </Stack>
@@ -442,7 +487,7 @@ const ComponentsCategories = () => {
           <Button size="large" onClick={handleCloseDialog}  >
             Cancelar
           </Button>
-          <Button size="large" autoFocus onClick={handleSubmitDialog}>
+          <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
             Guardar
           </Button>
         </DialogActions>

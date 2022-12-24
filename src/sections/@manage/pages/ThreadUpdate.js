@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
 // @mui
 import { LoadingButton } from '@mui/lab';
@@ -12,11 +11,7 @@ import {
     Table,
     Stack,
     Paper,
-    Avatar,
-    Popover,
-    Checkbox,
     TableRow,
-    MenuItem,
     TableBody,
     TableCell,
     Container,
@@ -27,34 +22,24 @@ import {
     Dialog,
     DialogContent,
     DialogActions,
-    Box,
-    Backdrop,
-    CircularProgress,
     TextField,
     Button,
     DialogTitle,
-    Radio,
-    RadioGroup,
-    FormControlLabel,
     styled,
     Switch,
     FormControl,
     InputLabel,
+    FormHelperText,
 } from '@mui/material';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -181,6 +166,35 @@ function applySortFilter(array, comparator, query) {
 }
 
 const ThreadUpdate = () => {
+
+    /* Toastify */
+
+    const showToastMessage = () => {
+        toast.success('Actualización agregada con éxito!', {
+            position: toast.POSITION.TOP_RIGHT
+        });
+    };
+
+    const showToastMessageStatus = (type, message) => {
+        if (type === 'success') {
+            toast.success(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+        else {
+            toast.error(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+    };
+
+    /* React Form Hook */
+
+    const { control, handleSubmit, reset, setValue, formState: { errors }, } = useForm({
+        reValidateMode: 'onBlur'
+    });
+
+
     /* Dialog */
 
     const { id } = useParams();
@@ -208,26 +222,30 @@ const ThreadUpdate = () => {
     const [rowsPerPage, setRowsPerPage] = useState(5);
 
     const handleCreateDialog = (event) => {
+        reset();
         setOpen(true);
-        setPricePurchase('');
-        setEstimatedValue('');
+        /*         setPricePurchase('');
+                setEstimatedValue(''); 
+                setQuantity(1);
+                */
         setContainerEstimatedValue(false);
-        setQuantity(1);
     };
 
     const handleCloseDialog = () => {
+        reset();
         setOpen(false);
     };
 
     const handleSubmitDialog = async (event) => {
-        event.preventDefault();
+
+        handleCloseDialog();
+        showToastMessage();
         await axios.post('/api/threads-updates/', {
             'thread_id': id,
-            'purchase_price': pricePurchase,
-            'estimated_value': containerEstimatedValue ? estimatedValue : pricePurchase,
-            'quantity': quantity,
+            'purchase_price': event.pricePurchase,
+            'estimated_value': containerEstimatedValue ? event.estimatedValue : event.pricePurchase,
+            'quantity': event.quantity,
         });
-        handleCloseDialog();
         getThreadsUpdate();
     };
 
@@ -323,6 +341,12 @@ const ThreadUpdate = () => {
                                                     <TableCell align="left">
                                                         <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                                                             async () => {
+                                                                if (active) (
+                                                                    showToastMessageStatus('error', 'Actualización desactivada')
+                                                                )
+                                                                else (
+                                                                    showToastMessageStatus('success', 'Actualización activada')
+                                                                )
                                                                 setThreadsUpdate(threadsUpdate.map((thread) => {
                                                                     if (thread.id === id) {
                                                                         return { ...thread, active: !active };
@@ -412,6 +436,11 @@ const ThreadUpdate = () => {
                 </Card>
             </Container>
 
+            {/* Toastify */}
+
+            <ToastContainer />
+
+
             {/* Dialog */}
 
             <BootstrapDialog
@@ -426,62 +455,120 @@ const ThreadUpdate = () => {
                 <DialogContent dividers>
                     <Stack spacing={2} sx={{ minWidth: 550 }}>
 
-                        <FormControl sx={{ width: '100%' }}>
+                        <FormControl sx={{ width: '100%' }} error={!!errors?.pricePurchase}>
                             <InputLabel htmlFor="outlined-adornment-amount">Costo de hilo</InputLabel>
-                            <OutlinedInput
-                                id="outlined-adornment-amount"
-                                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                                label="Costo de hilo"
-                                placeholder='0.00'
-                                size="small"
-                                value={pricePurchase}
-                                onChange={(e) => {
-                                    setPricePurchase(e.target.value)
-                                    if (parseFloat(e.target.value) === 0) {
-                                        setContainerEstimatedValue(true)
-                                    }
-                                    else {
-                                        setContainerEstimatedValue(false)
+                            <Controller
+                                name="pricePurchase"
+                                control={control}
+                                defaultValue=""
+                                rules={{
+                                    required: 'El costo de hilo es requerido',
+                                    min: {
+                                        value: 0,
+                                        message: 'El costo de hilo debe ser mayor o igual a 0'
+                                    },
+                                    max: {
+                                        value: 50,
+                                        message: 'El costo de hilo debe ser menor o igual a 50'
                                     }
                                 }}
-                                type="number"
-                                required
+                                render={({ field: { onChange, onBlur, value, } }) => (
+                                    <OutlinedInput
+                                        id="outlined-adornment-amount"
+                                        startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                                        label="Costo de hilo"
+                                        placeholder='0.00'
+                                        size="small"
+                                        value={value}
+                                        onChange={(e) => {
+                                            onChange(e.target.value)
+                                            if (parseFloat(e.target.value) === 0) {
+                                                setContainerEstimatedValue(true)
+                                            }
+                                            else {
+                                                setContainerEstimatedValue(false)
+                                            }
+                                        }}
+                                        onBlur={onBlur}
+                                        type="number"
+                                        required
+                                    />
+                                )}
                             />
+                            <FormHelperText>{errors.pricePurchase && errors.pricePurchase.message}</FormHelperText>
                         </FormControl>
 
                         {
                             containerEstimatedValue ?
                                 (
-                                    <FormControl sx={{ width: '100%' }}>
+                                    <FormControl sx={{ width: '100%' }} error={!!errors?.estimatedValue}>
                                         <InputLabel htmlFor="outlined-adornment-amount">Costo estimado</InputLabel>
-                                        <OutlinedInput
-                                            id="outlined-adornment-amount"
-                                            startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                                            label="Costo estimado"
-                                            placeholder='0.00'
-                                            size="small"
-                                            value={estimatedValue}
-                                            onChange={(e) => {
-                                                setEstimatedValue(e.target.value)
+                                        <Controller
+                                            name="estimatedValue"
+                                            control={control}
+                                            defaultValue=""
+                                            rules={{
+                                                required: 'El costo estimado de hilo es requerido',
+                                                min: {
+                                                    value: 1,
+                                                    message: 'El costo estimado de hilo debe ser mayor o igual a 1'
+                                                },
+                                                max: {
+                                                    value: 50,
+                                                    message: 'El costo estimado de hilo debe ser menor o igual a 50'
+                                                }
                                             }}
-                                            type="number"
-                                            required
+                                            render={({ field: { onChange, onBlur, value, } }) => (
+                                                <OutlinedInput
+                                                    id="outlined-adornment-amount"
+                                                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                                                    label="Costo estimado"
+                                                    placeholder='0.00'
+                                                    size="small"
+                                                    value={value}
+                                                    onChange={onChange}
+                                                    onBlur={onBlur}
+                                                    type="number"
+                                                    required
+                                                />
+                                            )}
                                         />
+                                        <FormHelperText>{errors.estimatedValue && errors.estimatedValue.message}</FormHelperText>
                                     </FormControl>
                                 )
                                 :
                                 null
                         }
                         <FormControl sx={{ width: '100%' }}>
-                            <TextField
-                                id="outlined-number"
-                                label="Cantidad"
-                                type="number"
-                                size="small"
-                                value={quantity}
-                                onChange={(e) => {
-                                    setQuantity(e.target.value)
+                            <Controller
+                                name="quantity"
+                                control={control}
+                                defaultValue="1"
+                                rules={{
+                                    required: 'La cantidad es requerida',
+                                    min: {
+                                        value: 1,
+                                        message: 'La cantidad debe ser mayor o igual a 1'
+                                    },
+                                    max: {
+                                        value: 10000000,
+                                        message: 'La cantidad debe ser menor o igual a 10000'
+                                    }
                                 }}
+                                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                                    <TextField
+                                        id="outlined-number"
+                                        label="Cantidad"
+                                        type="number"
+                                        size="small"
+                                        value={value}
+                                        onChange={onChange}
+                                        onBlur={onBlur}
+                                        required
+                                        error={!!error}
+                                        helperText={error ? error.message : null}
+                                    />
+                                )}
                             />
                         </FormControl>
 
@@ -491,7 +578,7 @@ const ThreadUpdate = () => {
                     <Button size="large" onClick={handleCloseDialog}  >
                         Cancelar
                     </Button>
-                    <Button size="large" autoFocus onClick={handleSubmitDialog}>
+                    <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
                         Guardar
                     </Button>
                 </DialogActions>

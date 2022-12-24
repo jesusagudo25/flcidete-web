@@ -2,18 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
   MenuItem,
   TableBody,
@@ -26,36 +21,25 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
   TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
   FormControl,
   InputLabel,
   Select,
+  FormHelperText,
 } from '@mui/material';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 
 // components
-import { Link } from 'react-router-dom';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -187,6 +171,36 @@ function applySortFilter(array, comparator, query) {
 
 const TechExpensesPage = () => {
 
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('Gasto agregado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('Gasto actualizado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* React Form Hook */
+
+  const { control, handleSubmit, reset, setValue, getValues, formState: { errors }, } = useForm({
+    reValidateMode: 'onBlur'
+  });
+
   const [id, setId] = useState(0);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -213,35 +227,38 @@ const TechExpensesPage = () => {
   const handleCreateDialog = (event) => {
     setOpen(true);
     setId('');
-    setName('');
+    reset();
+    /* setName('');
     setDescription('');
     setArea('');
-    setAmount('');
+    setAmount(''); */
   };
 
   const handleCloseDialog = () => {
     setOpen(false);
+    reset();
   };
 
   const handleSubmitDialog = async (event) => {
-    event.preventDefault();
-    if(id) {
+    handleCloseDialog();
+    if (id) {
       await axios.put(`/api/tech-expenses/${id}`, {
-        name,
-        description,
-        'area_id': area,
-        amount,
+        'name': event.name,
+        'description': event.description,
+        'area_id': event.area,
+        'amount': event.amount,
       });
     } else {
       await axios.post('/api/tech-expenses', {
-        name,
-        description,
-        'area_id': area,
-        amount,
+        'name': event.name,
+        'description': event.description,
+        'area_id': event.area,
+        'amount': event.amount,
         'user_id': localStorage.getItem('id'),
       });
     }
-    handleCloseDialog();
+    showToastMessage();
+    reset();
     getTechExpenses();
   };
   const handleRequestSort = (event, property) => {
@@ -351,6 +368,12 @@ const TechExpensesPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Gasto desactivado')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Gasto activado')
+                                )
                                 setTechExpenses(techExpenses.map((expense) => {
                                   if (expense.id === id) {
                                     return { ...expense, active: !active };
@@ -367,10 +390,14 @@ const TechExpensesPage = () => {
                           <TableCell align="right">
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-                              setName(name);
+/*                               setName(name);
                               setDescription(description);
                               setArea(area.id);
-                              setAmount(amount);
+                              setAmount(amount); */
+                              setValue('name', name);
+                              setValue('description', description);
+                              setValue('area', area.id);
+                              setValue('amount', amount);
                               setOpen(true);
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -453,6 +480,10 @@ const TechExpensesPage = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -468,43 +499,73 @@ const TechExpensesPage = () => {
           <Stack spacing={4} sx={{ minWidth: 550 }}>
 
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Titulo del gasto"
-                variant="outlined"
-                size="small"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
+              <Controller
+                name="name"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El titulo del gasto es requerido',
                 }}
-                required
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Titulo del gasto"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
               />
             </FormControl>
-
+            
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-textarea"
-                label="Descripción del gasto"
-                multiline
-                size="small"
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value)
+              <Controller
+                name="description"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'La descripción del gasto es requerida',
                 }}
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Descripción del gasto"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    multiline
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
               />
             </FormControl>
 
-            <FormControl sx={{ m: 1, minWidth: 120 }} size="small">
-              <InputLabel id="category-select-label">Selecciona el área</InputLabel>
+            <FormControl size="small" error={!!errors?.area}>
+              <InputLabel id="category-select-label">Área del gasto</InputLabel>
+              <Controller
+                name="area"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El área es requerida',
+                }}
+                render={({ field: { onChange, onBlur, value, } }) => (
               <Select
                 labelId="category-select-label"
                 id="category-select"
-                value={area}
+                value={value}
                 label="Selecciona el área"
-                onChange={(e) => {
-                  setArea(e.target.value)
-                }}
-
+                onChange={onChange}
+                onBlur={onBlur}
                 required
               >
                 {
@@ -513,22 +574,44 @@ const TechExpensesPage = () => {
                   ))
                 }
               </Select>
+                )}
+              />
+              <FormHelperText>{errors?.area?.message}</FormHelperText>
             </FormControl>
 
-            <FormControl sx={{ width: '100%' }}>
+            <FormControl sx={{ width: '100%' }} error={!!errors?.amount}>
               <InputLabel htmlFor="outlined-adornment-amount">Costo</InputLabel>
+              <Controller
+                name="amount"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El costo es requerido',
+                  min: {
+                    value: 0,
+                    message: 'El costo debe ser mayor o igual a 0'
+                  },
+                  max: {
+                    value: 999999999,
+                    message: 'El costo debe ser menor o igual a 999999999'
+                  }
+                }}
+                render={({ field: { onChange, onBlur, value, } }) => (
               <OutlinedInput
                 id="outlined-adornment-amount"
                 startAdornment={<InputAdornment position="start">$</InputAdornment>}
                 label="Costo"
                 placeholder='0'
                 size="small"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value)
-                }}
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
                 type="number"
+                required
               />
+                )}
+              />
+              <FormHelperText>{errors?.amount?.message}</FormHelperText>
             </FormControl>
 
           </Stack>
@@ -537,7 +620,7 @@ const TechExpensesPage = () => {
           <Button size="large" onClick={handleCloseDialog}  >
             Cancelar
           </Button>
-          <Button size="large" autoFocus onClick={handleSubmitDialog}>
+          <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
             Guardar
           </Button>
         </DialogActions>

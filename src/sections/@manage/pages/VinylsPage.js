@@ -2,20 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
@@ -26,35 +22,23 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
   TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
   FormControl,
   InputLabel,
+  FormHelperText,
 } from '@mui/material';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link } from 'react-router-dom';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -65,7 +49,7 @@ const TABLE_HEAD = [
   { id: 'name', label: 'Nombre', alignRight: false },
   { id: 'dimensions', label: 'Dimensiones', alignRight: false },
   { id: 'area', label: 'Area', alignRight: false },
-  { id: 'cost', label: 'Costo de material', alignRight: false },
+  { id: 'cost', label: 'Costo de vinilo', alignRight: false },
   { id: 'sale_price', label: 'Precio de venta', alignRight: false },
   { id: 'active', label: 'Estado', alignRight: false },
   { id: '' },
@@ -186,6 +170,36 @@ function applySortFilter(array, comparator, query) {
 
 const VinylsPage = () => {
 
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('Vinilo agregado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('Vinilo actualizado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* React Form Hook */
+
+  const { control, handleSubmit, reset, setValue, getValues, formState: { errors }, } = useForm({
+    reValidateMode: 'onBlur'
+  });
+
   /* Dialog */
 
   const [id, setId] = useState('');
@@ -223,71 +237,86 @@ const VinylsPage = () => {
         const heightInches = height * 12;
         const base = valor / (heightInches * width);
         const sale = base + (base * (percentage / 100));
-        setPurchasePrice(base.toFixed(3));
-        setSalePrice(sale.toFixed(3));
+        setValue('purchasePrice', base.toFixed(3));
+        setValue('salePrice', sale.toFixed(3));
       }
       else {
-        setPurchasePrice('');
-        setSalePrice('');
+        setValue('purchasePrice', '');
+        setValue('salePrice', '');
+        /*         setPurchasePrice('');
+                setSalePrice(''); */
       }
     }
     else {
-      setPurchasePrice('');
-      setSalePrice('');
+      setValue('purchasePrice', '');
+      setValue('salePrice', '');
+      /*       setPurchasePrice('');
+            setSalePrice(''); */
     }
   };
 
   const handleCreateDialog = (event) => {
+    reset();
     setOpen(true);
     setId('');
-    setName('');
-    setPurchasePrice('');
-    setEstimatedValue('');
     setContainerEstimatedValue(false);
-    setWidth('');
-    setHeight('');
-    setCost('');
-    setPercentage('');
-    setSalePrice('');
-    setQuantity(1);
+    /*     setName('');
+        setPurchasePrice('');
+        setEstimatedValue('');
+        setWidth('');
+        setHeight('');
+        setCost('');
+        setPercentage('');
+        setSalePrice('');
+        setQuantity(1); */
   };
 
   const handleCloseDialog = () => {
+    reset();
     setOpen(false);
   };
 
   const handleSubmitDialog = async (event) => {
-    event.preventDefault();
     if (id) {
       await axios.put(`/api/vinyls/${id}`, {
-        name,
-        cost,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : cost,
-        'percentage': percentage,
-        'sale_price': salePrice,
-        'width': width,
-        'height_in_feet': height,
-        'height': height * 12,
-        'area': width * (height * 12),
+        name: event.name,
+        cost: event.cost,
+        'purchase_price': event.purchasePrice,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
+        'percentage': event.percentage,
+        'sale_price': event.salePrice,
+        'width': event.width,
+        'height_in_feet': event.height,
+        'height': event.height * 12,
+        'area': event.width * (event.height * 12),
       });
     } else {
       await axios.post('/api/vinyls', {
-        'name': name.concat(' (', width, ' in x', height, ' ft)'),
-        cost,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : cost,
-        percentage,
-        'sale_price': salePrice,
-        'width': width,
-        'height_in_feet': height,
-        'height': height * 12,
-        'area': width * (height * 12),
-        'quantity': quantity,
+        'name': event.name.concat(' (', event.width, ' in x', event.height, ' ft)'),
+        'cost': event.cost,
+        'cost_base': event.cost,
+        'purchase_price': event.purchasePrice,
+        'purchase_price_base': event.purchasePrice,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
+        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.cost,
+        'percentage': event.percentage,
+        'percentage_base': event.percentage,
+        'sale_price': event.salePrice,
+        'sale_price_base': event.salePrice,
+        'width': event.width,
+        'width_base': event.width,
+        'height_in_feet': event.height,
+        'height': event.height * 12,
+        'height_base': event.height * 12,
+        'area': event.width * (event.height * 12),
+        'area_base': event.width * (event.height * 12),
+        'quantity': event.quantity,
       });
     }
+    showToastMessage();
     handleCloseDialog();
     getVinyls();
+    reset();
   };
 
   const handleRequestSort = (event, property) => {
@@ -391,6 +420,12 @@ const VinylsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Vinilo desactivado')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Vinilo activado')
+                                )
                                 setVinyls(vinyls.map((vinyl) => {
                                   if (vinyl.id === id) {
                                     return { ...vinyl, active: !active };
@@ -415,18 +450,29 @@ const VinylsPage = () => {
                             </Link>
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-                              setName(name);
-                              setWidth(width);
-                              setHeight(heightFeet);
-                              setCost(cost);
-                              setPurchasePrice(purchasePrice);
-                              setEstimatedValue(estimatedValue);
+                              /*  setName(name);
+                               setWidth(width);
+                               setHeight(heightFeet);
+                               setCost(cost);
+                               setPurchasePrice(purchasePrice);
+                               setEstimatedValue(estimatedValue);
+                               setPercentage(percentage);
+                               setSalePrice(salePrice); */
+
+                              setValue('name', name);
+                              setValue('width', width);
+                              setValue('height', heightFeet);
+                              setValue('cost', cost);
+                              setValue('purchasePrice', purchasePrice);
+                              setValue('estimatedValue', estimatedValue);
+                              setValue('percentage', percentage);
+                              setValue('salePrice', salePrice);
+
+
                               if (parseFloat(cost) === 0)
                                 setContainerEstimatedValue(true)
                               else
                                 setContainerEstimatedValue(false)
-                              setPercentage(percentage);
-                              setSalePrice(salePrice);
                               setOpen(true);
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -509,6 +555,10 @@ const VinylsPage = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -523,134 +573,266 @@ const VinylsPage = () => {
         <DialogContent dividers>
           <Stack spacing={3} sx={{ minWidth: 550 }}>
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Descripción del vinilo"
-                variant="outlined"
-                size="small"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
+              <Controller
+                name="name"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'La descripción es requerida',
+                  minLength: {
+                    value: 3,
+                    message: 'La descripción debe tener al menos 3 caracteres'
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'La descripción debe tener máximo 50 caracteres'
+                  }
                 }}
-                required
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Descripción del vinilo"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
               />
             </FormControl>
 
             <Stack direction="row" alignItems="center" spacing={1}>
-              <FormControl sx={{ width: '50%' }}>
+              <FormControl sx={{ width: '50%' }} error={!!errors?.width}>
                 <InputLabel htmlFor="outlined-adornment-amount">Ancho</InputLabel>
-                <OutlinedInput
-                  id="outlined-adornment-amount"
-                  startAdornment={<InputAdornment position="start">in</InputAdornment>}
-                  label="Ancho"
-                  placeholder='0'
-                  size="small"
-                  type="number"
-                  value={width}
-                  onChange={(e) => {
-                    setWidth(e.target.value);
-                    handleCalculateSalePrice(percentage, height, e.target.value, cost, estimatedValue);
+                <Controller
+                  name="width"
+                  control={control}
+                  defaultValue=""
+                  rules={{
+                    required: 'El ancho es requerido',
+                    min: {
+                      value: 1,
+                      message: 'El ancho debe ser mayor o igual a 1'
+                    },
+                    max: {
+                      value: 100,
+                      message: 'El ancho debe ser menor o igual a 100'
+                    }
                   }}
+                  render={({ field: { onChange, onBlur, value, } }) => (
+                    <OutlinedInput
+                      id="outlined-adornment-amount"
+                      startAdornment={<InputAdornment position="start">in</InputAdornment>}
+                      label="Ancho"
+                      placeholder='0'
+                      size="small"
+                      type="number"
+                      value={value}
+                      onChange={
+                        (e) => {
+                          onChange(e.target.value);
+                          handleCalculateSalePrice(getValues('percentage'), getValues('height'), e.target.value, getValues('cost'), getValues('estimatedValue'))
+                        }
+                      }
+                      onBlur={onBlur}
+                      required
+                    />
+                  )}
                 />
+                <FormHelperText>{errors.width && errors.width.message}</FormHelperText>
               </FormControl>
 
-              <FormControl sx={{ width: '50%' }}>
+              <FormControl sx={{ width: '50%' }} error={!!errors?.height}>
                 <InputLabel htmlFor="outlined-adornment-amount">Largo</InputLabel>
-                <OutlinedInput
-                  id="outlined-adornment-amount"
-                  startAdornment={<InputAdornment position="start">ft</InputAdornment>}
-                  label="Largo"
-                  placeholder='0'
-                  size="small"
-                  type="number"
-                  value={height}
-                  onChange={(e) => {
-                    setHeight(e.target.value);
-                    handleCalculateSalePrice(percentage, e.target.value, width, cost, estimatedValue);
+                <Controller
+                  name="height"
+                  control={control}
+                  defaultValue=""
+                  rules={{
+                    required: 'El largo es requerido',
+                    min: {
+                      value: 1,
+                      message: 'El largo debe ser mayor o igual a 1'
+                    },
+                    max: {
+                      value: 1000,
+                      message: 'El largo debe ser menor o igual a 1000'
+                    }
                   }}
+                  render={({ field: { onChange, onBlur, value, } }) => (
+                    <OutlinedInput
+                      id="outlined-adornment-amount"
+                      startAdornment={<InputAdornment position="start">ft</InputAdornment>}
+                      label="Largo"
+                      placeholder='0'
+                      size="small"
+                      type="number"
+                      value={value}
+                      onChange={
+                        (e) => {
+                          onChange(e.target.value);
+                          handleCalculateSalePrice(getValues('percentage'), e.target.value, getValues('width'), getValues('cost'), getValues('estimatedValue'))
+                        }
+                      }
+                      onBlur={onBlur}
+                      required
+                    />
+                  )}
                 />
+                <FormHelperText>{errors.height && errors.height.message}</FormHelperText>
               </FormControl>
             </Stack>
 
-            <FormControl sx={{ width: '100%' }}>
-              <InputLabel htmlFor="outlined-adornment-amount">Costo de material</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                label="Costo de material"
-                placeholder='0.00'
-                size="small"
-                value={cost}
-                onChange={(e) => {
-                  setCost(e.target.value)
-                  if (parseFloat(e.target.value) === 0) {
-                    setContainerEstimatedValue(true)
-                    handleCalculateSalePrice(percentage, height, width, e.target.value, estimatedValue);
-                  }
-                  else {
-                    setContainerEstimatedValue(false);
-                    handleCalculateSalePrice(percentage, height, width, e.target.value, estimatedValue);
+            <FormControl sx={{ width: '100%' }} error={!!errors?.cost}>
+              <InputLabel htmlFor="outlined-adornment-amount">Costo del vinilo</InputLabel>
+              <Controller
+                name="cost"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El costo del vinilo es requerido',
+                  min: {
+                    value: 0,
+                    message: 'El costo del vinilo debe ser mayor o igual a 0'
+                  },
+                  max: {
+                    value: 100000,
+                    message: 'El costo del vinilo debe ser menor o igual a 100000'
                   }
                 }}
-                type="number"
-                required
+                render={({ field: { onChange, onBlur, value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Costo del vinilo"
+                    placeholder='0.00'
+                    size="small"
+                    value={value}
+                    onChange={(e) => {
+                      onChange(e.target.value)
+                      if (parseFloat(e.target.value) === 0) {
+                        setContainerEstimatedValue(true)
+                        handleCalculateSalePrice(getValues('percentage'), getValues('height'), getValues('width'), e.target.value, getValues('estimatedValue'));
+                      }
+                      else {
+                        setContainerEstimatedValue(false);
+                        handleCalculateSalePrice(getValues('percentage'), getValues('height'), getValues('width'), e.target.value, getValues('estimatedValue'));
+                      }
+                    }}
+                    onBlur={onBlur}
+                    type="number"
+                    required
+                  />
+                )}
               />
+              <FormHelperText>{errors.cost && errors.cost.message}</FormHelperText>
             </FormControl>
 
             {
               containerEstimatedValue ?
                 (
-                  <FormControl sx={{ width: '100%' }}>
+                  <FormControl sx={{ width: '100%' }} error={!!errors?.estimatedValue}>
                     <InputLabel htmlFor="outlined-adornment-amount">Costo estimado</InputLabel>
-                    <OutlinedInput
-                      id="outlined-adornment-amount"
-                      startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                      label="Costo estimado"
-                      placeholder='0.00'
-                      size="small"
-                      value={estimatedValue}
-                      onChange={(e) => {
-                        setEstimatedValue(e.target.value);
-                        handleCalculateSalePrice(percentage, height, width, cost, e.target.value);
+                    <Controller
+                      name="estimatedValue"
+                      control={control}
+                      defaultValue=""
+                      rules={{
+                        required: 'El costo estimado del vinilo es requerido',
+                        min: {
+                          value: 1,
+                          message: 'El costo estimado del vinilo debe ser mayor o igual a 1'
+                        },
+                        max: {
+                          value: 100000,
+                          message: 'El costo estimado del vinilo debe ser menor o igual a 100000'
+                        }
                       }}
-                      type="number"
-                      required
+                      render={({ field: { onChange, onBlur, value, } }) => (
+                        <OutlinedInput
+                          id="outlined-adornment-amount"
+                          startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                          label="Costo estimado"
+                          placeholder='0.00'
+                          size="small"
+                          value={value}
+                          onChange={(e) => {
+                            onChange(e.target.value);
+                            handleCalculateSalePrice(getValues('percentage'), getValues('height'), getValues('width'), getValues('cost'), e.target.value);
+                          }}
+                          onBlur={onBlur}
+                          type="number"
+                          required
+                        />
+                      )}
                     />
+                    <FormHelperText>{errors.estimatedValue && errors.estimatedValue.message}</FormHelperText>
                   </FormControl>
                 )
                 :
                 null
             }
-            <FormControl sx={{ width: '100%' }}>
-              <InputLabel htmlFor="outlined-adornment-amount">Porcentaje de ganancia</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">%</InputAdornment>}
-                label="Porcentaje de ganancia"
-                placeholder='0'
-                size="small"
-                value={percentage}
-                onChange={(e) => {
-                  setPercentage(e.target.value);
-                  handleCalculateSalePrice(e.target.value, height, width, cost, estimatedValue);
-                }}
-                type="number"
-                required
-              />
-            </FormControl>
 
+            <FormControl sx={{ width: '100%' }} error={!!errors?.percentage}>
+              <InputLabel htmlFor="outlined-adornment-amount">Porcentaje de ganancia</InputLabel>
+              <Controller
+                name="percentage"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El porcentaje de ganancia es requerido',
+                  min: {
+                    value: 1,
+                    message: 'El porcentaje de ganancia debe ser mayor o igual a 1'
+                  },
+                  max: {
+                    value: 100,
+                    message: 'El porcentaje de ganancia debe ser menor o igual a 100'
+                  }
+                }}
+                render={({ field: { onChange, onBlur, value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">%</InputAdornment>}
+                    label="Porcentaje de ganancia"
+                    placeholder='0'
+                    size="small"
+                    value={value}
+                    onChange={(e) => {
+                      onChange(e.target.value);
+                      handleCalculateSalePrice(e.target.value, getValues('height'), getValues('width'), getValues('cost'), getValues('estimatedValue'));
+                    }}
+                    onBlur={onBlur}
+                    type="number"
+                    required
+                  />
+                )}
+              />
+              <FormHelperText>{errors.percentage && errors.percentage.message}</FormHelperText>
+            </FormControl>
 
             <FormControl sx={{ width: '100%' }}>
               <InputLabel htmlFor="outlined-adornment-amount">Precio de venta in²</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                label="Costo de material"
-                placeholder='0.000'
-                size="small"
-                value={salePrice}
-                type="number"
-                disabled
+              <Controller
+                name="salePrice"
+                control={control}
+                defaultValue=""
+                render={({ field: { value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Costo del vinilo"
+                    placeholder='0.000'
+                    size="small"
+                    value={value}
+                    type="number"
+                    disabled
+                  />
+                )}
               />
             </FormControl>
 
@@ -658,15 +840,35 @@ const VinylsPage = () => {
               !id ?
                 (
                   <FormControl sx={{ width: '100%' }}>
-                    <TextField
-                      id="outlined-number"
-                      label="Cantidad"
-                      type="number"
-                      size="small"
-                      value={quantity}
-                      onChange={(e) => {
-                        setQuantity(e.target.value)
+                    <Controller
+                      name="quantity"
+                      control={control}
+                      defaultValue="1"
+                      rules={{
+                        required: 'La cantidad es requerida',
+                        min: {
+                          value: 1,
+                          message: 'La cantidad debe ser mayor o igual a 1'
+                        },
+                        max: {
+                          value: 1000,
+                          message: 'La cantidad debe ser menor o igual a 1000'
+                        }
                       }}
+                      render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                        <TextField
+                          id="outlined-number"
+                          label="Cantidad"
+                          type="number"
+                          size="small"
+                          value={value}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                          required
+                          error={!!error}
+                          helperText={error ? error.message : null}
+                        />
+                      )}
                     />
                   </FormControl>
                 )
@@ -679,7 +881,7 @@ const VinylsPage = () => {
           <Button size="large" onClick={handleCloseDialog}  >
             Cancelar
           </Button>
-          <Button size="large" autoFocus onClick={handleSubmitDialog}>
+          <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
             Guardar
           </Button>
         </DialogActions>

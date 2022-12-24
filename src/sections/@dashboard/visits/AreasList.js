@@ -5,6 +5,8 @@ import { Stack } from '@mui/system';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import Iconify from '../../../components/iconify';
 
 const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected, handleChangeTimeIn, handleChangeTimeOut, checkAll, handleChangeCheckAll, handleChangeTimeInCheckAll, handleChangeTimeOutCheckAll }) => {
@@ -39,20 +41,18 @@ const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected
             {
               areasSelected[index].visible ? (
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ margin: '10px' }} >
-                  <LocalizationProvider dateAdapter={AdapterDateFns} >
+
+                  <LocalizationProvider locale={es} dateAdapter={AdapterDateFns} >
                     <TimePicker
                       label="Hora de entrada"
-                      renderInput={(params) => <TextField InputLabelProps={
-                        {
-                          shrink: true
-                        }
-                      } {...params}
-                        size="small"
-                        sx={{ width: '13%', marginLeft: '10px', }} />}
+                      renderInput={(params) => <TextField InputLabelProps={{shrink: true}} {...params} size="small" sx={{ width: '13%', marginLeft: '10px', }} />}
                       value={areasSelected[index].timeIn}
                       onChange={(newValue) => {
                         handleChangeTimeIn(index, newValue);
                       }}
+                      ampm
+                      minTime={parseISO('2021-01-01T08:00:00')}
+                      maxTime={parseISO('2021-01-01T16:00:00')}
                     />
                   </LocalizationProvider>
 
@@ -65,7 +65,7 @@ const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected
                     <Iconify icon="bi:arrow-right" />
                   </Avatar>
 
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
                     <TimePicker
                       label="Hora de salida"
                       renderInput={(params) => <TextField InputLabelProps={
@@ -84,6 +84,9 @@ const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected
                       onChange={(newValue) => {
                         handleChangeTimeOut(index, newValue);
                       }}
+                      ampm
+                      minTime={parseISO('2021-01-01T08:00:00')}
+                      maxTime={parseISO('2021-01-01T16:00:00')}
                     />
                   </LocalizationProvider>
                 </Stack>
@@ -103,30 +106,37 @@ const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected
             <FormControlLabel control={<Checkbox name="Marcar todas" checked={checkAll.visible} onChange={handleChangeCheckAll} />} sx={{ marginLeft: '3px' }} label="Marcar todas" />
             {checkAll.visible ? (
               <Stack direction="row" spacing={2} alignItems="center" sx={{ margin: '10px' }} >
-                <LocalizationProvider dateAdapter={AdapterDateFns} >
+
+                <LocalizationProvider locale={es} dateAdapter={AdapterDateFns} >
                   <TimePicker label="Hora de entrada" renderInput={(params) => <TextField {...params} size="small" sx={{ width: '25%', marginLeft: '10px', }} />}
                     value={checkAll.timeIn}
                     onChange={(newValue) => {
                       handleChangeTimeInCheckAll(newValue);
                     }}
+                    ampm
+                    minTime={parseISO('2021-01-01T08:00:00')}
+                    maxTime={parseISO('2021-01-01T16:00:00')}
                   />
                 </LocalizationProvider>
 
                 <Avatar
-                    sx={{
-                      bgcolor: 'primary.main',
-                      color: 'primary.contrastText',
-                    }}
-                  >
-                    <Iconify icon="bi:arrow-right" />
-                  </Avatar>
+                  sx={{
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                  }}
+                >
+                  <Iconify icon="bi:arrow-right" />
+                </Avatar>
 
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
                   <TimePicker label="Hora de salida" renderInput={(params) => <TextField {...params} size="small" sx={{ width: '25%', }} />}
                     value={checkAll.timeOut}
                     onChange={(newValue) => {
                       handleChangeTimeOutCheckAll(newValue);
                     }}
+                    ampm
+                    minTime={parseISO('2021-01-01T08:00:00')}
+                    maxTime={parseISO('2021-01-01T16:00:00')}
                   />
                 </LocalizationProvider>
               </Stack>

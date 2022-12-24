@@ -71,10 +71,6 @@ const options = [
         label: 'General',
     },
     {
-        value: 'v',
-        label: 'Visitas',
-    },
-    {
         value: 'c',
         label: 'Ingresos y Egresos',
     },
@@ -83,9 +79,9 @@ const options = [
         label: 'Invetario',
     },
     {
-        value: 'r',
-        label: 'Reservas',
-    }
+        value: 'v',
+        label: 'Visitas Y Reservaciones',
+    },
 ];
 
 // ----------------------------------------------------------------------
@@ -141,9 +137,9 @@ const ReportsPage = () => {
 
     const [itemSelected, setItemSelected] = useState(null);
 
-    const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
+    const [startDate, setStartDate] = useState(new Date(`${format(new Date(), 'yyyy-MM-01')}T00:00:00`));
 
-    const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [endDate, setEndDate] = useState(new Date(`${format(new Date(), 'yyyy-MM-dd')}T00:00:00`));
 
     const [isLoading, setIsLoading] = useState(false);
 
@@ -236,11 +232,12 @@ const ReportsPage = () => {
                         </Typography>
                     </Stack>
                     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ paddingX: 3, paddingBottom: 3 }}>
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                             <DatePicker
                                 label="Fecha de inicio"
                                 value={startDate}
                                 onChange={handleStartDateChange}
+                                inputFormat="dd/MM/yyyy"
                                 renderInput={(params) => <TextField sx={
                                     {
                                         width: '30%',
@@ -257,10 +254,11 @@ const ReportsPage = () => {
                             <Iconify icon="bx:bxs-calendar" />
                         </Avatar>
 
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                             <DatePicker
                                 label="Fecha de finalización"
                                 value={endDate}
+                                inputFormat="dd/MM/yyyy"
                                 onChange={handleEndDateChange}
                                 renderInput={(params) => <TextField sx={
                                     {
@@ -412,6 +410,8 @@ const ReportsPage = () => {
                 keepMounted
                 onClose={() => {
                     setIsComplete(false);
+                    setStartDate(new Date(`${format(new Date(), 'yyyy-MM-01')}T00:00:00`));
+                    setEndDate(new Date(`${format(new Date(), 'yyyy-MM-dd')}T00:00:00`));
                 }}
                 aria-describedby="alert-dialog-slide-description"
                 fullWidth
@@ -540,11 +540,9 @@ const ReportsPage = () => {
                         Cancelar
                     </Button>
                     <Button onClick={() => {
-
-                        
                         axios.post('/api/reports', {
-                            start_date: startDate instanceof Date ? format(startDate, 'yyyy-MM-dd') : startDate,
-                            end_date: endDate instanceof Date ? format(endDate, 'yyyy-MM-dd') : endDate,
+                            start_date: format(startDate, 'yyyy-MM-dd'),
+                            end_date: format(endDate, 'yyyy-MM-dd'),
                             type: radioSelected,
                             user_id: localStorage.getItem('id'),
                         })

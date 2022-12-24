@@ -49,6 +49,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import { UserActivationPage } from './pages/UserActivationPage';
 import { CheckOut } from './pages/CheckOut';
 import AttentionPage from './pages/AttendPage';
+import SoftwareUpdate from './sections/@manage/pages/SoftwareUpdate';
 
 // ----------------------------------------------------------------------
 
@@ -102,6 +103,7 @@ export default function Router() {
         { path: 'management/areas/6/update/:id', element: <ResinUpdate /> },
         
         { path: 'management/areas/7', element: <Softwares /> },
+        { path: 'management/areas/7/update/:id', element: <SoftwareUpdate />},
         
         { path: 'management/areas/8', element: <ThreadsPage /> },
         { path: 'management/areas/8/update/:id', element: <ThreadUpdate /> },

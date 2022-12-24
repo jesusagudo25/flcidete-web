@@ -2,17 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
   Checkbox,
   TableRow,
   MenuItem,
@@ -27,20 +25,15 @@ import {
   DialogContent,
   DialogActions,
   Box,
-  Backdrop,
-  CircularProgress,
   TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
   FormControlLabel,
   styled,
   Switch,
   FormControl,
   InputLabel,
   Select,
-  FormHelperText,
   InputAdornment,
   OutlinedInput,
   Tab,
@@ -50,17 +43,14 @@ import {
 
 // components
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import { TimePicker } from '@mui/x-date-pickers';
-import { Link } from 'react-router-dom';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -227,28 +217,59 @@ TabPanel.propTypes = {
 };
 
 const EventsPage = () => {
+  
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('Evento agregado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('Evento actualizado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* useForm */
+
+  const { control, handleSubmit, reset } = useForm({
+    reValidateMode: 'onBlur'
+  });
 
   /* Event */
 
   const [id, setId] = useState(''); // Id del evento
   const [category, setCategory] = useState('1'); // Categoria del evento
   const [name, setName] = useState(''); // Nombre del evento
-  const [initialDate, setInitialDate] = useState(new Date()); // Fecha inicial del evento
-  const [finalDate, setFinalDate] = useState(new Date()); // Fecha final del evento
-  const [initialTime, setInitialTime] = useState(new Date()); // Hora inicial del evento
-  const [finalTime, setFinalTime] = useState(new Date()); // Hora final del evento
+  const [initialDate, setInitialDate] = useState(null); // Fecha inicial del evento
+  const [finalDate, setFinalDate] = useState(null); // Fecha final del evento
+  const [initialTime, setInitialTime] = useState(null); // Hora inicial del evento
+  const [finalTime, setFinalTime] = useState(null); // Hora final del evento
   const [maxParticipants, setMaxParticipants] = useState(0); // Maximo de participantes
   const [price, setPrice] = useState(0); // Precio del evento
   const [expenses, setExpenses] = useState(0); // Gastos del evento
   const [descriptionExpenses, setDescriptionExpenses] = useState(''); // Descripcion de los gastos
+  const [checkAll, setCheckAll] = useState(false); // Checkbox de todos los areas
 
   /* Db */
 
   const [categories, setCategories] = useState([]); // Categorias de los eventos
 
-  const [areas, setAreas] = useState([]); // Areas de los eventos
+  const [areas, setAreas] = useState([]); // Areas de los eventos - backend
 
-  const [areasSelected, setAreasSelected] = useState([]); // Areas del evento
+  const [areasSelected, setAreasSelected] = useState([]); // Areas para desplegar en el modal
 
   const [events, setEvents] = useState([]);
 
@@ -282,8 +303,51 @@ const EventsPage = () => {
 
   }
 
+  const handleChangeCheckAll = (event) => {
+    setCheckAll(event.target.checked);
+    if (event.target.checked) {
+      setAreasSelected(areas.map((area) => {
+        return {
+          id: area.id,
+          checked: true,
+        }
+      }));
+    }
+    else {
+      setAreasSelected(areas.map((area) => {
+        return {
+          id: '',
+          checked: false,
+        }
+      }));
+    }
+  };
+
   const handleCreateDialog = (event) => {
     setOpen(true);
+    setId('');
+    setCategory('1');
+    setName('');
+    setInitialDate(null);
+    setFinalDate(null);
+    setInitialTime(null);
+    setFinalTime(null);
+    setMaxParticipants(0);
+    setPrice(0);
+    setExpenses(0);
+    setDescriptionExpenses('');
+    setAreasSelected(new Array(areas.length).fill(
+      {
+        id: '',
+        checked: false,
+      }
+    ));
+
+  };
+
+  const handleCloseDialog = () => {
+    setOpen(false);
+    setValue(0);
     setId('');
     setCategory('1');
     setName('');
@@ -296,22 +360,16 @@ const EventsPage = () => {
     setExpenses(0);
     setDescriptionExpenses('');
     setAreasSelected(new Array(areas.length).fill(
-        {
-          id: '',
-          checked: false,
-        }
-      )
-    );
-
-  };
-
-  const handleCloseDialog = () => {
-    setOpen(false);
+      {
+        id: '',
+        checked: false,
+      }
+    ));
+    setCheckAll(false);
   };
 
   const handleSubmitDialog = async (event) => {
     event.preventDefault();
-    console.log(areasSelected);
     if (id) {
       await axios.put(`/api/events/${id}`, {
         event_category_id: category,
@@ -348,9 +406,13 @@ const EventsPage = () => {
           }
         })
       });
-    }
+    } 
+
+    setValue(0);
+    showToastMessage();
     handleCloseDialog();
     getEvents();
+    setCheckAll(false);
   };
 
   const handleRequestSort = (event, property) => {
@@ -457,7 +519,7 @@ const EventsPage = () => {
                 {events.length > 0 ? (
                   <TableBody>
                     {filteredEvents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, name, event_category: eventCategory, initial_date: initialDate, final_date: finalDate, initial_time: initialTime, final_time: finalTime, max_participants: maxParticipants, price, expenses, description_expenses: descriptionExpenses, areas, active } = row;
+                      const { id, name, event_category: eventCategory, initial_date: initialDate, final_date: finalDate, initial_time: initialTime, final_time: finalTime, max_participants: maxParticipants, price, expenses, description_expenses: descriptionExpenses, areas: areasEvent, active } = row;
 
                       return (
                         <TableRow hover key={id} tabIndex={-1} role="checkbox">
@@ -493,6 +555,12 @@ const EventsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Evento desactivado')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Evento activado')
+                                )
                                 setEvents(events.map((event) => {
                                   if (event.id === id) {
                                     return { ...event, active: !active };
@@ -521,14 +589,48 @@ const EventsPage = () => {
                               setId(id);
                               setName(name);
                               setCategory(eventCategory.id);
-                              setInitialDate(initialDate);
-                              setFinalDate(finalDate);
-                              setInitialTime(initialTime);
-                              setFinalTime(finalTime);
+                              
+                              setInitialDate(new Date(`${initialDate}T00:00:00`));
+                              setFinalDate(new Date(`${finalDate}T00:00:00`));
+                              setInitialTime(parseISO(`${initialDate}T${initialTime}`));
+                              setFinalTime(parseISO(`${finalDate}T${finalTime}`));
+
                               setMaxParticipants(maxParticipants);
                               setPrice(price);
                               setExpenses(expenses);
                               setDescriptionExpenses(descriptionExpenses);
+
+                              /* bookingSelected.areas */
+                              const updatedCheckedState = [];
+
+                              if (areasEvent.length < areas.length) {
+                                areasSelected.forEach((area, index) => {
+                                  const resul = areasEvent.find((item) => item.id === index + 1)
+                                  if (resul) {
+                                    updatedCheckedState.push({
+                                      id: resul.id,
+                                      checked: true,
+                                    });
+                                  } else {
+                                    updatedCheckedState.push({
+                                      id: '',
+                                      checked: false,
+                                    });
+                                  }
+                                });
+
+                                setAreasSelected(updatedCheckedState);
+                              } else {
+                                setCheckAll(true);
+                                setAreasSelected(
+                                  areas.map((area) => {
+                                    return {
+                                      id: area.id,
+                                      checked: true,
+                                    }
+                                  })
+                                );
+                              }
                               setOpen(true);
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -611,6 +713,10 @@ const EventsPage = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -664,29 +770,33 @@ const EventsPage = () => {
                 </Select>
               </FormControl>
 
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Fecha de inicio"
                   value={initialDate}
+                  inputFormat="dd/MM/yyyy"
                   onChange={(newValue) => {
                     setInitialDate(newValue);
                   }}
+                  disablePast
                   renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
                 />
               </LocalizationProvider>
 
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Fecha de finalización"
                   value={finalDate}
+                  inputFormat="dd/MM/yyyy"
                   onChange={(newValue) => {
                     setFinalDate(newValue);
                   }}
+                  disablePast
                   renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
                 />
               </LocalizationProvider>
 
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
                 <TimePicker
                   label="Hora de inicio"
                   value={initialTime}
@@ -694,10 +804,13 @@ const EventsPage = () => {
                     setInitialTime(newValue)
                   }}
                   renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
+                  ampm
+                  minTime={parseISO('2021-01-01T08:00:00')}
+                  maxTime={parseISO('2021-01-01T16:00:00')}
                 />
               </LocalizationProvider>
 
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
                 <TimePicker
                   label="Hora de finalización"
                   value={finalTime}
@@ -705,6 +818,9 @@ const EventsPage = () => {
                     setFinalTime(newValue)
                   }}
                   renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
+                  ampm
+                  minTime={parseISO('2021-01-01T08:00:00')}
+                  maxTime={parseISO('2021-01-01T16:00:00')}
                 />
               </LocalizationProvider>
 
@@ -778,12 +894,26 @@ const EventsPage = () => {
                         color="primary"
                         checked={areasSelected[index].checked}
                         onChange={() => handleSelectedAreas(index)}
+                        disabled={checkAll}
                       />
                     }
-                    label={areas[index].name}
+                    label={area.name}
                   />
                 </Grid>
               ))}
+              <Grid item xs={2} sm={4} md={4}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      id={`area-checkbox-$`}
+                      name={'Marcar todas'}
+                      checked={checkAll}
+                      onChange={handleChangeCheckAll}
+                    />
+                  }
+                  label={<Typography variant="subtitle1" color="textSecondary">- Marcar todas</Typography>}
+                />
+              </Grid>
             </Grid>
           </TabPanel>
 

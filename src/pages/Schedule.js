@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
     Card,
     Table,
@@ -49,23 +47,59 @@ import {
     Grid,
     Input
 } from '@mui/material';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import FullCalendar from '@fullcalendar/react' // must go before plugins
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import esLocale from '@fullcalendar/core/locales/es';
+
 import { Link } from 'react-router-dom';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { format, parseISO } from 'date-fns';
-import Slide from '@mui/material/Slide';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import { TimePicker } from '@mui/x-date-pickers';
+import { es } from 'date-fns/locale';
+
 import Iconify from '../components/iconify';
 
 import { getCalendarEvents } from '../sections/@dashboard/schedule/getCalendarEvents';
 
+const Android12Switch = styled(Switch)(({ theme }) => ({
+    padding: 8,
+    '& .MuiSwitch-track': {
+        borderRadius: 22 / 2,
+        '&:before, &:after': {
+            content: '""',
+            position: 'absolute',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 16,
+            height: 16,
+        },
+        '&:before': {
+            backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 24 24"><path fill="${encodeURIComponent(
+                theme.palette.getContrastText(theme.palette.primary.main),
+            )}" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>')`,
+            left: 12,
+        },
+        '&:after': {
+            backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 24 24"><path fill="${encodeURIComponent(
+                theme.palette.getContrastText(theme.palette.primary.main),
+            )}" d="M19,13H5V11H19V13Z" /></svg>')`,
+            right: 12,
+        },
+    },
+    '& .MuiSwitch-thumb': {
+        boxShadow: 'none',
+        width: 16,
+        height: 16,
+        margin: 2,
+    },
+}));
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     '& .MuiDialogContent-root': {
@@ -142,10 +176,41 @@ TabPanel.propTypes = {
 
 const Schedule = () => {
 
+    /* Toastify */
+
+    const showToastMessage = () => {
+        if (!id) toast.success('Reservación agregada con éxito!', {
+            position: toast.POSITION.TOP_RIGHT
+        });
+        else toast.success('Reservación actualizada con éxito!', {
+            position: toast.POSITION.TOP_RIGHT
+        });
+    };
+
+    const showToastMessageChangeDay = (type, message) => {
+        if (type === 'error') {
+            toast.error(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+        else {
+            toast.success(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+    };
+
+    /* useForm */
+    const { control, handleSubmit, reset } = useForm({
+        reValidateMode: 'onBlur'
+    });
+
+    /* Conteiner */
     const [open, setOpen] = useState(false);
     const [value, setValue] = useState(0);
     const [showCreate, setShowCreate] = useState(false);
     const [showEditEvent, setShowEditEvent] = useState(false);
+    const [disabled, setDisabled] = useState(false);
 
     /* Datos eventos */
     const [title, setTitle] = useState(''); // Título del evento
@@ -156,7 +221,7 @@ const Schedule = () => {
     const [finalTime, setFinalTime] = useState(new Date()); // Hora final del evento
     const [price, setPrice] = useState(0); // Precio del evento
     const [maxParticipants, setMaxParticipants] = useState(0); // Máximo de participantes
-
+    const [status, setStatus] = useState(null);
 
     /* Customers */
     const [id, setId] = useState(null);
@@ -165,7 +230,6 @@ const Schedule = () => {
     const [documentNumber, setDocumentNumber] = useState(null);
     const [name, setName] = useState(null);
     const [date, setDate] = useState(null);
-
 
     /* Datos visita */
     const [areasSelected, setAreasSelected] = useState([]); // [{id: '', checked: false}
@@ -185,39 +249,40 @@ const Schedule = () => {
 
     const handleChangeReasonSelected = (event) => {
         setReasonSelected(event.target.value);
+        flexibleHandleChangeReason(event.target.value);
+    };
 
-        const selected = reasonVisits.find((reason) => reason.id === event.target.value);
-
-        if (selected.isGroup) {
-            setAreasSelected(
-                new Array(areas.length).fill(
-                    {
-                        id: '',
-                        visible: false,
-                        timeIn: new Date(),
-                        timeOut: new Date()
-                    }
-                )
-            );
-            setCheckAll(
+    const flexibleHandleChangeReason = (event) => {
+        const selected = reasonVisits.find((reason) => reason.id === event);
+        setAreasSelected(
+            new Array(areas.length).fill(
                 {
+                    id: '',
                     visible: false,
                     timeIn: new Date(),
-                    timeOut: new Date()
+                    timeOut: null
                 }
-            );
+            )
+        );
+        setCheckAll(
+            {
+                visible: false,
+                timeIn: new Date(),
+                timeOut: null
+            }
+        );
+
+        if (selected.isGroup) {
             setContainerCheckAll(true);
         }
         /* No es una visita libre */
         else {
             setContainerCheckAll(false);
         }
-
-    };
+    }
 
     const handleChange = (event, newValue) => {
         setValue(newValue);
-        console.log(areasSelected);
     };
 
     const handleSelectedAreas = (position) => {
@@ -265,7 +330,7 @@ const Schedule = () => {
                         id: area.id,
                         visible: false,
                         timeIn: new Date(),
-                        timeOut: new Date()
+                        timeOut: null
                     }
                 })
             );
@@ -277,7 +342,7 @@ const Schedule = () => {
                         id: '',
                         visible: false,
                         timeIn: new Date(),
-                        timeOut: new Date()
+                        timeOut: null
                     }
                 })
             );
@@ -317,26 +382,75 @@ const Schedule = () => {
 
     /* Modal dialog */
 
-    const handleCreateDialog = (event) => {
-        setOpen(true);
-
-    };
-
     const handleCloseDialog = () => {
         setOpen(false);
+        setId(null);
+        setContainerTypeVisit('I');
+        setDisabled(false);
+        setId(null);
+        setDocumentType('C');
+        setDocumentNumber(null);
+        setName(null);
+        setDate(null);
+        flexibleHandleChangeReason(1);
+
+        setAreasSelected(
+            areas.map((area) => {
+                return {
+                    id: '',
+                    visible: false,
+                    timeIn: new Date(),
+                    timeOut: null
+                }
+            }
+            )
+        );
+        setCheckAll({
+            visible: false,
+            timeIn: new Date(),
+            timeOut: null
+        });
+        setSelectedFile(null);
+        setValue(0);
+        if(!open)setShowEditEvent(false);
     };
 
     const handleSubmitDialog = async (event) => {
         event.preventDefault();
+        handleCloseDialog();
         if (id) {
-            // await axios.put(`/api/events/${id}`, {
+            await axios.post(`/api/bookings/put`, {
+                id,
+                'type': containerTypeVisit,
+                'document_type': documentType,
+                'document_number': documentNumber,
+                name,
+                date: format(date, 'yyyy-MM-dd'),
+                'reason_visit_id': reasonSelected,
+                areas: areasSelected.filter((area) => area.id !== '').map((area) => {
+                    return {
+                        area_id: area.id,
+                        start_time: format(area.timeIn, 'HH:mm:ss'),
+                        end_time: format(area.timeOut, 'HH:mm:ss')
+                    }
+                }),
+                file: containerTypeVisit === 'G' ? selectedFile : null,
+                'status': status ? 'S'  : 'P'
+            },
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Accept': 'application/json'
+                    }
+                }
+            );
         } else {
             await axios.post('/api/bookings', {
                 'type': containerTypeVisit,
                 'document_type': documentType,
                 'document_number': documentNumber,
                 name,
-                date,
+                date: format(date, 'yyyy-MM-dd'),
                 'reason_visit_id': reasonSelected,
                 areas: areasSelected.filter((area) => area.id !== '').map((area) => {
                     return {
@@ -354,7 +468,8 @@ const Schedule = () => {
                 }
             );
         }
-        handleCloseDialog();
+        showToastMessage();
+        setShowEditEvent(false);
         getCalendarEvents();
     };
 
@@ -367,16 +482,16 @@ const Schedule = () => {
                 {
                     id: '',
                     visible: false,
-                    timeIn: new Date(),
-                    timeOut: new Date()
+                    timeIn: null,
+                    timeOut: null
                 }
             )
         );
         setCheckAll(
             {
                 visible: false,
-                timeIn: new Date(),
-                timeOut: new Date()
+                timeIn: null,
+                timeOut: null
             }
         );
     }
@@ -430,46 +545,123 @@ const Schedule = () => {
                             setShowEditEvent(true);
                             if (info.event.classNames.includes('event')) {
                                 setId(info.event.groupId);
-                                axios.get(`/api/events/${info.event.groupId}`)
-                                    .then((response) => {
-                                        setOpen(true);
-                                        setTitle(response.data.name);
-                                        setEventCategory(response.data.event_category.name);
-                                        setInitialDate(response.data.initial_date);
-                                        setFinalDate(response.data.final_date);
-
-
-                                        setInitialTime(parseISO(`${response.data.initial_date.split('T')[0]} ${response.data.initial_time}`));
-                                        setFinalTime(parseISO(`${response.data.final_date.split('T')[0]} ${response.data.final_time}`));
-                                        setPrice(response.data.price);
-                                        setMaxParticipants(response.data.max_participants);
-                                    })
-                                    .catch((error) => {
-                                        console.log(error);
-                                    });
+                                setTitle(info.event.title);
+                                setEventCategory(info.event.extendedProps.eventCategory);
+                                setInitialDate(new Date(`${info.event.extendedProps.initial_date}T00:00:00`));
+                                setFinalDate(new Date(`${info.event.extendedProps.final_date}T00:00:00`));
+                                setInitialTime(parseISO(`${info.event.extendedProps.initial_date.split('T')[0]} ${info.event.extendedProps.initial_time}`));
+                                setFinalTime(parseISO(`${info.event.extendedProps.final_date.split('T')[0]} ${info.event.extendedProps.final_time}`));
+                                setPrice(info.event.extendedProps.price);
+                                setMaxParticipants(info.event.extendedProps.quotas);
+                                setOpen(true);
                             }
                             else {
-                                setOpen(true);
                                 setId(info.event.groupId);
+
+                                setDocumentType(info.event.extendedProps.document_type);
+                                setDocumentNumber(info.event.extendedProps.document_number);
+                                setName(info.event.extendedProps.name);
+                                setContainerTypeVisit(info.event.extendedProps.type);
+                                setReasonSelected(info.event.extendedProps.reason_visit_id);
+                                flexibleHandleChangeReason(info.event.extendedProps.reason_visit_id);
+                                setDate(info.event.start);
+
+                                if (info.event.extendedProps.areas.length < areas.length) {
+
+                                    setAreasSelected(
+                                        areasSelected.map((area, index) => {
+                                            return {
+                                                ...area,
+                                                id: info.event.extendedProps.areas.find((item) => item.id === index + 1) ? info.event.extendedProps.areas.find((item) => item.id === index + 1).id : '',
+
+                                                visible: info.event.extendedProps.areas.find((item) => item.id === index + 1),
+
+                                                timeIn: info.event.extendedProps.areas.find((item) => item.id === index + 1) ? parseISO(`${info.event.startStr.split('T')[0]} ${info.event.extendedProps.areas.find((item) => item.id === index + 1).pivot.start_time}`) : null,
+
+                                                timeOut: info.event.extendedProps.areas.find((item) => item.id === index + 1) ? parseISO(`${info.event.startStr.split('T')[0]} ${info.event.extendedProps.areas.find((item) => item.id === index + 1).pivot.end_time}`) : null
+                                            }
+                                        })
+                                    );
+                                }
+                                else {
+                                    const resul = info.event.extendedProps.areas.find((item) => item.id === 1)
+
+                                    setCheckAll({
+                                        timeIn: (parseISO(`${format(info.event.start, 'yyyy-MM-dd')} ${resul.pivot.start_time}`)),
+                                        timeOut: (parseISO(`${format(info.event.start, 'yyyy-MM-dd')} ${resul.pivot.end_time}`)),
+                                        visible: !checkAll.visible
+                                    });
+
+                                    if (!checkAll.visible) {
+                                        setAreasSelected(
+                                            areas.map((area) => {
+                                                return {
+                                                    id: area.id,
+                                                    visible: false,
+                                                    timeIn: (parseISO(`${format(info.event.start, 'yyyy-MM-dd')} ${resul.pivot.start_time}`)),
+                                                    timeOut: (parseISO(`${format(info.event.start, 'yyyy-MM-dd')} ${resul.pivot.end_time}`))
+                                                }
+                                            })
+                                        );
+
+                                    }
+                                }
+
+                                if (info.event.extendedProps.status === 'D') {
+                                    setDisabled(true);
+                                    setStatus(false);
+                                } else if (info.event.extendedProps.status === 'S') {
+                                    setStatus(true);
+                                    setDisabled(false);
+                                } else {
+                                    setStatus(false);
+                                    setDisabled(false);
+                                    if(info.event.start < new Date()){
+                                        setDisabled(true);
+                                    }
+                                }
                                 setShowEditEvent(false);
+                                setOpen(true);
                             }
                         }}
                         eventDrop={(info) => {
-                            console.log(info.event)
+                            if (info.event.start < new Date()) {
+                                info.revert();
+                                showToastMessageChangeDay('error', 'No se puede cambiar la fecha de un evento que ya ha pasado.');
+                            }
+                            else {
+                                showToastMessageChangeDay('success', 'Se ha cambiado la fecha del evento.');
+                                axios.put(`/api/bookings/${info.event.groupId}`, {
+                                    'date': format(info.event.start, 'yyyy-MM-dd')
+                                });
+                            }
                         }}
                         eventTimeFormat={{
                             hour: 'numeric',
                             minute: '2-digit',
                         }}
                         dateClick={(info) => {
-                            setOpen(true);
-                            setDate(info.dateStr);
-                            setShowCreate(true);
+                            setShowEditEvent(false);
+                            if (info.dateStr >= new Date().toISOString().split('T')[0]) {
+                                /*                                 setOpen(true);
+                                                                setShowEditEvent(false);
+                                                                setInitialDate(info.dateStr);
+                                                                setFinalDate(info.dateStr);
+                                                                setInitialTime(parseISO(`${info.dateStr} 08:00`));
+                                                                setFinalTime(parseISO(`${info.dateStr} 18:00`)); */
+                                setOpen(true);
+                                setDate(info.dateStr);
+                                setDate(new Date(`${info.dateStr.toString()}T00:00:00`));
+                                setShowCreate(true);
+                            }
                         }}
                     />
                 </Card>
             </Container>
 
+            {/* Toastify */}
+
+            <ToastContainer />
 
             {/* Dialog */}
 
@@ -503,39 +695,47 @@ const Schedule = () => {
                                         <TextField id="outlined-basic" variant="outlined" value={eventCategory} size="small" disabled />
                                     </FormControl>
 
-                                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                    <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                                         <DatePicker
                                             label="Fecha de inicio"
                                             value={initialDate}
                                             disabled
+                                            inputFormat="dd/MM/yyyy"
                                             renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
                                         />
                                     </LocalizationProvider>
 
-                                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                    <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                                         <DatePicker
                                             label="Fecha de finalización"
                                             value={finalDate}
                                             disabled
                                             renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
+                                            inputFormat="dd/MM/yyyy"
                                         />
                                     </LocalizationProvider>
 
-                                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                    <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                                         <TimePicker
                                             label="Hora de inicio"
                                             value={initialTime}
                                             disabled
                                             renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
+                                            ampm
+                                            minTime={parseISO('2021-01-01T08:00:00')}
+                                            maxTime={parseISO('2021-01-01T16:00:00')}
                                         />
                                     </LocalizationProvider>
 
-                                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                    <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                                         <TimePicker
                                             label="Hora de finalización"
                                             value={finalTime}
                                             disabled
                                             renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
+                                            ampm
+                                            minTime={parseISO('2021-01-01T08:00:00')}
+                                            maxTime={parseISO('2021-01-01T16:00:00')}
                                         />
                                     </LocalizationProvider>
 
@@ -567,7 +767,7 @@ const Schedule = () => {
                             (
                                 <>
                                     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                                        <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
+                                        <Tabs value={value} onChange={handleChange} aria-label="Customers-List">
                                             <Tab label="Información general" {...a11yProps(0)} />
                                             <Tab label="Áreas para reservación" {...a11yProps(1)} />
                                             {
@@ -598,10 +798,12 @@ const Schedule = () => {
                                                         <FormControlLabel control={<Radio value="I" onChange={handleChangeTypeVisit}
                                                             checked={containerTypeVisit === 'I'} />}
                                                             label="Individual"
+                                                            disabled={disabled}
                                                         />
                                                         <FormControlLabel control={<Radio value="G" onChange={handleChangeTypeVisit}
                                                             checked={containerTypeVisit === 'G'} />}
                                                             label="Grupal"
+                                                            disabled={disabled}
                                                         />
                                                     </Stack>
                                                 </RadioGroup>
@@ -615,6 +817,7 @@ const Schedule = () => {
                                                     value={documentType}
                                                     onChange={(event) => setDocumentType(event.target.value)}
                                                     size="small"
+                                                    disabled={disabled}
                                                 >
                                                     <MenuItem value={'C'}>Cédula</MenuItem>
                                                     <MenuItem value={'P'}>Pasaporte</MenuItem>
@@ -625,13 +828,15 @@ const Schedule = () => {
                                             <FormControl sx={{ width: '100%' }}>
                                                 <TextField id="outlined-basic" label="Número de documento" variant="outlined" value={documentNumber} size="small" onChange={(event) => {
                                                     setDocumentNumber(event.target.value)
-                                                }} />
+                                                }}
+                                                    disabled={disabled}
+                                                />
                                             </FormControl>
 
                                             <FormControl sx={{ width: '100%' }}>
                                                 <TextField id="outlined-basic" label="Nombre" variant="outlined" value={name} size="small" onChange={(event) => {
                                                     setName(event.target.value)
-                                                }} />
+                                                }} disabled={disabled} />
                                             </FormControl>
 
                                             <FormControl size="small">
@@ -643,6 +848,7 @@ const Schedule = () => {
                                                     label="Razón de visita"
                                                     onChange={handleChangeReasonSelected}
                                                     required
+                                                    disabled={disabled}
                                                 >
                                                     {
                                                         reasonVisits.map((item) => (
@@ -652,18 +858,34 @@ const Schedule = () => {
                                                 </Select>
                                             </FormControl>
 
-                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                            <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                                                 <DatePicker
                                                     label="Fecha de visita"
                                                     value={date}
                                                     onChange={(newValue) => {
                                                         setDate(newValue);
                                                     }}
+                                                    inputFormat="dd/MM/yyyy"
+                                                    disablePast
                                                     renderInput={(params) => <TextField size='small' {...params} />}
                                                     disabled
                                                 />
                                             </LocalizationProvider>
 
+                                            {
+                                                id ?
+                                                    <FormControlLabel
+                                                        control={<Android12Switch defaultChecked />}
+                                                        label="Estado"
+                                                        checked={status}
+                                                        onChange={(event) => {
+                                                            setStatus(event.target.checked)
+                                                        }}
+                                                        disabled={disabled}
+                                                    />
+                                                    :
+                                                    null
+                                            }
 
                                         </Stack>
                                     </TabPanel>
@@ -684,7 +906,8 @@ const Schedule = () => {
                                                                 color="primary"
                                                                 checked={areasSelected[index].id !== ''}
                                                                 onChange={() => handleSelectedAreas(index)}
-                                                                disabled={containerCheckAll}
+                                                                disabled={containerCheckAll || disabled}
+
                                                             />
                                                         }
                                                         label={area.name}
@@ -692,16 +915,22 @@ const Schedule = () => {
 
                                                     {areasSelected[index].visible ? (
                                                         <Stack direction="row" spacing={2} alignItems="center" sx={{ margin: '10px' }} >
-                                                            <LocalizationProvider dateAdapter={AdapterDateFns} >
+                                                            <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns} >
                                                                 <TimePicker
                                                                     label="Hora de entrada"
                                                                     renderInput={(params) => <TextField {...params}
                                                                         size="small"
-                                                                        sx={{ width: '25%', marginLeft: '10px', }} />}
+                                                                        sx={{ width: '25%', marginLeft: '10px', }}
+                                                                        InputLabelProps={{ shrink: true }}
+                                                                    />}
                                                                     value={areasSelected[index].timeIn}
                                                                     onChange={(newValue) => {
                                                                         handleChangeTimeIn(index, newValue);
                                                                     }}
+                                                                    ampm
+                                                                    minTime={parseISO('2021-01-01T08:00:00')}
+                                                                    maxTime={parseISO('2021-01-01T16:00:00')}
+                                                                    disabled={disabled}
                                                                 />
                                                             </LocalizationProvider>
 
@@ -714,7 +943,7 @@ const Schedule = () => {
                                                                 <Iconify icon="bi:arrow-right" />
                                                             </Avatar>
 
-                                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                            <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                                                                 <TimePicker
                                                                     label="Hora de salida"
                                                                     renderInput={(params) => <TextField {...params}
@@ -724,11 +953,16 @@ const Schedule = () => {
                                                                                 width: '25%',
                                                                             }
                                                                         }
+                                                                        InputLabelProps={{ shrink: true }}
                                                                     />}
                                                                     value={areasSelected[index].timeOut}
                                                                     onChange={(newValue) => {
                                                                         handleChangeTimeOut(index, newValue);
                                                                     }}
+                                                                    ampm
+                                                                    minTime={parseISO('2021-01-01T08:00:00')}
+                                                                    maxTime={parseISO('2021-01-01T16:00:00')}
+                                                                    disabled={disabled}
                                                                 />
                                                             </LocalizationProvider>
                                                         </Stack>
@@ -739,28 +973,66 @@ const Schedule = () => {
                                             {
                                                 containerCheckAll ?
                                                     <Stack direction="row" alignItems="center" sx={{ marginTop: '3px' }}>
-                                                        <Iconify icon="bi:arrow-right" color="primary" sx={{ cursor: 'pointer', fontSize: '20px', marginLeft: '5px' }} />
-                                                        <FormControlLabel control={<Checkbox name="Marcar todas" checked={checkAll.visible} onChange={handleChangeCheckAll} />} sx={{ marginLeft: '3px' }} label="Marcar todas" />
+                                                        <Iconify icon="bi:arrow-right"
+                                                            color="primary"
+                                                            sx={{ cursor: 'pointer', fontSize: '20px', marginLeft: '5px' }} />
+                                                        <FormControlLabel
+                                                            control={
+                                                                <Checkbox name="Marcar todas"
+                                                                    checked={checkAll.visible}
+                                                                    onChange={handleChangeCheckAll} />}
+                                                            sx={{ marginLeft: '3px' }}
+                                                            label="Marcar todas"
+                                                            disabled={disabled} />
+
                                                         {checkAll.visible ? (
+
                                                             <Stack direction="row" spacing={2} alignItems="center" sx={{ margin: '10px' }} >
-                                                                <LocalizationProvider dateAdapter={AdapterDateFns} >
-                                                                    <TimePicker label="Hora de entrada" renderInput={(params) => <TextField {...params} size="small" sx={{ width: '25%', marginLeft: '10px', }} />}
+
+                                                                <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns} >
+                                                                    <TimePicker
+                                                                        label="Hora de entrada"
+                                                                        renderInput={(params) =>
+                                                                            <TextField {...params}
+                                                                                size="small" sx={{ width: '25%', marginLeft: '10px', }}
+                                                                                InputLabelProps={{ shrink: true }} />}
                                                                         value={checkAll.timeIn}
                                                                         onChange={(newValue) => {
                                                                             handleChangeTimeInCheckAll(newValue);
                                                                         }}
+                                                                        ampm
+                                                                        minTime={parseISO('2021-01-01T08:00:00')}
+                                                                        maxTime={parseISO('2021-01-01T16:00:00')}
                                                                     />
                                                                 </LocalizationProvider>
 
-                                                                <Box sx={{ backgroundColor: 'grey.200', borderRadius: '100%', padding: '10px', }}
-                                                                ><Iconify icon="bi:arrow-right" /></Box>
+                                                                <Avatar
+                                                                    sx={{
+                                                                        bgcolor: 'primary.main',
+                                                                        color: 'primary.contrastText',
+                                                                    }}
+                                                                >
+                                                                    <Iconify icon="bi:arrow-right" />
+                                                                </Avatar>
 
-                                                                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                                                    <TimePicker label="Hora de salida" renderInput={(params) => <TextField {...params} size="small" sx={{ width: '25%', }} />}
+                                                                <LocalizationProvider
+                                                                    adapterLocale={es}
+                                                                    dateAdapter={AdapterDateFns}>
+                                                                    <TimePicker
+                                                                        label="Hora de salida"
+                                                                        renderInput={(params) => <TextField {...params}
+                                                                            size="small"
+                                                                            sx={{ width: '25%', }}
+                                                                            InputLabelProps={{ shrink: true }}
+                                                                        />}
                                                                         value={checkAll.timeOut}
                                                                         onChange={(newValue) => {
                                                                             handleChangeTimeOutCheckAll(newValue);
                                                                         }}
+                                                                        ampm
+                                                                        minTime={parseISO('2021-01-01T08:00:00')}
+                                                                        maxTime={parseISO('2021-01-01T16:00:00')}
+                                                                        disabled={disabled}
                                                                     />
                                                                 </LocalizationProvider>
                                                             </Stack>
@@ -773,63 +1045,135 @@ const Schedule = () => {
                                     {
                                         containerTypeVisit === 'G' ?
                                             <TabPanel value={value} index={2}>
-                                                <Stack
-                                                    direction="row"
-                                                    spacing={2}
-                                                    justifyContent="space-between"
-                                                    alignItems="center"
-                                                >
-                                                    <Link
-                                                        sx={{
-                                                            textDecoration: 'none',
-                                                            color: 'inherit',
-                                                            width: '100%',
-                                                        }}
-                                                        href="http://localhost:8000/api/customers/download"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        download
-                                                        style={
-                                                            {
+
+                                                <Stack spacing={2.5}>
+                                                    {
+                                                        id ?
+                                                            (
+                                                                <>
+                                                                    <FormLabel id="customer-list"
+                                                                    >Actualizar lista de visitantes</FormLabel>
+                                                                </>
+                                                            )
+                                                            : null
+                                                    }
+                                                    <Stack
+                                                        direction="row"
+                                                        spacing={2}
+                                                        justifyContent="space-between"
+                                                        alignItems="center"
+                                                    >
+                                                        <Link
+                                                            sx={{
                                                                 textDecoration: 'none',
                                                                 color: 'inherit',
+                                                                width: '100%',
+                                                            }}
+                                                            href="http://localhost:8000/api/customers/download"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            download
+                                                            style={
+                                                                {
+                                                                    textDecoration: 'none',
+                                                                    color: 'inherit',
+                                                                }
                                                             }
-                                                        }
-                                                    >
-                                                        <Button variant="contained"
-                                                            size='medium'
+                                                            disabled={disabled}
+                                                        >
+                                                            <Button variant="contained"
+                                                                size='medium'
+                                                                sx={{
+                                                                    width: '180px',
+                                                                }}
+                                                                disabled={disabled}
+                                                            >
+                                                                Descargar</Button>
+                                                        </Link>
+
+                                                        <Avatar
                                                             sx={{
-                                                                width: '180px',
+                                                                bgcolor: 'primary.main',
+                                                                color: 'primary.contrastText',
                                                             }}
                                                         >
-                                                            Descargar</Button>
-                                                    </Link>
+                                                            <Iconify icon="bi:arrow-right" />
+                                                        </Avatar>
+                                                        {/* Input file blue */}
+                                                        <Input
+                                                            accept=".xlsx"
+                                                            type="file"
+                                                            onChange={(e) => {
+                                                                if (e.target.files[0].type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                                                                    setSelectedFile(e.target.files[0]);
+                                                                }
+                                                                else {
+                                                                    alert('Formato no válido');
+                                                                    setSelectedFile(null);
+                                                                }
+                                                            }}
+                                                            sx={{
+                                                                width: '35%',
+                                                            }}
+                                                            disabled={disabled}
+                                                        />
+                                                    </Stack>
 
-                                                    <Avatar
-                                                        sx={{
-                                                            bgcolor: 'primary.main',
-                                                            color: 'primary.contrastText',
-                                                        }}
-                                                    >
-                                                        <Iconify icon="bi:arrow-right" />
-                                                    </Avatar>
-                                                    {/* Input file blue */}
-                                                    <Input
-                                                        accept=".xlsx"
-                                                        type="file"
-                                                        onChange={(e) => {
-                                                            if (e.target.files[0].type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-                                                                setSelectedFile(e.target.files[0]);
-                                                            }
-                                                            else {
-                                                                alert('Formato no válido');
-                                                                setSelectedFile(null);
-                                                            }
-                                                        }}
-                                                        sx={{
-                                                            width: '35%',
-                                                        }}
-                                                    />
+                                                    {id ? (
+                                                        <>
+                                                            <FormLabel id="show-list">Lista de visitantes </FormLabel>
+                                                            <Stack
+                                                                direction="row"
+                                                                spacing={2}
+                                                                alignItems="center"
+                                                                justifyContent="space-evenly"
+                                                            >
+                                                                <a
+                                                                    href={`http://localhost:8000/api/bookings/${id}/customers/pdf/`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    download
+                                                                    style={{ textDecoration: 'none' }}
+                                                                >
+                                                                    <Button variant="contained"
+                                                                        size='medium'
+                                                                        sx={{
+                                                                            width: '180px',
+                                                                        }}
+                                                                        color="error"
+                                                                        startIcon={<Iconify icon="mdi:file-pdf" />}
+                                                                    >
+                                                                        Descargar PDF
+                                                                    </Button>
+                                                                </a>
+
+                                                                <a
+                                                                    href={`http://localhost:8000/api/bookings/${id}/customers/pdf/`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    download
+                                                                    style={{ textDecoration: 'none' }}
+                                                                >
+                                                                    <Button variant="contained"
+                                                                        size='medium'
+                                                                        sx={{
+                                                                            width: '180px',
+                                                                            backgroundColor: 'gray',
+                                                                            boxShadow: 'none',
+                                                                            '&:hover': {
+                                                                                backgroundColor: '#9e9e9e'    
+                                                                            }
+                                                                        }}
+                                                                        startIcon={<Iconify icon="mdi:file-excel" />}
+                                                                    >
+                                                                        Descargar Excel
+                                                                    </Button>
+                                                                </a>
+                                                            </Stack>
+                                                        </>
+                                                    )
+                                                        : null
+                                                    }
                                                 </Stack>
                                             </TabPanel>
                                             : null

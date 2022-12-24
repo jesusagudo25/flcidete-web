@@ -2,6 +2,8 @@ import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 // @mui
 import {
   Link, Card, Container, Typography, FormControlLabel, Select, MenuItem, InputLabel, FormControl, Radio, FormLabel, RadioGroup, Divider, Input, Box, Button, Backdrop,
@@ -12,9 +14,7 @@ import {
   SpeedDialIcon,
   DialogTitle,
   styled,
-  Switch,
   IconButton,
-  TextField,
 } from '@mui/material';
 import { Stack } from '@mui/system';
 import { LoadingButton } from '@mui/lab';
@@ -81,6 +81,31 @@ BootstrapDialogTitle.propTypes = {
 
 export default function CheckIn() {
 
+  /* Toastify */
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else if (type === 'error') {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.info(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* useForm */
+
+  const { control, handleSubmit, reset } = useForm({
+    reValidateMode: 'onBlur'
+  });
 
   /* Container True or False */
   const [containerBookingGroup, setContainerBookingGroup] = useState(false);
@@ -265,9 +290,7 @@ export default function CheckIn() {
   };
 
   const handleChangeReasonSelected = (event) => {
-
     setReasonSelected(event.target.value);
-
     flexibleHandleChangeReason(event.target.value);
 
   };
@@ -291,14 +314,8 @@ export default function CheckIn() {
         timeOut: null
       }
     );
-    
-    /* No lleva ni tiempo ni es un grupo */
-    if (selected.isFree === 1 && selected.isGroup === 0) {
-      setContainerAreas(false);
-      setContainerCheckAll(false);
-    }
-    /* Es una visita de grupo */
-    else if (selected.isGroup) {
+
+    if (selected.isGroup) {
       setAreasSelected(
         new Array(areas.length).fill(
           {
@@ -316,20 +333,16 @@ export default function CheckIn() {
           timeOut: null
         }
       );
-
-      setContainerAreas(true);
       setContainerCheckAll(true);
     }
     /* No es una visita libre */
     else {
-      setContainerAreas(true);
       setContainerCheckAll(false);
     }
   }
 
   const handleChangeDocumentType = (event) => {
     setDocumentType(event.target.value);
-
   };
 
   const handleChangeDocument = (event, newInputValue) => {
@@ -381,7 +394,9 @@ export default function CheckIn() {
       // Crear un nuevo valor a partir de la entrada del usuario
       setDocument(newValue.inputValue);
       setContainerCustomer(true);
+      showToastMessageStatus('info', 'Cliente no registrado, por favor complete los datos');
     } else {
+      showToastMessageStatus('success', 'Cliente registrado, por favor confirme los datos');
       setIdCustomer(newValue.value);
       setContainerCustomer(true);
       setDisabledAddCustomer(true);
@@ -408,6 +423,7 @@ export default function CheckIn() {
       reasonVisitId: newValue.reasonVisitId,
       date: newValue.date,
     })
+    showToastMessageStatus('success', 'Reserva seleccionada, por favor confirme los datos');
   };
 
   const handleSelectedAreas = (position) => {
@@ -582,12 +598,11 @@ export default function CheckIn() {
       setContainerBookingGroup(true);
     }
 
-
     /* bookingSelected.areas */
     const updatedCheckedState = [];
 
-
     if (bookingSelected.areas.length < areas.length) {
+
       areasSelected.forEach((area, index) => {
         const resul = bookingSelected.areas.find((item) => item.id === index + 1)
         if (resul) {
@@ -607,8 +622,11 @@ export default function CheckIn() {
         }
       });
       setAreasSelected(updatedCheckedState);
+
     } else {
-      const resul = bookingSelected.areas.find((item) => item.id === 0 + 1)
+      
+      const resul = bookingSelected.areas.find((item) => item.id === 1)
+      
       setCheckAll({
         timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
         timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`)),
@@ -616,7 +634,6 @@ export default function CheckIn() {
       });
 
       if (!checkAll.visible) {
-
         setAreasSelected(
           areas.map((area) => {
             return {
@@ -627,11 +644,10 @@ export default function CheckIn() {
             }
           })
         );
+
       }
 
     }
-
-
 
     setIsSelectBooking(true);
     setOpen(false);
@@ -888,23 +904,18 @@ export default function CheckIn() {
                 </Select>
               </FormControl>
 
-              {
-                containerAreas ? (
-                  <AreasList
-                    areas={areas}
-                    containerCheckAll={containerCheckAll}
-                    handleSelectedAreas={handleSelectedAreas}
-                    areasSelected={areasSelected}
-                    handleChangeTimeIn={handleChangeTimeIn}
-                    handleChangeTimeOut={handleChangeTimeOut}
-                    checkAll={checkAll}
-                    handleChangeCheckAll={handleChangeCheckAll}
-                    handleChangeTimeInCheckAll={handleChangeTimeInCheckAll}
-                    handleChangeTimeOutCheckAll={handleChangeTimeOutCheckAll}
-                  />
-                ) : null
-              }
-
+              <AreasList
+                areas={areas}
+                containerCheckAll={containerCheckAll}
+                handleSelectedAreas={handleSelectedAreas}
+                areasSelected={areasSelected}
+                handleChangeTimeIn={handleChangeTimeIn}
+                handleChangeTimeOut={handleChangeTimeOut}
+                checkAll={checkAll}
+                handleChangeCheckAll={handleChangeCheckAll}
+                handleChangeTimeInCheckAll={handleChangeTimeInCheckAll}
+                handleChangeTimeOutCheckAll={handleChangeTimeOutCheckAll}
+              />
 
               <Divider sx={
                 {
@@ -928,6 +939,10 @@ export default function CheckIn() {
           </Container>
         </Card>
       </Container >
+
+      {/* Toastify */}
+
+      <ToastContainer />
 
       {/* Feedback positive */}
       <Dialog
@@ -988,7 +1003,6 @@ export default function CheckIn() {
       </Dialog>
 
       {/* Modal reservation */}
-
       <BootstrapDialog
         onClose={handleCloseDialog}
         aria-labelledby="customized-dialog-title"

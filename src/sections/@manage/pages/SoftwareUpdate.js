@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-
-import { Controller, useForm } from "react-hook-form";
-import { ToastContainer, toast } from 'react-toastify';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 // @mui
 import {
     Card,
@@ -35,11 +34,15 @@ import {
 } from '@mui/material';
 
 // components
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
 // date-fns
+import { format } from 'date-fns';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -47,11 +50,11 @@ import Scrollbar from '../../../components/scrollbar';
 import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 
 const TABLE_HEAD = [
-    { id: 'purchase_price', label: 'Costo de filamento', alignRight: false },
-    { id: 'percentage', label: 'Porcentaje ganancia', alignRight: false },
-    { id: 'sale_price', label: 'Precio de venta', alignRight: false },
-    { id: 'created_at', label: 'Fecha', alignRight: false },
-    { id: 'status', label: 'Estado', alignRight: false },
+    { id: 'purchase_price', label: 'Costo de software', alignRight: false },
+    { id: 'sale_price', label: 'Precio por hora', alignRight: false },
+    { id: 'purchased_date', label: 'Fecha de compra', alignRight: false },
+    { id: 'expiration_date', label: 'Fecha de vencimiento', alignRight: false },
+    { id: 'active', label: 'Estado', alignRight: false },
 ];
 
 /* --------------------> */
@@ -167,8 +170,7 @@ function applySortFilter(array, comparator, query) {
     return stabilizedThis.map((el) => el[0]);
 }
 
-const FilamentUpdate = () => {
-
+const SoftwareUpdate = () => {
 
     /* Toastify */
 
@@ -197,26 +199,17 @@ const FilamentUpdate = () => {
         reValidateMode: 'onBlur'
     });
 
+
     /* Create - edit */
     const { id } = useParams();
 
     const [name, setName] = useState('');
 
-    const [estimatedValue, setEstimatedValue] = useState('');
-
-    const [purchasePrice, setPurchasePrice] = useState('');
-
-    const [salePrice, setSalePrice] = useState('');
-
-    const [percentage, setPercentage] = useState('');
-
     const [containerEstimatedValue, setContainerEstimatedValue] = useState(false);
-
-    const [quantity, setQuantity] = useState('1');
 
     /* Datatable */
 
-    const [filamentsUpdate, setFilamentsUpdate] = useState([]);
+    const [softwaresUpdate, setSoftwaresUpdate] = useState([]);
 
     const [open, setOpen] = useState(false);
 
@@ -230,24 +223,7 @@ const FilamentUpdate = () => {
 
     const [rowsPerPage, setRowsPerPage] = useState(5);
 
-
-    const handleCalculateSalePrice = (purchasePrice, estimatedValue, percentage) => {
-        const valor = purchasePrice > 0 ? purchasePrice : estimatedValue;
-        if (valor > 0 && percentage > 0) {
-            const value = parseFloat(valor) + (valor * percentage / 100);
-            setValue('salePrice', parseFloat(value).toFixed(2));
-        }
-        else {
-            setValue('salePrice', parseFloat(0).toFixed(2))
-        }
-    };
-
     const handleCreateDialog = (event) => {
-        /* setEstimatedValue('');
-        setPurchasePrice('');
-        setSalePrice('');
-        setPercentage('');
-        setQuantity('1'); */
         reset();
         setContainerEstimatedValue(false);
         setOpen(true);
@@ -258,19 +234,21 @@ const FilamentUpdate = () => {
         reset();
     };
 
+    /* Bug - date picker */
     const handleSubmitDialog = async (event) => {
         handleCloseDialog();
-        await axios.post('/api/filaments-updates', {
-            'filament_id': id,
+        await axios.post('/api/softwares-updates', {
+            'softwares_id': id,
             'purchase_price': event.purchasePrice,
             'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
-            'percentage': event.percentage,
             'sale_price': event.salePrice,
-            'quantity': event.quantity
+            'purchased_date': format(new Date(event.purchasedDate), 'yyyy-MM-dd'),
+            'expiration_date': format(new Date(event.expirationDate), 'yyyy-MM-dd'),
+            'quantity': event.quantity,
         });
-        reset();
         showToastMessage();
-        getFilamentsUpdate();
+        reset();
+        getSoftwaresUpdate();
     };
 
     const handleRequestSort = (event, property) => {
@@ -293,26 +271,26 @@ const FilamentUpdate = () => {
         setFilterName(event.target.value);
     };
 
-    const getFilamentsUpdate = async () => {
-        const response = await axios.get(`/api/filaments/${id}`);
-        setFilamentsUpdate(response.data.filament_updates);
+    const getSoftwaresUpdate = async () => {
+        const response = await axios.get(`/api/softwares/${id}`);
+        setSoftwaresUpdate(response.data.software_update);
         setName(response.data.name);
     }
 
     useEffect(() => {
-        getFilamentsUpdate();
+        getSoftwaresUpdate();
     }, []);
 
-    const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filamentsUpdate.length) : 0;
+    const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - softwaresUpdate.length) : 0;
 
-    const filteredFilamentsUpdate = applySortFilter(filamentsUpdate, getComparator(order, orderBy), filterName);
+    const filteredSoftwares = applySortFilter(softwaresUpdate, getComparator(order, orderBy), filterName);
 
-    const isNotFound = !filteredFilamentsUpdate.length && !!filterName;
+    const isNotFound = !filteredSoftwares.length && !!filterName;
 
     return (
         <>
             <Helmet>
-                <title> Gestión: Filamentos | Fab Lab System </title>
+                <title> Gestión: Softwares | Fab Lab System </title>
             </Helmet>
 
             <Container>
@@ -320,14 +298,13 @@ const FilamentUpdate = () => {
                     <Typography variant="h4" gutterBottom>
                         Actualizaciones de {name}
                     </Typography>
-
                     <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} onClick={handleCreateDialog}>
                         Agregar actualización
                     </Button>
                 </Stack>
 
                 <Card>
-                    <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar actualización..."} />
+                    <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar software..."} />
 
                     <Scrollbar>
                         <TableContainer sx={{ minWidth: 800 }}>
@@ -336,17 +313,17 @@ const FilamentUpdate = () => {
                                     order={order}
                                     orderBy={orderBy}
                                     headLabel={TABLE_HEAD}
-                                    rowCount={filamentsUpdate.length}
+                                    rowCount={softwaresUpdate.length}
                                     onRequestSort={handleRequestSort}
                                 />
                                 {/* Tiene que cargar primero... */}
-                                {filamentsUpdate.length > 0 ? (
+                                {softwaresUpdate.length > 0 ? (
                                     <TableBody>
-                                        {filteredFilamentsUpdate.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                                            const { id: uuid, purchase_price: purchasePrice, estimated_value: estimatedValue, percentage, sale_price: salePrice, created_at: createdAt, active } = row;
+                                        {filteredSoftwares.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                                            const { id: uuid, name, purchase_price: purchasePrice, sale_price: salePrice, purchased_date: purchasedDate, expiration_date: expirationDate, active } = row;
 
                                             return (
-                                                <TableRow hover key={uuid} tabIndex={-1} role="checkbox">
+                                                <TableRow hover key={id} tabIndex={-1} role="checkbox">
 
                                                     <TableCell component="th" scope="row" padding="normal">
                                                         <Stack direction="row" alignItems="center" spacing={2}>
@@ -355,17 +332,15 @@ const FilamentUpdate = () => {
                                                     </TableCell>
 
                                                     <TableCell align="left">
-                                                        % {percentage}
-                                                    </TableCell>
-
-                                                    <TableCell align="left">
                                                         $ {salePrice}
                                                     </TableCell>
 
                                                     <TableCell align="left">
-                                                        <Typography variant="subtitle2" noWrap>
-                                                            {createdAt.split('T')[0]}
-                                                        </Typography>
+                                                        {purchasedDate}
+                                                    </TableCell>
+
+                                                    <TableCell align="left">
+                                                        {expirationDate}
                                                     </TableCell>
 
                                                     <TableCell align="left">
@@ -377,15 +352,15 @@ const FilamentUpdate = () => {
                                                                 else (
                                                                     showToastMessageStatus('success', 'Actualización activada')
                                                                 )
-                                                                setFilamentsUpdate(filamentsUpdate.map((filament) => {
-                                                                    if (filament.id === uuid) {
-                                                                        return { ...filament, active: !active };
+                                                                setSoftwaresUpdate(softwaresUpdate.map((software) => {
+                                                                    if (software.id === uuid) {
+                                                                        return { ...software, active: !active };
                                                                     }
-                                                                    return filament;
+                                                                    return software;
                                                                 }));
-                                                                await axios.put(`/api/filaments-updates/${uuid}`, {
-                                                                    'filament_id': id,
-                                                                    active: !active
+                                                                await axios.put(`/api/softwares-updates/${uuid}`, {
+                                                                    active: !active,
+                                                                    'softwares_id': id,
                                                                 });
                                                             }
                                                         } />
@@ -459,7 +434,7 @@ const FilamentUpdate = () => {
                         component="div"
                         labelRowsPerPage="Filas por página:"
                         labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`}
-                        count={filamentsUpdate.length}
+                        count={softwaresUpdate.length}
                         rowsPerPage={rowsPerPage}
                         page={page}
                         onPageChange={handleChangePage}
@@ -481,33 +456,33 @@ const FilamentUpdate = () => {
                 maxWidth='sm'
             >
                 <BootstrapDialogTitle id="customized-dialog-title" onClose={handleCloseDialog}>
-                    Gestión de actualizaciones
+                    Gestión de Softwares
                 </BootstrapDialogTitle>
                 <DialogContent dividers>
-                    <Stack spacing={3} sx={{ minWidth: 550 }}>
+                    <Stack spacing={4} sx={{ minWidth: 550 }}>
 
                         <FormControl sx={{ width: '100%' }} error={!!errors?.purchasePrice}>
-                            <InputLabel htmlFor="outlined-adornment-amount">Costo del filamento</InputLabel>
+                            <InputLabel htmlFor="outlined-adornment-amount">Costo del software</InputLabel>
                             <Controller
                                 name="purchasePrice"
                                 control={control}
                                 defaultValue=""
                                 rules={{
-                                    required: 'El costo del filamento es requerido',
+                                    required: 'El costo del software es requerido',
                                     min: {
                                         value: 0,
-                                        message: 'El costo del filamento debe ser mayor o igual a 0'
+                                        message: 'El costo del software debe ser mayor o igual a 0'
                                     },
                                     max: {
-                                        value: 100000,
-                                        message: 'El costo del filamento debe ser menor o igual a 100000'
+                                        value: 999999999,
+                                        message: 'El costo del software debe ser menor o igual a 999999999'
                                     }
                                 }}
                                 render={({ field: { onChange, onBlur, value, } }) => (
                                     <OutlinedInput
                                         id="outlined-adornment-amount"
                                         startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                                        label="Costo del filamento"
+                                        label="Costo del software"
                                         placeholder='0.00'
                                         size="small"
                                         value={value}
@@ -519,7 +494,6 @@ const FilamentUpdate = () => {
                                             else {
                                                 setContainerEstimatedValue(false);
                                             }
-                                            handleCalculateSalePrice(e.target.value, getValues('estimatedValue'), getValues('percentage'))
                                         }}
                                         onBlur={onBlur}
                                         type="number"
@@ -529,7 +503,6 @@ const FilamentUpdate = () => {
                             />
                             <FormHelperText>{errors.purchasePrice && errors.purchasePrice.message}</FormHelperText>
                         </FormControl>
-
 
                         {
                             containerEstimatedValue ?
@@ -541,14 +514,14 @@ const FilamentUpdate = () => {
                                             control={control}
                                             defaultValue=""
                                             rules={{
-                                                required: 'El costo estimado del filamento es requerido',
+                                                required: 'El costo estimado es requerido',
                                                 min: {
                                                     value: 1,
-                                                    message: 'El costo estimado del filamento debe ser mayor o igual a 1'
+                                                    message: 'El costo estimado debe ser mayor o igual a 1'
                                                 },
                                                 max: {
                                                     value: 100000,
-                                                    message: 'El costo estimado del filamento debe ser menor o igual a 100000'
+                                                    message: 'El costo estimado debe ser menor o igual a 100000'
                                                 }
                                             }}
                                             render={({ field: { onChange, onBlur, value, } }) => (
@@ -559,10 +532,7 @@ const FilamentUpdate = () => {
                                                     placeholder='0.00'
                                                     size="small"
                                                     value={value}
-                                                    onChange={(e) => {
-                                                        onChange(e.target.value);
-                                                        handleCalculateSalePrice(getValues('purchasePrice'), e.target.value, getValues('percentage'))
-                                                    }}
+                                                    onChange={onChange}
                                                     onBlur={onBlur}
                                                     type="number"
                                                     required
@@ -575,64 +545,96 @@ const FilamentUpdate = () => {
                                 :
                                 null
                         }
-                        <FormControl sx={{ width: '100%' }} error={!!errors?.percentage}>
-                            <InputLabel htmlFor="outlined-adornment-amount">Porcentaje de ganancia</InputLabel>
+
+                        <LocalizationProvider dateAdapter={AdapterDateFns}>
                             <Controller
-                                name="percentage"
+                                name="purchasedDate"
+                                control={control}
+                                defaultValue={new Date()}
+                                rules={{
+                                    required: 'La fecha de compra es requerida'
+                                }}
+                                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                                    <DatePicker
+                                        label="Fecha de compra"
+                                        value={value}
+                                        onChange={onChange}
+                                        onBlur={onBlur}
+                                        required
+                                        renderInput={(params) =>
+                                            <TextField
+                                                {...params}
+                                                size='small'
+                                                error={!!error}
+                                                helperText={error?.message}
+                                            />}
+                                    />
+                                )}
+                            />
+                        </LocalizationProvider>
+
+                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <Controller
+                                name="expirationDate"
+                                control={control}
+                                defaultValue={new Date()}
+                                rules={{
+                                    required: 'La fecha de expiración es requerida'
+                                }}
+                                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                                    <DatePicker
+                                        label="Fecha de expiración"
+                                        value={value}
+                                        onChange={onChange}
+                                        onBlur={onBlur}
+                                        required
+                                        renderInput={(params) =>
+                                            <TextField
+                                                {...params}
+                                                size='small'
+                                                error={!!error}
+                                                helperText={error?.message}
+                                            />}
+                                    />
+                                )}
+                            />
+                        </LocalizationProvider>
+
+                        <FormControl sx={{ width: '100%' }} error={!!errors?.salePrice}>
+                            <InputLabel htmlFor="outlined-adornment-amount">Precio por hora</InputLabel>
+                            <Controller
+                                name="salePrice"
                                 control={control}
                                 defaultValue=""
                                 rules={{
-                                    required: 'El porcentaje de ganancia es requerido',
+                                    required: 'El precio por hora es requerido',
                                     min: {
                                         value: 1,
-                                        message: 'El porcentaje de ganancia debe ser mayor o igual a 1'
+                                        message: 'El precio por hora debe ser mayor o igual a 1'
                                     },
                                     max: {
-                                        value: 100,
-                                        message: 'El porcentaje de ganancia debe ser menor o igual a 100'
+                                        value: 100000,
+                                        message: 'El precio por hora debe ser menor o igual a 100000'
                                     }
                                 }}
                                 render={({ field: { onChange, onBlur, value, } }) => (
                                     <OutlinedInput
                                         id="outlined-adornment-amount"
-                                        startAdornment={<InputAdornment position="start">%</InputAdornment>}
-                                        label="Porcentaje de ganancia"
-                                        placeholder='0'
+                                        startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                                        label="Precio por hora"
+                                        placeholder='0.00'
                                         size="small"
                                         value={value}
-                                        onChange={(e) => {
-                                            onChange(e.target.value);
-                                            handleCalculateSalePrice(getValues('purchasePrice'), getValues('estimatedValue'), e.target.value)
-                                        }}
+                                        onChange={onChange}
                                         onBlur={onBlur}
                                         type="number"
                                         required
                                     />
                                 )}
                             />
-                            <FormHelperText>{errors.percentage && errors.percentage.message}</FormHelperText>
+                            <FormHelperText>{errors.salePrice && errors.salePrice.message}</FormHelperText>
                         </FormControl>
 
-                        <FormControl sx={{ width: '100%' }}>
-                            <InputLabel htmlFor="outlined-adornment-amount">Precio de venta</InputLabel>
-                            <Controller
-                                name="salePrice"
-                                control={control}
-                                defaultValue=""
-                                render={({ field: { value, } }) => (
-                                    <OutlinedInput
-                                        id="outlined-adornment-amount"
-                                        startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                                        label="Precio de filamento"
-                                        placeholder='0.00'
-                                        size="small"
-                                        value={value}
-                                        type="number"
-                                        disabled
-                                    />
-                                )}
-                            />
-                        </FormControl>
 
                         <FormControl sx={{ width: '100%' }}>
                             <Controller
@@ -666,6 +668,7 @@ const FilamentUpdate = () => {
                                 )}
                             />
                         </FormControl>
+
                     </Stack>
                 </DialogContent>
                 <DialogActions>
@@ -681,4 +684,4 @@ const FilamentUpdate = () => {
     )
 }
 
-export default FilamentUpdate
+export default SoftwareUpdate

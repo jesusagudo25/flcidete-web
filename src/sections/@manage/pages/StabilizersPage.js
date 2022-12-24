@@ -2,20 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
+import { ToastContainer, toast } from 'react-toastify';
+import { Controller, useForm } from "react-hook-form";
+
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
@@ -26,35 +23,22 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
   TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
   FormControl,
   InputLabel,
+  FormHelperText,
 } from '@mui/material';
 
 // components
 import { Link } from 'react-router-dom';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
-// date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -186,6 +170,36 @@ function applySortFilter(array, comparator, query) {
 const StabilizersPage = () => {
 
 
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('Estabilizador agregado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('Estabilizador actualizado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* React Form Hook */
+
+  const { control, handleSubmit, reset, setValue, formState: { errors }, } = useForm({
+    reValidateMode: 'onBlur'
+  });
+
   /* Dialog */
 
   const [id, setId] = useState('');
@@ -214,46 +228,54 @@ const StabilizersPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const handleCreateDialog = (event) => {
+    reset();
     setOpen(true);
     setId('');
-    setName('');
-    setPurchasePrice('');
-    setEstimatedValue('');
     setContainerEstimatedValue(false);
-    setWidth('');
-    setHeight('');
-    setQuantity(1);
+    /*     setName('');
+        setPurchasePrice('');
+        setEstimatedValue('');    
+        setWidth('');
+        setHeight('');
+        setQuantity(1); */
   };
 
   const handleCloseDialog = () => {
+    reset();
     setOpen(false);
   };
 
   const handleSubmitDialog = async (event) => {
-    event.preventDefault();
+    handleCloseDialog();
     if (id) {
       await axios.put(`/api/stabilizers/${id}`, {
-        name,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-        'width': width,
-        'height_in_yd': height,
-        'height': height * 36,
-        'area': width * (height * 36),
+        'name': event.name,
+        'purchase_price': event.purchasePrice,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'width': event.width,
+        'height_in_yd': event.height,
+        'height': event.height * 36,
+        'area': event.width * (event.height * 36),
       });
     } else {
       await axios.post('/api/stabilizers', {
-        'name': name.concat(' (', width, ' in x', height, ' yd)'),
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-        'width': width,
-        'height_in_yd': height,
-        'height': height * 36,
-        'area': width * (height * 36),
-        'quantity': quantity,
+        'name': event.name.concat(' (', event.width, ' in x', event.height, ' yd)'),
+        'purchase_price': event.purchasePrice,
+        'purchase_price_base': event.purchasePrice,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'width_base': event.width,
+        'width': event.width,
+        'height_in_yd': event.height,
+        'height': event.height * 36,
+        'height_base': event.height * 36,
+        'area': event.width * (event.height * 36),
+        'area_base': event.width * (event.height * 36),
+        'quantity': event.quantity,
       });
     }
-    handleCloseDialog();
+    showToastMessage();
+    reset();
     getStabilizers();
   };
 
@@ -354,6 +376,12 @@ const StabilizersPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Estabilizador desactivado')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Estabilizador activado')
+                                )
                                 setStabilizers(stabilizers.map((stabilizer) => {
                                   if (stabilizer.id === id) {
                                     return { ...stabilizer, active: !active };
@@ -378,12 +406,17 @@ const StabilizersPage = () => {
                             </Link>
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-                              setName(name);
-                              setWidth(width);
-                              setHeight(heightInYd);
-                              setPurchasePrice(purchasePrice);
+                              /*                               setName(name);
+                                                            setWidth(width);
+                                                            setHeight(heightInYd);
+                                                            setPurchasePrice(purchasePrice);
+                                                            setEstimatedValue(estimatedValue); */
+                              setValue('name', name);
+                              setValue('width', width);
+                              setValue('height', heightInYd);
+                              setValue('purchasePrice', purchasePrice);
+                              setValue('estimatedValue', estimatedValue);
                               if (parseFloat(purchasePrice) === 0) setContainerEstimatedValue(true);
-                              setEstimatedValue(estimatedValue);
                               setOpen(true);
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -466,6 +499,10 @@ const StabilizersPage = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -480,94 +517,190 @@ const StabilizersPage = () => {
         <DialogContent dividers>
           <Stack spacing={3} sx={{ minWidth: 550 }}>
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Descripción del estabilizador"
-                variant="outlined"
-                size="small"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
+              <Controller
+                name="name"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'La descripción es requerida',
+                  minLength: {
+                    value: 3,
+                    message: 'La descripción debe tener al menos 3 caracteres'
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'La descripción debe tener máximo 50 caracteres'
+                  }
                 }}
-                required
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Descripción del estabilizador"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
               />
             </FormControl>
 
             <Stack direction="row" alignItems="center" spacing={1}>
-              <FormControl sx={{ width: '50%' }}>
+              <FormControl sx={{ width: '50%' }} error={!!errors?.width}>
                 <InputLabel htmlFor="outlined-adornment-amount">Ancho</InputLabel>
-                <OutlinedInput
-                  id="outlined-adornment-amount"
-                  startAdornment={<InputAdornment position="start">in</InputAdornment>}
-                  label="Ancho"
-                  placeholder='0'
-                  size="small"
-                  type="number"
-                  value={width}
-                  onChange={(e) => {
-                    setWidth(e.target.value)
+                <Controller
+                  name="width"
+                  control={control}
+                  defaultValue=""
+                  rules={{
+                    required: 'El ancho es requerido',
+                    min: {
+                      value: 1,
+                      message: 'El ancho debe ser mayor o igual a 1'
+                    },
+                    max: {
+                      value: 100,
+                      message: 'El ancho debe ser menor o igual a 100'
+                    }
                   }}
+                  render={({ field: { onChange, onBlur, value, } }) => (
+                    <OutlinedInput
+                      id="outlined-adornment-amount"
+                      startAdornment={<InputAdornment position="start">in</InputAdornment>}
+                      label="Ancho"
+                      placeholder='0'
+                      size="small"
+                      type="number"
+                      value={value}
+                      onChange={onChange}
+                      onBlur={onBlur}
+                      required
+                    />
+                  )}
                 />
+                <FormHelperText>{errors.width && errors.width.message}</FormHelperText>
               </FormControl>
 
-              <FormControl sx={{ width: '50%' }}>
+              <FormControl sx={{ width: '50%' }} error={!!errors?.height}>
                 <InputLabel htmlFor="outlined-adornment-amount">Largo</InputLabel>
-                <OutlinedInput
-                  id="outlined-adornment-amount"
-                  startAdornment={<InputAdornment position="start">yd</InputAdornment>}
-                  label="Largo"
-                  placeholder='0'
-                  size="small"
-                  type="number"
-                  value={height}
-                  onChange={(e) => {
-                    setHeight(e.target.value)
+                <Controller
+                  name="height"
+                  control={control}
+                  defaultValue=""
+                  rules={{
+                    required: 'El largo es requerido',
+                    min: {
+                      value: 1,
+                      message: 'El largo debe ser mayor o igual a 1'
+                    },
+                    max: {
+                      value: 1000,
+                      message: 'El largo debe ser menor o igual a 1000'
+                    }
                   }}
+                  render={({ field: { onChange, onBlur, value, } }) => (
+
+                    <OutlinedInput
+                      id="outlined-adornment-amount"
+                      startAdornment={<InputAdornment position="start">yd</InputAdornment>}
+                      label="Largo"
+                      placeholder='0'
+                      size="small"
+                      type="number"
+                      value={value}
+                      onChange={onChange}
+                      onBlur={onBlur}
+                      required
+                    />
+                  )}
                 />
+                <FormHelperText>{errors.height && errors.height.message}</FormHelperText>
               </FormControl>
             </Stack>
 
-            <FormControl sx={{ width: '100%' }}>
+            <FormControl sx={{ width: '100%' }} error={!!errors?.purchasePrice}>
               <InputLabel htmlFor="outlined-adornment-amount">Costo de material</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                label="Costo de material"
-                placeholder='0.00'
-                size="small"
-                value={purchasePrice}
-                onChange={(e) => {
-                  setPurchasePrice(e.target.value)
-                  if (parseFloat(e.target.value) === 0) {
-                    setContainerEstimatedValue(true)
-                  }
-                  else {
-                    setContainerEstimatedValue(false)
+              <Controller
+                name="purchasePrice"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El costo del material es requerido',
+                  min: {
+                    value: 0,
+                    message: 'El costo del material debe ser mayor o igual a 0'
+                  },
+                  max: {
+                    value: 100000,
+                    message: 'El costo del material debe ser menor o igual a 100000'
                   }
                 }}
-                type="number"
-                required
+                render={({ field: { onChange, onBlur, value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Costo de material"
+                    placeholder='0.00'
+                    size="small"
+                    value={value}
+                    onChange={(e) => {
+                      onChange(e.target.value)
+                      if (parseFloat(e.target.value) === 0) {
+                        setContainerEstimatedValue(true)
+                      }
+                      else {
+                        setContainerEstimatedValue(false)
+                      }
+                    }}
+                    onBlur={onBlur}
+                    type="number"
+                    required
+                  />
+                )}
               />
+              <FormHelperText>{errors.purchasePrice && errors.purchasePrice.message}</FormHelperText>
             </FormControl>
 
             {
               containerEstimatedValue ?
                 (
-                  <FormControl sx={{ width: '100%' }}>
+                  <FormControl sx={{ width: '100%' }} error={!!errors?.estimatedValue}>
                     <InputLabel htmlFor="outlined-adornment-amount">Costo estimado</InputLabel>
-                    <OutlinedInput
-                      id="outlined-adornment-amount"
-                      startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                      label="Costo estimado"
-                      placeholder='0.00'
-                      size="small"
-                      value={estimatedValue}
-                      onChange={(e) => {
-                        setEstimatedValue(e.target.value)
+                    <Controller
+                      name="estimatedValue"
+                      control={control}
+                      defaultValue=""
+                      rules={{
+                        required: 'El costo estimado del material es requerido',
+                        min: {
+                          value: 1,
+                          message: 'El costo estimado del material debe ser mayor o igual a 1'
+                        },
+                        max: {
+                          value: 100000,
+                          message: 'El costo estimado del material debe ser menor o igual a 100000'
+                        }
                       }}
-                      type="number"
-                      required
+                      render={({ field: { onChange, onBlur, value, } }) => (
+                        <OutlinedInput
+                          id="outlined-adornment-amount"
+                          startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                          label="Costo estimado"
+                          placeholder='0.00'
+                          size="small"
+                          value={value}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                          type="number"
+                          required
+                        />
+                      )}
                     />
+                    <FormHelperText>{errors.estimatedValue && errors.estimatedValue.message}</FormHelperText>
                   </FormControl>
                 )
                 :
@@ -578,15 +711,35 @@ const StabilizersPage = () => {
               !id ?
                 (
                   <FormControl sx={{ width: '100%' }}>
-                    <TextField
-                      id="outlined-number"
-                      label="Cantidad"
-                      type="number"
-                      size="small"
-                      value={quantity}
-                      onChange={(e) => {
-                        setQuantity(e.target.value)
+                    <Controller
+                      name="quantity"
+                      control={control}
+                      defaultValue="1"
+                      rules={{
+                        required: 'La cantidad es requerida',
+                        min: {
+                          value: 1,
+                          message: 'La cantidad debe ser mayor o igual a 1'
+                        },
+                        max: {
+                          value: 1000,
+                          message: 'La cantidad debe ser menor o igual a 1000'
+                        }
                       }}
+                      render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                        <TextField
+                          id="outlined-number"
+                          label="Cantidad"
+                          type="number"
+                          size="small"
+                          value={value}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                          required
+                          error={!!error}
+                          helperText={error ? error.message : null}
+                        />
+                      )}
                     />
                   </FormControl>
                 )
@@ -599,7 +752,7 @@ const StabilizersPage = () => {
           <Button size="large" onClick={handleCloseDialog}  >
             Cancelar
           </Button>
-          <Button size="large" autoFocus onClick={handleSubmitDialog}>
+          <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
             Guardar
           </Button>
         </DialogActions>

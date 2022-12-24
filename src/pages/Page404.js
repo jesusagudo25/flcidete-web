@@ -22,18 +22,18 @@ export default function Page404() {
   return (
     <>
       <Helmet>
-        <title> 404 Page Not Found | Minimal UI </title>
+        <title> 404 Página no encontrada | Fab Lab System </title>
       </Helmet>
 
       <Container>
         <StyledContent sx={{ textAlign: 'center', alignItems: 'center' }}>
           <Typography variant="h3" paragraph>
-            Sorry, page not found!
+          Lo sentimos, página no encontrada!
           </Typography>
 
           <Typography sx={{ color: 'text.secondary' }}>
-            Sorry, we couldn’t find the page you’re looking for. Perhaps you’ve mistyped the URL? Be sure to check your
-            spelling.
+            Lo sentimos, no pudimos encontrar la página que estás buscando. ¿Quizás has escrito mal la URL? Asegúrese de revisar su
+            ortografía.
           </Typography>
 
           <Box
@@ -43,7 +43,7 @@ export default function Page404() {
           />
 
           <Button to="/" size="large" variant="contained" component={RouterLink}>
-            Go to Home
+            Ir a casa
           </Button>
         </StyledContent>
       </Container>

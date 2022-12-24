@@ -2,21 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
     Card,
     Table,
     Stack,
     Paper,
-    Avatar,
-    Popover,
-    Checkbox,
     TableRow,
-    MenuItem,
     TableBody,
     TableCell,
     Container,
@@ -27,34 +23,22 @@ import {
     Dialog,
     DialogContent,
     DialogActions,
-    Box,
-    Backdrop,
-    CircularProgress,
     TextField,
     Button,
     DialogTitle,
-    Radio,
-    RadioGroup,
-    FormControlLabel,
     styled,
     Switch,
     FormControl,
     InputLabel,
+    FormHelperText,
 } from '@mui/material';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -62,13 +46,13 @@ import Scrollbar from '../../../components/scrollbar';
 import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 
 const TABLE_HEAD = [
-    { id: 'purchase_price', label: 'Costo de componente', alignRight: false },
-    { id: 'quantity', label: 'Cantidad', alignRight: false },
-    { id: 'percentage', label: 'Porcentaje ganancia', alignRight: false },
-    { id: 'sale_price', label: 'Precio de venta', alignRight: false },
-    { id: 'created_at', label: 'Fecha', alignRight: false },
-    { id: 'status', label: 'Estado', alignRight: false },
-];
+    { id: 'name', label: 'Nombre', alignRight: false },
+    { id: 'purchase_price', label: 'Costo de software', alignRight: false },
+    { id: 'sale_price', label: 'Precio por hora', alignRight: false },
+    { id: 'expiration_date', label: 'Fecha de vencimiento', alignRight: false },
+    { id: 'active', label: 'Estado', alignRight: false },
+    { id: '' },
+  ];
 
 /* --------------------> */
 
@@ -184,6 +168,34 @@ function applySortFilter(array, comparator, query) {
 }
 
 const ComponentUpdate = () => {
+
+    /* Toastify */
+
+    const showToastMessage = () => {
+        toast.success('Actualización agregada con éxito!', {
+            position: toast.POSITION.TOP_RIGHT
+        });
+    };
+
+    const showToastMessageStatus = (type, message) => {
+        if (type === 'success') {
+            toast.success(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+        else {
+            toast.error(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+    };
+
+    /* React Form Hook */
+
+    const { control, handleSubmit, reset, setValue, getValues, formState: { errors }, } = useForm({
+        reValidateMode: 'onBlur'
+    });
+
     /* Create - edit */
     const { id } = useParams();
 
@@ -220,43 +232,44 @@ const ComponentUpdate = () => {
 
     const handleCalculateSalePrice = (purchasePrice, estimatedValue, percentage) => {
         const valor = purchasePrice > 0 ? purchasePrice : estimatedValue;
-        console.log(valor);
         if (valor > 0 && percentage > 0) {
             const value = parseFloat(valor) + (valor * percentage / 100);
-            console.log(value);
-            setSalePrice(parseFloat(value).toFixed(2));
+            setValue('salePrice', (parseFloat(value).toFixed(2)));
         }
         else {
-            setSalePrice(parseFloat(0).toFixed(2))
+            setValue('salePrice', (parseFloat(0).toFixed(2)));
         }
     };
 
     const handleCreateDialog = (event) => {
-        setEstimatedValue('');
-        setPurchasePrice('');
-        setSalePrice('');
-        setStock('');
-        setPercentage('');
+        /*         setEstimatedValue('');
+                setPurchasePrice('');
+                setSalePrice('');
+                setStock('');
+                setPercentage(''); */
+        reset();
         setContainerEstimatedValue(false);
         setOpen(true);
     };
 
     const handleCloseDialog = () => {
         setOpen(false);
+        reset();
     };
 
     const handleSubmitDialog = async (event) => {
-        event.preventDefault();
+        handleCloseDialog();
         await axios.post('/api/component-updates', {
             'component_id': id,
-            'purchase_price': purchasePrice,
-            'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-            'percentage': percentage,
-            'sale_price': salePrice,
-            'quantity': stock,
+            'purchase_price': event.purchasePrice,
+            'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+            'percentage': event.percentage,
+            'sale_price': event.salePrice,
+            'quantity': event.stock,
         });
-        handleCloseDialog();
+        showToastMessage();
         getComponentsUpdate();
+        reset();
     };
 
     const handleRequestSort = (event, property) => {
@@ -361,6 +374,12 @@ const ComponentUpdate = () => {
                                                     <TableCell align="left">
                                                         <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                                                             async () => {
+                                                                if (active) (
+                                                                    showToastMessageStatus('error', 'Actualización desactivada')
+                                                                )
+                                                                else (
+                                                                    showToastMessageStatus('success', 'Actualización activada')
+                                                                )
                                                                 setComponentsUpdate(componentsUpdate.map((component) => {
                                                                     if (component.id === uuid) {
                                                                         return { ...component, active: !active };
@@ -452,6 +471,10 @@ const ComponentUpdate = () => {
                 </Card>
             </Container>
 
+            {/* Toastify */}
+
+            <ToastContainer />
+
             {/* Dialog */}
 
             <BootstrapDialog
@@ -466,50 +489,89 @@ const ComponentUpdate = () => {
                 <DialogContent dividers>
                     <Stack spacing={3} sx={{ minWidth: 550 }}>
 
-                        <FormControl sx={{ width: '100%' }}>
+                        <FormControl sx={{ width: '100%' }} error={!!errors?.purchasePrice}>
                             <InputLabel htmlFor="outlined-adornment-amount">Costo de componente</InputLabel>
-                            <OutlinedInput
-                                id="outlined-adornment-amount"
-                                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                                label="Costo de componente"
-                                placeholder='0.00'
-                                size="small"
-                                value={purchasePrice}
-                                onChange={(e) => {
-                                    setPurchasePrice(e.target.value)
-                                    if (parseFloat(e.target.value) === 0) {
-                                        setContainerEstimatedValue(true)
-                                        handleCalculateSalePrice(e.target.value, estimatedValue, percentage);
-                                    }
-                                    else {
-                                        setContainerEstimatedValue(false)
-                                        handleCalculateSalePrice(e.target.value, estimatedValue, percentage);
+                            <Controller
+                                name="purchasePrice"
+                                control={control}
+                                defaultValue=""
+                                rules={{
+                                    required: 'El costo de componente es requerido',
+                                    min: {
+                                        value: 0,
+                                        message: 'El costo de componente debe ser mayor o igual a 0'
+                                    },
+                                    max: {
+                                        value: 999999999,
+                                        message: 'El costo de componente debe ser menor o igual a 999999999'
                                     }
                                 }}
-                                type="number"
-                                required
+                                render={({ field: { onChange, onBlur, value, } }) => (
+                                    <OutlinedInput
+                                        id="outlined-adornment-amount"
+                                        startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                                        label="Costo de componente"
+                                        placeholder='0.00'
+                                        size="small"
+                                        value={value}
+                                        onChange={(e) => {
+                                            onChange(e.target.value)
+                                            if (parseFloat(e.target.value) === 0) {
+                                                setContainerEstimatedValue(true)
+                                            }
+                                            else {
+                                                setContainerEstimatedValue(false);
+                                            }
+                                            handleCalculateSalePrice(e.target.value, getValues('estimatedValue'), getValues('percentage'))
+                                        }}
+                                        onBlur={onBlur}
+                                        type="number"
+                                        required
+                                    />
+                                )}
                             />
+                            <FormHelperText>{errors.purchasePrice && errors.purchasePrice.message}</FormHelperText>
                         </FormControl>
 
                         {
                             containerEstimatedValue ?
                                 (
-                                    <FormControl sx={{ width: '100%' }}>
+                                    <FormControl sx={{ width: '100%' }} error={!!errors?.estimatedValue}>
                                         <InputLabel htmlFor="outlined-adornment-amount">Costo estimado</InputLabel>
-                                        <OutlinedInput
-                                            id="outlined-adornment-amount"
-                                            startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                                            label="Costo estimado"
-                                            placeholder='0.00'
-                                            size="small"
-                                            value={estimatedValue}
-                                            onChange={(e) => {
-                                                setEstimatedValue(e.target.value)
-                                                handleCalculateSalePrice(purchasePrice, e.target.value, percentage);
+                                        <Controller
+                                            name="estimatedValue"
+                                            control={control}
+                                            defaultValue=""
+                                            rules={{
+                                                required: 'El costo estimado es requerido',
+                                                min: {
+                                                    value: 1,
+                                                    message: 'El costo estimado debe ser mayor o igual a 1'
+                                                },
+                                                max: {
+                                                    value: 100000,
+                                                    message: 'El costo estimado debe ser menor o igual a 100000'
+                                                }
                                             }}
-                                            type="number"
-                                            required
+                                            render={({ field: { onChange, onBlur, value, } }) => (
+                                                <OutlinedInput
+                                                    id="outlined-adornment-amount"
+                                                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                                                    label="Costo estimado"
+                                                    placeholder='0.00'
+                                                    size="small"
+                                                    value={value}
+                                                    onChange={(e) => {
+                                                        onChange(e.target.value);
+                                                        handleCalculateSalePrice(getValues('purchasePrice'), e.target.value, getValues('percentage'))
+                                                    }}
+                                                    onBlur={onBlur}
+                                                    type="number"
+                                                    required
+                                                />
+                                            )}
                                         />
+                                        <FormHelperText>{errors.estimatedValue && errors.estimatedValue.message}</FormHelperText>
                                     </FormControl>
                                 )
                                 :
@@ -517,46 +579,95 @@ const ComponentUpdate = () => {
                         }
 
                         <FormControl sx={{ width: '100%' }}>
-                            <TextField id="outlined-basic" label="Stock" variant="outlined" value={stock} onChange={
-                                (e) => {
-                                    setStock(e.target.value)
-                                }
-                            }
-                                size="small"
-                                type="number"
-                                required />
-                        </FormControl>
-
-                        <FormControl sx={{ width: '100%' }}>
-                            <InputLabel htmlFor="outlined-adornment-amount">Porcentaje de ganancia</InputLabel>
-                            <OutlinedInput
-                                id="outlined-adornment-amount"
-                                startAdornment={<InputAdornment position="start">%</InputAdornment>}
-                                label="Porcentaje de ganancia"
-                                placeholder='0'
-                                size="small"
-                                value={percentage}
-                                onChange={(e) => {
-                                    setPercentage(e.target.value);
-                                    handleCalculateSalePrice(purchasePrice, estimatedValue, e.target.value);
+                            <Controller
+                                name="stock"
+                                control={control}
+                                defaultValue="1"
+                                rules={{
+                                    required: 'El stock es requerido',
+                                    min: {
+                                        value: 1,
+                                        message: 'El stock debe ser mayor o igual a 1'
+                                    },
+                                    max: {
+                                        value: 100000,
+                                        message: 'El stock debe ser menor o igual a 100000'
+                                    }
                                 }}
-                                type="number"
-                                required
+                                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                                    <TextField
+                                        id="outlined-basic"
+                                        label="Stock"
+                                        variant="outlined"
+                                        size="small"
+                                        type="number"
+                                        value={value}
+                                        onChange={onChange}
+                                        onBlur={onBlur}
+                                        required
+                                        error={!!error}
+                                        helperText={error ? error.message : null}
+                                    />
+                                )}
                             />
                         </FormControl>
 
+                        <FormControl sx={{ width: '100%' }} error={!!errors?.percentage}>
+                            <InputLabel htmlFor="outlined-adornment-amount">Porcentaje de ganancia</InputLabel>
+                            <Controller
+                                name="percentage"
+                                control={control}
+                                defaultValue=""
+                                rules={{
+                                    required: 'El porcentaje de ganancia es requerido',
+                                    min: {
+                                        value: 1,
+                                        message: 'El porcentaje de ganancia debe ser mayor o igual a 1'
+                                    },
+                                    max: {
+                                        value: 100,
+                                        message: 'El porcentaje de ganancia debe ser menor o igual a 100'
+                                    }
+                                }}
+                                render={({ field: { onChange, onBlur, value, } }) => (
+                                    <OutlinedInput
+                                        id="outlined-adornment-amount"
+                                        startAdornment={<InputAdornment position="start">%</InputAdornment>}
+                                        label="Porcentaje de ganancia"
+                                        placeholder='0'
+                                        size="small"
+                                        value={value}
+                                        onChange={(e) => {
+                                            onChange(e.target.value);
+                                            handleCalculateSalePrice(getValues('purchasePrice'), getValues('estimatedValue'), e.target.value)
+                                        }}
+                                        onBlur={onBlur}
+                                        type="number"
+                                        required
+                                    />
+                                )}
+                            />
+                            <FormHelperText>{errors.percentage && errors.percentage.message}</FormHelperText>
+                        </FormControl>
 
                         <FormControl sx={{ width: '100%' }}>
                             <InputLabel htmlFor="outlined-adornment-amount">Precio de venta</InputLabel>
-                            <OutlinedInput
-                                id="outlined-adornment-amount"
-                                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                                label="Costo de material"
-                                placeholder='0.00'
-                                size="small"
-                                value={salePrice}
-                                type="number"
-                                disabled
+                            <Controller
+                                name="salePrice"
+                                control={control}
+                                defaultValue=""
+                                render={({ field: { value, } }) => (
+                                    <OutlinedInput
+                                        id="outlined-adornment-amount"
+                                        startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                                        label="Precio de componente"
+                                        placeholder='0.00'
+                                        size="small"
+                                        value={value}
+                                        type="number"
+                                        disabled
+                                    />
+                                )}
                             />
                         </FormControl>
                     </Stack>
@@ -565,7 +676,7 @@ const ComponentUpdate = () => {
                     <Button size="large" onClick={handleCloseDialog}  >
                         Cancelar
                     </Button>
-                    <Button size="large" autoFocus onClick={handleSubmitDialog}>
+                    <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
                         Guardar
                     </Button>
                 </DialogActions>

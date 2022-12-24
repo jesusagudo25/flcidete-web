@@ -536,12 +536,7 @@ const VisitsAreas = () => {
                                     </Select>
                                 </FormControl>
                             )
-                                : (
-                                    <>
-                                    <Typography variant="subtitle2" noWrap> {editAll === false ? 'No Editar todos los registros' : 'SI'} </Typography>
-                                    <Typography variant="subtitle2" noWrap> {itemSelected.areaId === '' ? 'Si limpio' : 'No limpio'} </Typography>
-                                    </>
-                                )
+                                : null
 
 
                         }

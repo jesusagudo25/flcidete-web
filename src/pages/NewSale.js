@@ -104,6 +104,14 @@ function BootstrapDialogTitle(props) {
   );
 }
 
+function customerDetails (props){
+
+
+  return (
+    
+  )
+}
+
 BootstrapDialogTitle.propTypes = {
   children: PropTypes.node,
   onClose: PropTypes.func.isRequired,

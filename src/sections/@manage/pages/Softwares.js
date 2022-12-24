@@ -2,20 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
 import axios from 'axios';
+import { Controller, useForm } from "react-hook-form";
+import { Link } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
@@ -26,24 +23,18 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
   TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
   FormControl,
   InputLabel,
+  FormHelperText,
 } from '@mui/material';
 
 // components
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
@@ -51,8 +42,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import Label from '../../../components/label';
+import { format } from 'date-fns';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -183,6 +173,36 @@ function applySortFilter(array, comparator, query) {
 
 const Softwares = () => {
 
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('Software agregado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('Software actualizado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* React Form Hook */
+
+  const { control, handleSubmit, reset, setValue, getValues, formState: { errors }, } = useForm({
+    reValidateMode: 'onBlur'
+  });
+
   /* Create - edit */
 
   const [id, setId] = useState('');
@@ -221,46 +241,53 @@ const Softwares = () => {
 
   const handleCreateDialog = (event) => {
     setId('');
-    setName('');
-    setEstimatedValue('');
-    setPurchasePrice('');
-    setPurchaseDate(new Date());
-    setExpirationDate(new Date());
-    setSalePrice('');
+    /*     setName('');
+        setEstimatedValue('');
+        setPurchasePrice('');
+        setPurchaseDate(new Date());
+        setExpirationDate(new Date());
+        setSalePrice(''); */
+    reset();
     setContainerEstimatedValue(false);
-
     setOpen(true);
   };
 
   const handleCloseDialog = () => {
     setOpen(false);
+    reset();
   };
 
   /* Bug - date picker */
   const handleSubmitDialog = async (event) => {
-    event.preventDefault();
+    handleCloseDialog();
     if (id) {
-      console.log(purchaseDate, expirationDate);
-       await axios.put(`/api/softwares/${id}`, {
-        name,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-        'sale_price': salePrice,
-        'purchased_date': format(new Date(purchaseDate), 'yyyy-MM-dd'),
-        'expiration_date': format(new Date(expirationDate), 'yyyy-MM-dd')
-      }); 
+      await axios.put(`/api/softwares/${id}`, {
+        name: event.name,
+        'purchase_price': event.purchasePrice,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'sale_price': event.salePrice,
+        'purchased_date': format(new Date(event.purchasedDate), 'yyyy-MM-dd'),
+        'expiration_date': format(new Date(event.expirationDate), 'yyyy-MM-dd')
+      });
 
     } else {
       await axios.post('/api/softwares', {
-        name,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-        'sale_price': salePrice,
-        'purchased_date': format(new Date(purchaseDate), 'yyyy-MM-dd'),
-        'expiration_date': format(new Date(expirationDate), 'yyyy-MM-dd')
+        name: event.name,
+        'purchase_price': event.purchasePrice,
+        'purchase_price_base': event.purchasePrice,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'sale_price': event.salePrice,
+        'sale_price_base': event.salePrice,
+        'purchased_date': format(new Date(event.purchasedDate), 'yyyy-MM-dd'),
+        'purchased_date_base': format(new Date(event.purchasedDate), 'yyyy-MM-dd'),
+        'expiration_date': format(new Date(event.expirationDate), 'yyyy-MM-dd'),
+        'expiration_date_base': format(new Date(event.expirationDate), 'yyyy-MM-dd'),
+        'quantity': event.quantity,
       });
     }
-    handleCloseDialog();
+    showToastMessage();
+    reset();
     getSoftwares();
   };
 
@@ -332,7 +359,7 @@ const Softwares = () => {
                 {softwares.length > 0 ? (
                   <TableBody>
                     {filteredSoftwares.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, name, purchase_price: purchasePrice, sale_price: salePrice, expiration_date: expirationDate, active } = row;
+                      const { id, name, purchase_price: purchasePrice, sale_price: salePrice, purchased_date: purchasedDate, expiration_date: expirationDate, active } = row;
 
                       return (
                         <TableRow hover key={id} tabIndex={-1} role="checkbox">
@@ -360,6 +387,12 @@ const Softwares = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Software desactivado')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Software activado')
+                                )
                                 setSoftwares(softwares.map((software) => {
                                   if (software.id === id) {
                                     return { ...software, active: !active };
@@ -374,13 +407,32 @@ const Softwares = () => {
                           </TableCell>
 
                           <TableCell align="right">
+                          <Link
+                              style={{ textDecoration: 'none', color: 'inherit' }}
+                              to={`./update/${id}`}>
+                              <IconButton size="large" color="inherit">
+                                <Iconify icon={'mdi:archive-arrow-up-outline'} />
+                              </IconButton>
+                            </Link>
+                            
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-                              setName(name);
-                              setPurchasePrice(purchasePrice);
-                              setSalePrice(salePrice);
-                              setPurchaseDate(purchaseDate);
-                              setExpirationDate(expirationDate);
+                              /*                               
+                                setName(name);
+                                setPurchasePrice(purchasePrice);
+                                setSalePrice(salePrice);
+                                setPurchaseDate(purchaseDate);
+                                setExpirationDate(expirationDate); 
+                              */
+                              setValue('name', name);
+                              setValue('purchasePrice', purchasePrice);
+                              setValue('salePrice', salePrice);
+                              setValue('purchasedDate', purchasedDate);
+                              setValue('expirationDate', expirationDate);
+                              if (parseFloat(purchasePrice) === 0)
+                                setContainerEstimatedValue(true)
+                              else
+                                setContainerEstimatedValue(false)
                               setOpen(true);
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -463,6 +515,10 @@ const Softwares = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -478,60 +534,117 @@ const Softwares = () => {
           <Stack spacing={4} sx={{ minWidth: 550 }}>
 
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Descripción del software"
-                variant="outlined"
-                size="small"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
+              <Controller
+                name="name"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'La descripción es requerida',
+                  minLength: {
+                    value: 3,
+                    message: 'La descripción debe tener al menos 3 caracteres'
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'La descripción debe tener máximo 50 caracteres'
+                  }
                 }}
-                required
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Descripción del software"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
               />
             </FormControl>
 
-            <FormControl sx={{ width: '100%' }}>
+            <FormControl sx={{ width: '100%' }} error={!!errors?.purchasePrice}>
               <InputLabel htmlFor="outlined-adornment-amount">Costo del software</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                label="Costo del software"
-                placeholder='0.00'
-                size="small"
-                value={purchasePrice}
-                onChange={(e) => {
-                  setPurchasePrice(e.target.value)
-                  if (parseFloat(e.target.value) === 0) {
-                    setContainerEstimatedValue(true)
-                  }
-                  else {
-                    setContainerEstimatedValue(false)
+              <Controller
+                name="purchasePrice"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El costo del software es requerido',
+                  min: {
+                    value: 0,
+                    message: 'El costo del software debe ser mayor o igual a 0'
+                  },
+                  max: {
+                    value: 999999999,
+                    message: 'El costo del software debe ser menor o igual a 999999999'
                   }
                 }}
-                type="number"
-                required
+                render={({ field: { onChange, onBlur, value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Costo del software"
+                    placeholder='0.00'
+                    size="small"
+                    value={value}
+                    onChange={(e) => {
+                      onChange(e.target.value)
+                      if (parseFloat(e.target.value) === 0) {
+                        setContainerEstimatedValue(true)
+                      }
+                      else {
+                        setContainerEstimatedValue(false);
+                      }
+                    }}
+                    onBlur={onBlur}
+                    type="number"
+                    required
+                  />
+                )}
               />
+              <FormHelperText>{errors.purchasePrice && errors.purchasePrice.message}</FormHelperText>
             </FormControl>
 
             {
               containerEstimatedValue ?
                 (
-                  <FormControl sx={{ width: '100%' }}>
+                  <FormControl sx={{ width: '100%' }} error={!!errors?.estimatedValue}>
                     <InputLabel htmlFor="outlined-adornment-amount">Costo estimado</InputLabel>
-                    <OutlinedInput
-                      id="outlined-adornment-amount"
-                      startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                      label="Costo estimado"
-                      placeholder='0.00'
-                      size="small"
-                      value={estimatedValue}
-                      onChange={(e) => {
-                        setEstimatedValue(e.target.value)
+                    <Controller
+                      name="estimatedValue"
+                      control={control}
+                      defaultValue=""
+                      rules={{
+                        required: 'El costo estimado es requerido',
+                        min: {
+                          value: 1,
+                          message: 'El costo estimado debe ser mayor o igual a 1'
+                        },
+                        max: {
+                          value: 100000,
+                          message: 'El costo estimado debe ser menor o igual a 100000'
+                        }
                       }}
-                      type="number"
-                      required
+                      render={({ field: { onChange, onBlur, value, } }) => (
+                        <OutlinedInput
+                          id="outlined-adornment-amount"
+                          startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                          label="Costo estimado"
+                          placeholder='0.00'
+                          size="small"
+                          value={value}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                          type="number"
+                          required
+                        />
+                      )}
                     />
+                    <FormHelperText>{errors.estimatedValue && errors.estimatedValue.message}</FormHelperText>
                   </FormControl>
                 )
                 :
@@ -539,50 +652,139 @@ const Softwares = () => {
             }
 
             <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="Fecha de compra"
-                value={purchaseDate}
-                onChange={(newValue) => {
-                  setPurchaseDate(newValue);
+              <Controller
+                name="purchasedDate"
+                control={control}
+                defaultValue={new Date()}
+                rules={{
+                  required: 'La fecha de compra es requerida'
                 }}
-                renderInput={(params) => <TextField size='small' {...params} />}
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <DatePicker
+                    label="Fecha de compra"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    renderInput={(params) =>
+                      <TextField
+                        {...params}
+                        size='small'
+                        error={!!error}
+                        helperText={error?.message}
+                      />}
+                  />
+                )}
               />
             </LocalizationProvider>
 
             <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="Fecha de expiración"
-                value={expirationDate}
-                onChange={(newValue) => {
-                  setExpirationDate(newValue);
+              <Controller
+                name="expirationDate"
+                control={control}
+                defaultValue={new Date()}
+                rules={{
+                  required: 'La fecha de expiración es requerida'
                 }}
-                renderInput={(params) => <TextField size='small' {...params} />}
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <DatePicker
+                    label="Fecha de expiración"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    renderInput={(params) =>
+                      <TextField
+                        {...params}
+                        size='small'
+                        error={!!error}
+                        helperText={error?.message}
+                      />}
+                  />
+                )}
               />
             </LocalizationProvider>
 
-            <FormControl sx={{ width: '100%' }}>
+            <FormControl sx={{ width: '100%' }} error={!!errors?.salePrice}>
               <InputLabel htmlFor="outlined-adornment-amount">Precio por hora</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                label="Precio por hora"
-                size="small"
-                placeholder='0.00'
-                value={salePrice}
-                onChange={(e) => {
-                  setSalePrice(e.target.value)
+              <Controller
+                name="salePrice"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El precio por hora es requerido',
+                  min: {
+                    value: 1,
+                    message: 'El precio por hora debe ser mayor o igual a 1'
+                  },
+                  max: {
+                    value: 100000,
+                    message: 'El precio por hora debe ser menor o igual a 100000'
+                  }
                 }}
-                type="number"
+                render={({ field: { onChange, onBlur, value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Precio por hora"
+                    placeholder='0.00'
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    type="number"
+                    required
+                  />
+                )}
               />
+              <FormHelperText>{errors.salePrice && errors.salePrice.message}</FormHelperText>
             </FormControl>
 
+            {
+              !id ?
+                (
+                  <FormControl sx={{ width: '100%' }}>
+                    <Controller
+                      name="quantity"
+                      control={control}
+                      defaultValue="1"
+                      rules={{
+                        required: 'La cantidad es requerida',
+                        min: {
+                          value: 1,
+                          message: 'La cantidad debe ser mayor o igual a 1'
+                        },
+                        max: {
+                          value: 1000,
+                          message: 'La cantidad debe ser menor o igual a 1000'
+                        }
+                      }}
+                      render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                        <TextField
+                          id="outlined-number"
+                          label="Cantidad"
+                          type="number"
+                          size="small"
+                          value={value}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                          required
+                          error={!!error}
+                          helperText={error ? error.message : null}
+                        />
+                      )}
+                    />
+                  </FormControl>
+                )
+                : null
+            }
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button size="large" onClick={handleCloseDialog}  >
             Cancelar
           </Button>
-          <Button size="large" autoFocus onClick={handleSubmitDialog}>
+          <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
             Guardar
           </Button>
         </DialogActions>

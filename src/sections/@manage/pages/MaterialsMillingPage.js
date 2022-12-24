@@ -2,20 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
@@ -26,35 +22,23 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
   TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
   FormControl,
   InputLabel,
+  FormHelperText,
 } from '@mui/material';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link } from 'react-router-dom';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -185,6 +169,36 @@ function applySortFilter(array, comparator, query) {
 
 const MaterialsMillingPage = () => {
 
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('Material agregado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('Material actualizado con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* React Form Hook */
+
+  const { control, handleSubmit, reset, setValue, getValues, formState: { errors }, } = useForm({
+    reValidateMode: 'onBlur'
+  });
+
   /* Create - edit */
 
   const [id, setId] = useState('');
@@ -224,52 +238,59 @@ const MaterialsMillingPage = () => {
     const valor = purchasePrice > 0 ? purchasePrice : estimatedValue;
     if (valor > 0 && percentage > 0) {
       const value = parseFloat(valor) + (valor * percentage / 100);
-      setSalePrice(parseFloat(value).toFixed(2));
+      setValue('salePrice', (parseFloat(value).toFixed(2)));
     }
     else {
-      setSalePrice(parseFloat(0).toFixed(2))
+      setValue('salePrice', (parseFloat(0).toFixed(2)));
     }
   };
 
   const handleCreateDialog = (event) => {
     setId('');
-    setName('');
-    setEstimatedValue('');
-    setPurchasePrice('');
-    setSalePrice('');
-    setStock('');
-    setPercentage('');
+    /*     setName('');
+        setEstimatedValue('');
+        setPurchasePrice('');
+        setSalePrice('');
+        setStock('');
+        setPercentage(''); */
+    reset();
     setContainerEstimatedValue(false);
     setOpen(true);
   };
 
   const handleCloseDialog = () => {
     setOpen(false);
+    reset();
   };
 
   const handleSubmitDialog = async (event) => {
-    event.preventDefault();
+    handleCloseDialog();
     if (id) {
       await axios.put(`/api/materials-milling/${id}`, {
-        name,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-        'percentage': percentage,
-        'sale_price': salePrice,
-        'stock': stock,
+        name: event.name,
+        'purchase_price': event.purchasePrice,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'percentage': event.percentage,
+        'sale_price': event.salePrice,
+        'stock': event.stock,
       });
     } else {
       await axios.post('/api/materials-milling', {
-        name,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-        'percentage': percentage,
-        'sale_price': salePrice,
-        'stock': stock,
-        'quantity': stock,
+        name: event.name,
+        'purchase_price': event.purchasePrice,
+        'purchase_price_base': event.purchasePrice,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        'percentage': event.percentage,
+        'percentage_base': event.percentage,
+        'sale_price': event.salePrice,
+        'sale_price_base': event.salePrice,
+        'stock': event.stock,
+        'quantity': event.stock,
       });
     }
-    handleCloseDialog();
+    reset();
+    showToastMessage();
     getMaterials();
   };
 
@@ -370,6 +391,12 @@ const MaterialsMillingPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Material desactivado')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Material activado')
+                                )
                                 setMaterials(materials.map((material) => {
                                   if (material.id === id) {
                                     return { ...material, active: !active };
@@ -394,17 +421,25 @@ const MaterialsMillingPage = () => {
                             <IconButton size="large" color="inherit" onClick={() => {
                               setOpen(true);
                               setId(id);
-                              setName(name);
+                              /* setName(name);
                               setPurchasePrice(purchasePrice);
-                              if (parseFloat(purchasePrice) === 0)
-                                setContainerEstimatedValue(true)
-                              else
-                                setContainerEstimatedValue(false)
                               setPercentage(percentage);
                               setEstimatedValue(estimatedValue);
                               setSalePrice(salePrice);
                               setStock(stock);
-                              setPercentage(percentage);
+                              setPercentage(percentage); */
+
+                              setValue('name', name);
+                              setValue('purchasePrice', purchasePrice);
+                              setValue('percentage', percentage);
+                              setValue('estimatedValue', estimatedValue);
+                              setValue('salePrice', salePrice);
+                              setValue('stock', stock);
+
+                              if (parseFloat(purchasePrice) === 0)
+                                setContainerEstimatedValue(true)
+                              else
+                                setContainerEstimatedValue(false)
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
                             </IconButton>
@@ -486,6 +521,10 @@ const MaterialsMillingPage = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -501,85 +540,218 @@ const MaterialsMillingPage = () => {
           <Stack spacing={3} sx={{ minWidth: 550 }}>
 
             <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Descripción del material"
-                variant="outlined"
-                size="small"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
+              <Controller
+                name="name"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'La descripción es requerida',
+                  minLength: {
+                    value: 3,
+                    message: 'La descripción debe tener al menos 3 caracteres'
+                  },
+                  maxLength: {
+                    value: 50,
+                    message: 'La descripción debe tener máximo 50 caracteres'
+                  }
                 }}
-                required
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Descripción del material"
+                    variant="outlined"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
               />
             </FormControl>
 
-            <FormControl sx={{ width: '100%' }}>
+            <FormControl sx={{ width: '100%' }} error={!!errors?.purchasePrice}>
               <InputLabel htmlFor="outlined-adornment-amount">Costo de material</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                label="Costo de material"
-                placeholder='0.00'
-                size="small"
-                value={purchasePrice}
-                onChange={(e) => {
-                  setPurchasePrice(e.target.value)
-                  if (parseFloat(e.target.value) === 0) {
-                    setContainerEstimatedValue(true)
-                    handleCalculateSalePrice(e.target.value, estimatedValue, percentage);
-                  }
-                  else {
-                    setContainerEstimatedValue(false)
-                    handleCalculateSalePrice(e.target.value, estimatedValue, percentage);
+              <Controller
+                name="purchasePrice"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El costo de material es requerido',
+                  min: {
+                    value: 0,
+                    message: 'El costo de material debe ser mayor o igual a 0'
+                  },
+                  max: {
+                    value: 999999999,
+                    message: 'El costo de material debe ser menor o igual a 999999999'
                   }
                 }}
-                type="number"
-                required
+                render={({ field: { onChange, onBlur, value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Costo de material"
+                    placeholder='0.00'
+                    size="small"
+                    value={value}
+                    onChange={(e) => {
+                      onChange(e.target.value)
+                      if (parseFloat(e.target.value) === 0) {
+                        setContainerEstimatedValue(true)
+                      }
+                      else {
+                        setContainerEstimatedValue(false);
+                      }
+                      handleCalculateSalePrice(e.target.value, getValues('estimatedValue'), getValues('percentage'))
+                    }}
+                    onBlur={onBlur}
+                    type="number"
+                    required
+                  />
+                )}
+              />
+              <FormHelperText>{errors.purchasePrice && errors.purchasePrice.message}</FormHelperText>
+            </FormControl>
+
+            {
+              containerEstimatedValue ?
+                (
+                  <FormControl sx={{ width: '100%' }} error={!!errors?.estimatedValue}>
+                    <InputLabel htmlFor="outlined-adornment-amount">Costo estimado</InputLabel>
+                    <Controller
+                      name="estimatedValue"
+                      control={control}
+                      defaultValue=""
+                      rules={{
+                        required: 'El costo estimado es requerido',
+                        min: {
+                          value: 1,
+                          message: 'El costo estimado debe ser mayor o igual a 1'
+                        },
+                        max: {
+                          value: 100000,
+                          message: 'El costo estimado debe ser menor o igual a 100000'
+                        }
+                      }}
+                      render={({ field: { onChange, onBlur, value, } }) => (
+                        <OutlinedInput
+                          id="outlined-adornment-amount"
+                          startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                          label="Costo estimado"
+                          placeholder='0.00'
+                          size="small"
+                          value={value}
+                          onChange={(e) => {
+                            onChange(e.target.value);
+                            handleCalculateSalePrice(getValues('purchasePrice'), e.target.value, getValues('percentage'))
+                          }}
+                          onBlur={onBlur}
+                          type="number"
+                          required
+                        />
+                      )}
+                    />
+                    <FormHelperText>{errors.estimatedValue && errors.estimatedValue.message}</FormHelperText>
+                  </FormControl>
+                )
+                :
+                null
+            }
+            <FormControl sx={{ width: '100%' }}>
+              <Controller
+                name="stock"
+                control={control}
+                defaultValue="1"
+                rules={{
+                  required: 'El stock es requerido',
+                  min: {
+                    value: 1,
+                    message: 'El stock debe ser mayor o igual a 1'
+                  },
+                  max: {
+                    value: 100000,
+                    message: 'El stock debe ser menor o igual a 100000'
+                  }
+                }}
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-basic"
+                    label="Stock"
+                    variant="outlined"
+                    size="small"
+                    type="number"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
               />
             </FormControl>
 
-            <FormControl sx={{ width: '100%' }}>
-              <TextField id="outlined-basic" label="Stock" variant="outlined" value={stock} onChange={
-                (e) => {
-                  setStock(e.target.value)
-                }
-              }
-                size="small"
-                type="number"
-                required />
-            </FormControl>
 
-            <FormControl sx={{ width: '100%' }}>
+            <FormControl sx={{ width: '100%' }} error={!!errors?.percentage}>
               <InputLabel htmlFor="outlined-adornment-amount">Porcentaje de ganancia</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">%</InputAdornment>}
-                label="Porcentaje de ganancia"
-                placeholder='0'
-                size="small"
-                value={percentage}
-                onChange={(e) => {
-                  setPercentage(e.target.value);
-                  handleCalculateSalePrice(purchasePrice, estimatedValue, e.target.value);
+              <Controller
+                name="percentage"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El porcentaje de ganancia es requerido',
+                  min: {
+                    value: 1,
+                    message: 'El porcentaje de ganancia debe ser mayor o igual a 1'
+                  },
+                  max: {
+                    value: 100,
+                    message: 'El porcentaje de ganancia debe ser menor o igual a 100'
+                  }
                 }}
-                type="number"
-                required
+                render={({ field: { onChange, onBlur, value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">%</InputAdornment>}
+                    label="Porcentaje de ganancia"
+                    placeholder='0'
+                    size="small"
+                    value={value}
+                    onChange={(e) => {
+                      onChange(e.target.value);
+                      handleCalculateSalePrice(getValues('purchasePrice'), getValues('estimatedValue'), e.target.value)
+                    }}
+                    onBlur={onBlur}
+                    type="number"
+                    required
+                  />
+                )}
               />
+              <FormHelperText>{errors.percentage && errors.percentage.message}</FormHelperText>
             </FormControl>
 
 
             <FormControl sx={{ width: '100%' }}>
               <InputLabel htmlFor="outlined-adornment-amount">Precio de venta</InputLabel>
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                label="Costo de material"
-                placeholder='0.00'
-                size="small"
-                value={salePrice}
-                type="number"
-                disabled
+              <Controller
+                name="salePrice"
+                control={control}
+                defaultValue=""
+                render={({ field: { value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Precio de material"
+                    placeholder='0.00'
+                    size="small"
+                    value={value}
+                    type="number"
+                    disabled
+                  />
+                )}
               />
             </FormControl>
 
@@ -589,7 +761,7 @@ const MaterialsMillingPage = () => {
           <Button size="large" onClick={handleCloseDialog}  >
             Cancelar
           </Button>
-          <Button size="large" autoFocus onClick={handleSubmitDialog}>
+          <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
             Guardar
           </Button>
         </DialogActions>

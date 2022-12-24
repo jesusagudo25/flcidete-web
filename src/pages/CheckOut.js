@@ -73,22 +73,6 @@ function applySortFilter(array, comparator, query) {
 
 export const CheckOut = () => {
 
-  /* Create - edit */
-
-  const [id, setId] = useState('');
-
-  const [name, setName] = useState('');
-
-  const [category, setCategory] = useState();
-
-  const [salePrice, setSalePrice] = useState('');
-
-  const [stock, setStock] = useState('');
-
-  const [percentage, setPercentage] = useState('');
-
-  const [containerEstimatedValue, setContainerEstimatedValue] = useState(false);
-
   /* Datatable */
 
   const [visits, setVisits] = useState([]);
@@ -106,62 +90,6 @@ export const CheckOut = () => {
   const [filterName, setFilterName] = useState('');
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
-
-  const handleCalculateSalePrice = (purchasePrice, estimatedValue, percentage) => {
-    const valor = purchasePrice > 0 ? purchasePrice : estimatedValue;
-    if (valor > 0 && percentage > 0) {
-      const value = parseFloat(valor) + (valor * percentage / 100);
-      setSalePrice(parseFloat(value).toFixed(2));
-    }
-    else {
-      setSalePrice(parseFloat(0).toFixed(2))
-    }
-  };
-
-  const handleCreateDialog = (event) => {
-    setId('');
-    setName('');
-    setCategory('');
-    setEstimatedValue('');
-    setPurchasePrice('');
-    setSalePrice('');
-    setStock('');
-    setPercentage('');
-    setContainerEstimatedValue(false);
-    setOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpen(false);
-  };
-
-  const handleSubmitDialog = async (event) => {
-    event.preventDefault();
-    if (id) {
-      await axios.put(`/api/components/${id}`, {
-        name,
-        'component_category_id': category,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-        'percentage': percentage,
-        'sale_price': salePrice,
-        'stock': stock,
-      });
-    } else {
-      await axios.post('/api/components', {
-        name,
-        'component_category_id': category,
-        'purchase_price': purchasePrice,
-        'estimated_value': containerEstimatedValue ? estimatedValue : purchasePrice,
-        'percentage': percentage,
-        'sale_price': salePrice,
-        'stock': stock,
-        'quantity': stock,
-      });
-    }
-    handleCloseDialog();
-    getVisits();
-  };
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';

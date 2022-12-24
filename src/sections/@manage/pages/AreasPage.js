@@ -2,20 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
@@ -26,31 +20,20 @@ import {
   Dialog,
   DialogContent,
   DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
   TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
-
+  FormControl,
 } from '@mui/material';
+import { Controller, useForm } from 'react-hook-form';
+import { ToastContainer, toast } from 'react-toastify';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -178,6 +161,37 @@ function applySortFilter(array, comparator, query) {
 
 const AreasPage = () => {
 
+  /* Toastify */
+
+  const showToastMessage = () => {
+    if (!id) toast.success('¡Area agregada con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+    else toast.success('¡Area actualizada con éxito!', {
+      position: toast.POSITION.TOP_RIGHT
+    });
+  };
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+
+  /* useForm */
+
+  const { control, handleSubmit, reset, setValue } = useForm({
+    reValidateMode: 'onBlur'
+  });
+
   /* Area */
 
   const [id, setId] = useState('');
@@ -203,21 +217,26 @@ const AreasPage = () => {
   const handleCreateDialog = (event) => {
     setOpen(true);
     setId('');
-    setName('');
+    /*  setName(''); */
+    reset();
   };
 
   const handleCloseDialog = () => {
     setOpen(false);
+    reset();
   };
 
   const handleSubmitDialog = async (event) => {
-    event.preventDefault();
+    /*     event.preventDefault(); */
     if (id) {
-      await axios.put(`/api/areas/${id}`, { name });
+      await axios.put(`/api/areas/${id}`, { name: event.name });
     } else {
-      await axios.post('/api/areas', { name });
+      await axios.post('/api/areas', { name: event.name });
     }
 
+    showToastMessage();
+
+    reset();
     handleCloseDialog();
     getAreas();
   };
@@ -306,6 +325,12 @@ const AreasPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if (active) (
+                                  showToastMessageStatus('error', 'Área desactivada')
+                                )
+                                else (
+                                  showToastMessageStatus('success', 'Área activada')
+                                )
                                 setAreas(areas.map((area) => {
                                   if (area.id === id) {
                                     return { ...area, active: !active };
@@ -332,7 +357,8 @@ const AreasPage = () => {
                             <IconButton size="large" color="inherit" onClick={
                               () => {
                                 setId(id);
-                                setName(name);
+                                /*                                 setName(name); */
+                                setValue('name', name);
                                 setOpen(true);
                               }
                             }>
@@ -416,6 +442,10 @@ const AreasPage = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -429,27 +459,47 @@ const AreasPage = () => {
         </BootstrapDialogTitle>
         <DialogContent dividers>
           <Stack spacing={4} sx={{ minWidth: 550 }}>
-            <TextField
-              fullWidth
-              label="Nombre"
-              name="name"
-              onChange={
-                (event) => {
-                  setName(event.target.value);
-                }
-              }
-              required
-              value={name}
-              variant="outlined"
-              size="small"
-            />
+
+            <FormControl sx={{ width: '100%' }}>
+              <Controller
+                name="name"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: 'El nombre es requerido',
+                  minLength: {
+                    value: 3,
+                    message: 'El nombre debe tener al menos 3 caracteres'
+                  },
+                  maxLength: {
+                    value: 30,
+                    message: 'El nombre debe tener máximo 20 caracteres'
+                  }
+                }}
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    fullWidth
+                    label="Nombre"
+                    name="name"
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                    value={value}
+                    variant="outlined"
+                    size="small"
+                  />
+                )}
+              />
+            </FormControl>
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button size="large" onClick={handleCloseDialog}  >
             Cancelar
           </Button>
-          <Button size="large" autoFocus onClick={handleSubmitDialog}>
+          <Button size="large" autoFocus onClick={handleSubmit(handleSubmitDialog)}>
             Guardar
           </Button>
         </DialogActions>
