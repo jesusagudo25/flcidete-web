@@ -31,6 +31,12 @@ const navConfig = [
     role: [2,3]
   },
   {
+    title: 'Pagos',
+    path: '/dashboard/payments',
+    icon: icon('ic_payments'),
+    role: [2,3]
+  },
+  {
     title: 'Control de atención',
     path: '/dashboard/attend',
     icon: icon('ic_attention'),

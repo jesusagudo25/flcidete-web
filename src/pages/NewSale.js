@@ -23,6 +23,12 @@ import {
   Popover,
   Backdrop,
   CircularProgress,
+  Stepper,
+  Step,
+  StepLabel,
+  Grid,
+  Paper,
+  Box,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -30,7 +36,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
-import { Box } from '@mui/system';
 import { Link } from 'react-router-dom';
 
 // date-fns
@@ -69,7 +74,10 @@ import {
   Events,
 } from '../sections/@dashboard/sales';
 
+import { AppTrafficBySite } from '../sections/@dashboard/app';
 import { AddCustomer } from '../sections/@dashboard/visits';
+
+const steps = ['Datos del cliente', 'Datos de la orden', 'Resumen'];
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
@@ -104,13 +112,6 @@ function BootstrapDialogTitle(props) {
   );
 }
 
-function customerDetails (props){
-
-
-  return (
-    
-  )
-}
 
 BootstrapDialogTitle.propTypes = {
   children: PropTypes.node,
@@ -129,6 +130,8 @@ const NewSale = () => {
   const [openMenu, setOpenMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [flagCustomer, setFlagCustomer] = useState(true);
+  const [flagItems, setFlagItems] = useState(false);
 
   /* Customer - variables */
 
@@ -154,17 +157,29 @@ const NewSale = () => {
   const [containerServices, setContainerServices] = React.useState([]);
   const [serviceCategory, setServiceCategory] = useState('a');
   const [service, setService] = useState(1);
-  const [items, setItems] = React.useState([]);
-  const [count, setCount] = React.useState(1);
-  const [total, setTotal] = React.useState(0);
+  const [items, setItems] = useState([]);
+  const [count, setCount] = useState(1);
+  const [total, setTotal] = useState(0); /* Total */
+  const [payment, setPayment] = useState(0); /* Abono */
+  const [balance, setBalance] = useState(0); /* Saldo */
+  const [typeInvoice, setTypeInvoice] = useState('T');
   const [typeSale, setTypeSale] = useState('S');
   const [dateDelivery, setDateDelivery] = useState(null);
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
+  const [description, setDescription] = useState('');
+  const [servicesCategories, setServicesCategories] = useState([
+    { id: 'a', name: 'Áreas' },
+    { id: 'ec', name: 'Eventos' }
+  ]);
 
   /* Data invoices */
 
   const [invoice, setInvoice] = useState(null);
+
+  /* Data quotations */
+
+  const [quotation, setQuotation] = useState(null);
 
   /* Submit */
 
@@ -176,6 +191,10 @@ const NewSale = () => {
       items,
       total,
       id: localStorage.getItem('id'),
+      description,
+      typeInvoice,
+      payment,
+      balance,
     };
 
     if (typeSale === 'S') {
@@ -207,12 +226,10 @@ const NewSale = () => {
     axios.post('api/invoices', data)
       .then((response) => {
         if (response.data.success) {
-          /* Loading */
           setIsLoading(false);
           setIsComplete(true);
           setInvoice(response.data.invoice);
 
-          /* Reset */
           setContainerCustomer(false);
           setDisabledAddCustomer(false);
           setDocumentType('C');
@@ -235,11 +252,12 @@ const NewSale = () => {
           setDateDelivery(new Date());
           setHours(0);
           setMinutes(0);
-
+          setActiveStep((prevActiveStep) => prevActiveStep + 1);
 
         }
       }
       );
+
 
   };
 
@@ -267,7 +285,54 @@ const NewSale = () => {
     setOpenMenu(null);
   };
 
-  /* Manage sales - Methods */
+  /* Steppers methods */
+
+  const [activeStep, setActiveStep] = React.useState(0);
+
+  const handleNext = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    switch (activeStep) {
+      case 0:
+        if (items.length > 0) {
+          setFlagItems(false);
+          setFlagCustomer(false);
+        }
+        else {
+          setFlagItems(true);
+        }
+        break;
+      default:
+    }
+
+  };
+
+  const handleBack = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    switch (activeStep) {
+      case 1:
+        if (document) {
+          setFlagItems(false);
+          setFlagCustomer(false);
+        }
+        else {
+          setFlagItems(true);
+        }
+        break;
+      case 2:
+        if (items.length > 0) {
+          setFlagItems(false);
+          setFlagCustomer(false);
+        }
+        break;
+      default:
+    }
+  };
+
+  const handleReset = () => {
+    setActiveStep(0);
+  };
+
+  /* ------------ Sales - Methods */
 
   const handleChangeMinutes = (event) => {
     if (event.target.value.length > 2 || event.target.value < 0) {
@@ -293,6 +358,30 @@ const NewSale = () => {
 
   const handleChangeTypeSale = (event) => {
     setTypeSale(event.target.value);
+    setHours(0);
+    setMinutes(0);
+    setTotal(0);
+    setItems([]);
+    setService(1);
+    setServiceCategory('a');
+    if (event.target.value === 'S') {
+      setServicesCategories([
+        { id: 'a', name: 'Áreas' },
+        { id: 'ec', name: 'Eventos' }
+      ])
+
+    }
+    else {
+      setServicesCategories([
+        { id: 'a', name: 'Áreas' },
+      ])
+    }
+    setContainerServices(services.a);
+  };
+
+  const handleChangeTypeInvoice = (event) => {
+    setTypeInvoice(event.target.value);
+    calculateTotal(hours, minutes);
   };
 
   const getServices = () => {
@@ -316,7 +405,7 @@ const NewSale = () => {
 
     const minutesArea = (parseInt(hours, 10) * 60) + parseInt(minutes, 10);
 
-    let total = minutesArea !== 0 ? ((minutesArea / 60) * 3.00) : 0.00;
+    let total = Number.isNaN(minutesArea) ? 0.00 : minutesArea !== 0 ? ((minutesArea / 60) * 3.00) : 0.00;
 
     items.forEach(item => {
       if (item.details.base_cost) {
@@ -324,7 +413,13 @@ const NewSale = () => {
       }
     });
 
+    if (typeInvoice === 'A') {
+      const payment = parseFloat(total / 2).toFixed(2);
+      setPayment(Number.isNaN(payment) ? parseFloat(0).toFixed(2) : payment);
+      setBalance(Number.isNaN(total) ? parseFloat(0).toFixed(2) : parseFloat(total - payment).toFixed(2));
+    }
     setTotal(Number.isNaN(total) ? parseFloat(0).toFixed(2) : parseFloat(total).toFixed(2));
+
   }
 
   /* Customers - methods */
@@ -382,19 +477,26 @@ const NewSale = () => {
       )
   }
 
+  /* Autocomplete */
+
   const handleChangeDocumentType = (event) => {
     setDocumentType(event.target.value);
 
   };
 
   const handleChangeDocument = (event, newInputValue) => {
-    setContainerCustomer(false);
-    setDocument(newInputValue);
-    if (event.target.value.length > 0) {
-      getDataAutoComplete(event.target.value);
-    }
-    else {
-      setOptions([]);
+    if (event) {
+      setContainerCustomer(false);
+      setDocument(newInputValue);
+      if (event.target.value) {
+        if (event.target.value.length > 3) {
+          getDataAutoComplete(event.target.value);
+        }
+      }
+      else {
+        setOptions([]);
+        setFlagCustomer(true);
+      }
     }
   };
 
@@ -417,7 +519,9 @@ const NewSale = () => {
       // Crear un nuevo valor a partir de la entrada del usuario
       setDocument(newValue.inputValue);
       setContainerCustomer(true);
-    } else {
+      setFlagCustomer(false);
+    } else if (newValue) {
+      setFlagCustomer(false);
       setIdCustomer(newValue.value);
       setContainerCustomer(true);
       setDisabledAddCustomer(true);
@@ -431,6 +535,8 @@ const NewSale = () => {
       setTownshipSelected(newValue.township_id);
     }
   };
+
+  /* -------------------- */
 
   const handleChangeAgeRange = (event) => {
     setAgeRangeSelected(event.target.value);
@@ -463,6 +569,7 @@ const NewSale = () => {
     if (newItems.length === 0) {
       setItems([]);
       setCount(1);
+      setFlagItems(true);
     }
     else {
       setItems(newItems);
@@ -501,7 +608,7 @@ const NewSale = () => {
       if (type === 'S') return <ResinServices itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} />
       return <ResinMaker itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} />
     },
-    'Software de diseño': (type = null) => {
+    'Softwares': (type = null) => {
       return <SoftwareServices itemSelected={itemSelected} handleAddSoftware={handleAddSoftware} updateItemSoftware={updateItemSoftware} />
     },
     'Bordadora CNC': (type) => {
@@ -1168,8 +1275,6 @@ const NewSale = () => {
       return item;
     }));
 
-    console.log(itemSelected);
-
     const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
     const totalHours = itemSelected.details.software.sale_price ? hoursArea * itemSelected.details.software.sale_price : 0;
 
@@ -1240,11 +1345,12 @@ const NewSale = () => {
     const height = itemSelected.details.height ? parseInt(itemSelected.details.height, 10) : null;
     const hoopSize = itemSelected.details.hoop_size ? itemSelected.details.hoop_size : null;
     const hours = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
+    const quantity = itemSelected.details.quantity ? parseInt(itemSelected.details.quantity, 10) : 0;
 
     let materialCost = 0;
     let totalHours = 0;
 
-    if (width && height && hoopSize) {
+    if (width && height && hoopSize && quantity) {
       if (width > hoopSize.split('x')[0]) {
         itemSelected.details.width = hoopSize.split('x')[0];
       }
@@ -1252,7 +1358,7 @@ const NewSale = () => {
         itemSelected.details.height = hoopSize.split('x')[1];
       }
 
-      materialCost += width > height ? width * PRICE_THREAD : height * PRICE_THREAD;
+      materialCost += width > height ? (width * PRICE_THREAD) * (quantity) : (height * PRICE_THREAD * (quantity));
       itemSelected.details.embroidery_cost = materialCost;
     }
 
@@ -1276,6 +1382,7 @@ const NewSale = () => {
     else {
       total = materialCost + extra;
     }
+
 
     if (Number.isNaN(total)) {
       itemSelected.details.base_cost = 0.00;
@@ -1319,6 +1426,518 @@ const NewSale = () => {
 
   }
 
+  /* Components parent */
+
+  function customerDetails() {
+    return (
+      <>
+        <Typography variant="subtitle1" gutterBottom marginBottom={4}>
+          Ingrese los datos del cliente
+        </Typography>
+        <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} />
+
+        {
+          containerCustomer ?
+            <AddCustomer name={name} email={email} telephone={telephone} ageRangeSelected={ageRangeSelected} setAgeRangeSelected={setAgeRangeSelected} setTypeSexSelected={setTypeSexSelected} typeSexSelected={typeSexSelected} provinceSelected={provinceSelected}
+              setProvinceSelected={setProvinceSelected} districtSelected={districtSelected} setDistrictSelected={setDistrictSelected} townshipSelected={townshipSelected} setTownshipSelected={setTownshipSelected} ageRanges={ageRanges} typeSexes={typeSexes} disabledAddCustomer={disabledAddCustomer} handleChangeAgeRange={handleChangeAgeRange} handleChangeTypeSex={handleChangeTypeSex} handleChangeName={handleChangeName} handleChangeEmail={handleChangeEmail} handleChangeTelephone={handleChangeTelephone} /> : null
+        }
+      </>
+    )
+  }
+
+  function itemDetails() {
+    return (
+      <>
+        <Typography variant="subtitle1" gutterBottom marginBottom={4}>
+          Ingrese los datos de la orden
+        </Typography>
+        <Stack sx={
+          {
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: '30px',
+            justifyContent: 'space-between',
+          }
+        } >
+          <FormControl
+            sx={{
+              width: '20%',
+            }
+            }
+          >
+            <FormLabel id="demo-radio-buttons-group-label"
+            >Selecciona el tipo de venta</FormLabel>
+            {/* Selecciona si es visita individual o grupal */}
+            <RadioGroup
+              aria-labelledby="buttons-group-label-type-visit"
+              defaultValue="female"
+              name="radio-buttons-group-type-visit"
+            >
+              <Stack direction="row">
+                <FormControlLabel control={<Radio value="M"
+                  onChange={handleChangeTypeSale}
+                  checked={typeSale === 'M'}
+                />}
+                  label="Makers"
+                />
+                <FormControlLabel control={<Radio value="S"
+                  onChange={handleChangeTypeSale}
+                  checked={typeSale === 'S'}
+                />}
+                  label="Servicios"
+                />
+              </Stack>
+            </RadioGroup>
+          </FormControl>
+
+          {
+            typeSale === 'S' ?
+              <Stack
+                direction="row"
+                sx={{
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '75%',
+                }}
+              >
+                <FormControl
+                  sx={{
+                    width: '38%',
+                  }
+                  }
+                >
+                  <FormLabel id="demo-radio-buttons-group-label"
+                  >Selecciona el tipo de pago</FormLabel>
+                  {/* Selecciona si es visita individual o grupal */}
+                  <RadioGroup
+                    aria-labelledby="buttons-group-label-type-visit"
+                    defaultValue="female"
+                    name="radio-buttons-group-type-visit"
+                  >
+                    <Stack direction="row">
+                      <FormControlLabel control={<Radio value="A"
+                        onChange={handleChangeTypeInvoice}
+                        checked={typeInvoice === 'A'}
+                      />}
+                        label="50% adelanto"
+                      />
+                      <FormControlLabel control={<Radio value="T"
+                        onChange={handleChangeTypeInvoice}
+                        checked={typeInvoice === 'T'}
+                      />}
+                        label="Totalidad"
+                      />
+                    </Stack>
+                  </RadioGroup>
+                </FormControl>
+
+                <Stack sx={
+                  {
+                    display: 'flex',
+                    width: '30%',
+                  }}>
+                  <FormLabel>Tiempo de trabajo</FormLabel>
+                  <Stack sx={
+                    {
+                      justifyContent: 'space-between',
+                      width: '80%',
+                    }
+                  }
+                    direction="row"
+                  >
+                    <FormControl sx={{ width: '45%' }}>
+                      <OutlinedInput
+                        id="outlined-adornment-amount"
+                        startAdornment={<InputAdornment position="start">H</InputAdornment>}
+                        placeholder='0'
+                        value={hours}
+                        onChange={handleChangeHours}
+                        size="small"
+                        inputProps={{
+                          'minLength': 1,
+                          'maxLength': 2,
+                        }}
+                        type="number"
+                      />
+                    </FormControl>
+
+                    <FormControl sx={{ width: '45%' }}>
+
+                      <OutlinedInput
+                        id="outlined-adornment-amount"
+                        startAdornment={<InputAdornment position="start">M</InputAdornment>}
+                        placeholder='0'
+                        value={minutes}
+                        onChange={handleChangeMinutes}
+                        size="small"
+                        inputProps={{
+                          'minLength': 1,
+                          'maxLength': 2,
+                        }}
+                        type="number"
+                      />
+                    </FormControl>
+                  </Stack>
+                </Stack>
+
+                <FormControl sx={{ width: '30%' }}>
+                  <FormLabel id="demo-radio-buttons-group-label"
+                  >Selecciona la fecha de entrega</FormLabel>
+                  <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
+                    <DatePicker
+                      value={dateDelivery}
+                      onChange={(newValue) => {
+                        setDateDelivery(newValue);
+                      }}
+                      renderInput={(params) => <TextField size='small' {...params} />}
+                      inputFormat="dd/MM/yyyy"
+                      disablePast
+                    />
+                  </LocalizationProvider>
+                </FormControl>
+              </Stack>
+              : null
+          }
+
+          <Divider variant='fullWidth' sx={{
+            width: '100%',
+          }} />
+
+          <Stack direction="row" sx={{
+            justifyContent: 'space-between',
+            width: '100%',
+            alignItems: 'center',
+          }} >
+            <FormControl sx={{ width: '40%' }}>
+              <InputLabel id="category-services-select-label"
+                sx={{ width: 400 }}
+              >Categoría del servicio</InputLabel>
+              <Select
+                labelId="category-services-select-label"
+                id="service-category"
+                label="Categoría del servicio"
+                onChange={(e) => {
+                  setContainerServices(services[e.target.value]);
+                  setServiceCategory(e.target.value);
+                  setService(1);
+                }}
+                value={serviceCategory}
+              >
+                {
+                  servicesCategories.map((category) => (
+                    <MenuItem value={category.id} key={category.id}>{category.name}</MenuItem>
+                  ))
+                }
+
+              </Select>
+            </FormControl>
+
+            <FormControl sx={{ width: '30%' }}>
+              <InputLabel id="service-select-label"
+                sx={{ width: 400 }}
+              >Servicio</InputLabel>
+              <Select
+                labelId="service-select-label"
+                id="service"
+                label="Servicio"
+                onChange={(e) => {
+                  setService(e.target.value);
+                }}
+                value={service}
+              >
+                {typeSale === 'S' ?
+                  containerServices.map((service) => (
+                    service.id !== 7 ?
+                      <MenuItem value={service.id} key={service.id}>{service.name}</MenuItem>
+                      : null
+                  ))
+                  :
+                  containerServices.map((service) => (
+                    <MenuItem value={service.id} key={service.id}>{service.name}</MenuItem>
+                  ))
+
+                }
+              </Select>
+            </FormControl>
+
+            {/* Order Details */}
+            <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />}
+              sx={{
+                fontSize: '1rem',
+              }}
+              size="large"
+              onClick={
+                () => {
+                  setCount(count + 1);
+                  items.push({
+                    id: count,
+                    name: services[serviceCategory].find((s) => s.id === service).name,
+                    id_service: services[serviceCategory].find((s) => s.id === service).id,
+                    category_service: serviceCategory,
+                    details: {}
+                  });
+                  setFlagItems(false);
+
+                  calculateTotal(hours, minutes);
+                }
+              }
+            >
+              Añadir
+            </Button>
+          </Stack>
+        </Stack>
+
+        <Scrollbar>
+          <TableContainer sx={{ minWidth: 800, marginTop: 3 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Descripción</TableCell>
+                  <TableCell align="left">Precio</TableCell>
+                  <TableCell align="left">Total</TableCell>
+                  <TableCell align="left"> </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <CartList items={items} setServiceSelected={setServiceSelected} setServiceSelectedId={setServiceSelectedId} setOpenMenu={setOpenMenu} />
+              </TableBody>
+              {
+                items.length > 0 ?
+                  <TableFooter>
+                    {typeInvoice === 'A' ? (
+                      <>
+
+                        <TableRow sx={{
+                          backgroundColor: '#F4F6F8',
+                        }}>
+                          <TableCell align="left"> </TableCell>
+                          <TableCell sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            textAlign: 'right',
+                          }}>Sub total </TableCell>
+                          <TableCell align="left" sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                          }}>{total}</TableCell>
+                          <TableCell> </TableCell>
+                        </TableRow>
+
+                        <TableRow sx={{
+                          backgroundColor: '#F4F6F8',
+                        }}>
+                          <TableCell align="left" > </TableCell>
+                          <TableCell sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            textAlign: 'right',
+                          }}> Abono (50%)</TableCell>
+                          <TableCell align="left" sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                          }}>- {payment}</TableCell>
+                          <TableCell> </TableCell>
+                        </TableRow>
+
+                        <TableRow sx={{
+                          backgroundColor: '#F4F6F8',
+                        }}>
+                          <TableCell align="left" sx={
+                            {
+                              borderBottom: '1px solid #e6e6e6',
+                            }
+                          }> </TableCell>
+                          <TableCell sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            textAlign: 'right',
+                            borderBottom: '1px solid #e6e6e6',
+                          }}> Saldo</TableCell>
+                          <TableCell align="left" sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            borderBottom: '1px solid #e6e6e6',
+                          }}>{balance}</TableCell>
+                          <TableCell sx={
+                            {
+                              borderBottom: '1px solid #e6e6e6',
+                            }
+                          }> </TableCell>
+                        </TableRow>
+
+                        <TableRow sx={{
+                          backgroundColor: '#F4F6F8',
+                        }}>
+                          <TableCell align="left"> </TableCell>
+                          <TableCell sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                            textAlign: 'right',
+                          }}> Total a pagar</TableCell>
+                          <TableCell align="left" sx={{
+                            fontSize: '0.875rem',
+                            fontWeight: '600',
+                          }}>{payment}</TableCell>
+                          <TableCell sx={
+                            {
+                              borderBottom: '1px solid #e6e6e6',
+                            }
+                          }> </TableCell>
+                        </TableRow>
+
+                      </>
+
+                    ) : (
+                      <TableRow
+                        sx={{
+                          backgroundColor: '#F4F6F8',
+                        }}
+                      >
+                        <TableCell align="left"> </TableCell>
+                        <TableCell sx={{
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                          textAlign: 'right',
+                        }}>Total a pagar</TableCell>
+                        <TableCell align="left" sx={{
+                          fontSize: '0.875rem',
+                          fontWeight: '600',
+                        }}>{total}</TableCell>
+                        <TableCell> </TableCell>
+                      </TableRow>
+                    )}
+
+
+                  </TableFooter>
+                  : null
+              }
+            </Table>
+          </TableContainer>
+        </Scrollbar>
+      </>
+    );
+  }
+
+  function resumeOrder() {
+
+    const list = [
+      {
+        name: 'Anulación',
+        icon: <Iconify icon={'mdi:close-circle-outline'} color="red" width={32} />,
+        role: [1, 2, 3],
+        onClick: () => {
+          /* Reaload  */
+          window.location.reload();
+        }
+      },
+      {
+        name: 'Generar orden',
+        icon: <Iconify icon={'material-symbols:save'} color="green" width={32} />,
+        role: [1],
+        onClick: handleClickSubmit
+      },
+      {
+        name: 'En proceso',
+        icon: <Iconify icon={'material-symbols:hourglass-top'} color="#2065D1" width={32} />,
+        role: [1, 2, 3],
+        onClick: () => {
+          console.log('En proceso');
+        }
+      },
+    ];
+
+    return (
+      <>
+        <Typography variant="h6" sx={{ mb: 3 }}>
+          Información del cliente
+        </Typography>
+        <Grid container spacing={3} sx={{
+          mb: 3,
+        }}>
+          <Grid item xs={12} md={6} lg={4}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Nombre
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {name}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={6} lg={4}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Teléfono
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {telephone}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={6} lg={4}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Correo
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {email}
+            </Typography>
+          </Grid>
+        </Grid>
+        <Typography variant="h6" sx={{ marginY: 2 }}>
+          Descripción de la orden
+        </Typography>
+        <FormControl fullWidth sx={{ mt: 2 }}>
+          <TextField
+            id="outlined-multiline-static"
+            label="Descripción"
+            InputLabelProps={{
+              shrink: true,
+            }}
+            placeholder="Por favor, ingrese una descripción de la orden"
+            multiline
+            rows={4}
+            variant="outlined"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </FormControl>
+        <Typography variant="subtitle1" sx={{ marginY: 2, textAlign: 'center' }}>
+          Total de orden ($ {typeInvoice === 'A' ? balance : total})
+        </Typography>
+        <Typography variant="h6" sx={{ marginY: 2 }}>
+          Acciones
+        </Typography>
+        <Grid item xs={12} md={6} lg={4}>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 3,
+              gridTemplateColumns: 'repeat(3, 1fr)',
+            }}
+          >
+            {list.map((site, index) => (
+              <Button
+                style={{ textDecoration: 'none', color: 'inherit' }}
+                key={index}
+                onClick={site.onClick}
+              >
+                <Paper key={site.name} variant="outlined" sx={{
+                  py: 2, textAlign: 'center',
+                  width: '100%',
+                  height: '100%',
+                }}>
+                  <Box sx={{ mb: 0.5 }}>{site.icon}</Box>
+
+                  <Typography variant="body1" sx={{ color: 'text.secondary', textDecoration: 'none' }}>
+                    {site.name}
+                  </Typography>
+                </Paper>
+              </Button>
+            ))}
+          </Box>
+        </Grid>
+      </>
+    );
+  }
+
   return (<>
     <Helmet>
       <title> Formulario: Ventas | Fab Lab System </title>
@@ -1326,7 +1945,7 @@ const NewSale = () => {
 
     <Container>
       <Typography variant="h4" sx={{ mb: 5 }}>
-        Datos del Cliente
+        Ventas
       </Typography>
 
       <Card>
@@ -1338,426 +1957,178 @@ const NewSale = () => {
             gap: '20px',
           }
         }>
-
-          <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} />
-
-          {
-            containerCustomer ?
-              <AddCustomer name={name} email={email} telephone={telephone} ageRangeSelected={ageRangeSelected} setAgeRangeSelected={setAgeRangeSelected} setTypeSexSelected={setTypeSexSelected} typeSexSelected={typeSexSelected} provinceSelected={provinceSelected}
-                setProvinceSelected={setProvinceSelected} districtSelected={districtSelected} setDistrictSelected={setDistrictSelected} townshipSelected={townshipSelected} setTownshipSelected={setTownshipSelected} ageRanges={ageRanges} typeSexes={typeSexes} disabledAddCustomer={disabledAddCustomer} handleChangeAgeRange={handleChangeAgeRange} handleChangeTypeSex={handleChangeTypeSex} handleChangeName={handleChangeName} handleChangeEmail={handleChangeEmail} handleChangeTelephone={handleChangeTelephone} /> : null
-          }
-
-        </Container>
-      </Card>
-
-      <Typography variant="h4" sx={{ my: 5 }}>
-        Datos de la orden
-      </Typography>
-
-      <Card>
-        <Container sx={
-          {
-            padding: '20px',
-          }
-        }>
-          {/* Services */}
-          <Stack sx={
-            {
-              display: 'flex',
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              gap: '30px',
-              justifyContent: 'space-between',
-            }
-          } >
-            <FormControl
-              sx={{
-                width: '20%',
-              }
-              }
-            >
-              <FormLabel id="demo-radio-buttons-group-label"
-              >Selecciona el tipo de venta</FormLabel>
-              {/* Selecciona si es visita individual o grupal */}
-              <RadioGroup
-                aria-labelledby="buttons-group-label-type-visit"
-                defaultValue="female"
-                name="radio-buttons-group-type-visit"
-              >
-                <Stack direction="row">
-                  <FormControlLabel control={<Radio value="M"
-                    onChange={handleChangeTypeSale}
-                    checked={typeSale === 'M'}
-                  />}
-                    label="Makers"
-                  />
-                  <FormControlLabel control={<Radio value="S"
-                    onChange={handleChangeTypeSale}
-                    checked={typeSale === 'S'}
-                  />}
-                    label="Servicios"
-                  />
-                </Stack>
-              </RadioGroup>
-            </FormControl>
-
-            {
-              typeSale === 'S' ?
-                <Stack
-                  direction="row"
-                  sx={{
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '66%',
-                  }}
-                >
-
-                  <Stack sx={
-                    {
-                      display: 'flex',
-                      width: '45%',
-                    }}>
-                    <FormLabel>Tiempo de trabajo</FormLabel>
-                    <Stack sx={
-                      {
-                        justifyContent: 'space-between',
-                        width: '80%',
-                      }
-                    }
-                      direction="row"
-                    >
-                      <FormControl sx={{ width: '45%' }}>
-                        <OutlinedInput
-                          id="outlined-adornment-amount"
-                          startAdornment={<InputAdornment position="start">H</InputAdornment>}
-                          placeholder='0'
-                          value={hours}
-                          onChange={handleChangeHours}
-                          size="small"
-                          inputProps={{
-                            'minLength': 1,
-                            'maxLength': 2,
-                          }}
-                          type="number"
-                        />
-                      </FormControl>
-
-                      <FormControl sx={{ width: '45%' }}>
-
-                        <OutlinedInput
-                          id="outlined-adornment-amount"
-                          startAdornment={<InputAdornment position="start">M</InputAdornment>}
-                          placeholder='0'
-                          value={minutes}
-                          onChange={handleChangeMinutes}
-                          size="small"
-                          inputProps={{
-                            'minLength': 1,
-                            'maxLength': 2,
-                          }}
-                          type="number"
-                        />
-                      </FormControl>
-                    </Stack>
-                  </Stack>
-
-                  <FormControl sx={{ width: '40%' }}>
-                    <FormLabel id="demo-radio-buttons-group-label"
-                    >Selecciona la fecha de entrega</FormLabel>
-                    <LocalizationProvider dateAdapter={AdapterDateFns}>
-                      <DatePicker
-                        value={dateDelivery}
-                        onChange={(newValue) => {
-                          setDateDelivery(newValue);
-                        }}
-                        renderInput={(params) => <TextField size='small' {...params} />}
-                        inputFormat="dd/MM/yyyy"
-                        disablePast
-                      />
-                    </LocalizationProvider>
-                  </FormControl>
-                </Stack>
-                : null
-            }
-
-            <Divider variant='fullWidth' sx={{
-              width: '100%',
-            }} />
-
-            <Stack direction="row" sx={{
-              justifyContent: 'space-between',
-              width: '100%',
-              alignItems: 'center',
-            }} >
-              <FormControl sx={{ width: '40%' }}>
-                <InputLabel id="category-services-select-label"
-                  sx={{ width: 400 }}
-                >Categoría del servicio</InputLabel>
-                <Select
-                  labelId="category-services-select-label"
-                  id="service-category"
-                  label="Categoría del servicio"
-                  onChange={(e) => {
-                    setContainerServices(services[e.target.value]);
-                    setServiceCategory(e.target.value);
-                    setService(1);
-                  }}
-                  value={serviceCategory}
-                >
-                  <MenuItem value={'a'}>Áreas</MenuItem>
-                  <MenuItem value={'ec'}>Eventos</MenuItem>
-                </Select>
-              </FormControl>
-
-              <FormControl sx={{ width: '30%' }}>
-                <InputLabel id="service-select-label"
-                  sx={{ width: 400 }}
-                >Servicio</InputLabel>
-                <Select
-                  labelId="service-select-label"
-                  id="service"
-                  label="Servicio"
-                  onChange={(e) => {
-                    setService(e.target.value);
-                  }}
-                  value={service}
-                >
-                  {containerServices.map((service) => (
-                    <MenuItem value={service.id} key={service.id}>{service.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* Order Details */}
-              <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />}
-                sx={{
-                  fontSize: '1rem',
-                }}
-                size="large"
-                onClick={
-                  () => {
-                    setCount(count + 1);
-                    items.push({
-                      id: count,
-                      name: services[serviceCategory].find((s) => s.id === service).name,
-                      id_service: services[serviceCategory].find((s) => s.id === service).id,
-                      category_service: serviceCategory,
-                      details: {}
-                    });
-
-                    calculateTotal(hours, minutes);
-                  }
-                }
-              >
-                Añadir
-              </Button>
-            </Stack>
-          </Stack>
-
-          {/* Dialog */}
-
-          <BootstrapDialog
-            onClose={handleClose}
-            aria-labelledby="customized-dialog-title"
-            open={open}
-            maxWidth='sm'
-          >
-            <BootstrapDialogTitle id="customized-dialog-title" onClose={handleClose}>
-              Detalles del servicio
-            </BootstrapDialogTitle>
-            <DialogContent dividers>
-              {componentsForDialog[serviceSelected](typeSale)}
-            </DialogContent>
-            <DialogActions>
-              <Button size="large" onClick={handleClose}  >
-                Cancelar
-              </Button>
-              <Button size="large" autoFocus onClick={handleSave}>
-                Guardar
-              </Button>
-            </DialogActions>
-          </BootstrapDialog>
-
-          <Scrollbar>
-            <TableContainer sx={{ minWidth: 800, marginTop: 3 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Descripción</TableCell>
-                    <TableCell align="left">Precio</TableCell>
-                    <TableCell align="left">Total</TableCell>
-                    <TableCell align="left"> </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <CartList items={items} setServiceSelected={setServiceSelected} setServiceSelectedId={setServiceSelectedId} setOpenMenu={setOpenMenu} />
-                </TableBody>
+          <Box sx={{ width: '100%' }}>
+            <Stepper activeStep={activeStep}>
+              {steps.map((label, index) => {
+                const stepProps = {};
+                const labelProps = {};
+                return (
+                  <Step key={label} {...stepProps}>
+                    <StepLabel {...labelProps}>{label}</StepLabel>
+                  </Step>
+                );
+              })}
+            </Stepper>
+            {activeStep === steps.length ? (
+              <Container sx={
                 {
-                  items.length > 0 ?
-                    <TableFooter>
-                      <TableRow
-                        sx={{
-                          backgroundColor: '#F4F6F8',
-                        }}
-                      >
-                        <TableCell align="left" sx={{
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                        }}>Total</TableCell>
-                        <TableCell> </TableCell>
-                        <TableCell align="left" sx={{
-                          fontSize: '0.875rem',
-                          fontWeight: '600',
-                        }}>{total}</TableCell>
-                        <TableCell> </TableCell>
-                      </TableRow>
-                    </TableFooter>
-                    : null
+                  marginTop: '40px',
+                  marginBottom: '20px',
+                  padding: '20px',
+                  boxShadow: 2,
+                  borderRadius: 1,
                 }
-              </Table>
-            </TableContainer>
-          </Scrollbar>
-          {
-            items.length > 0 ?
-              <Stack
-                direction="row"
-                sx={{
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  width: '100%',
-                  marginTop: 5,
-                  gap: 4,
-                }}
-              >
-                <Button variant="contained" startIcon={<Iconify icon="iconoir:cancel" />} color="error" size="large" sx={
-                  {
-                    fontSize: '1rem',
-                  }
-                } onClick={
-                  () => {
-                    setItems([]);
-                    setTotal(0);
-                  }
-                }>
-                  Anular
-                </Button>
-                <LoadingButton variant="contained" startIcon={<Iconify icon="material-symbols:save" />} color="primary" size="large" sx={
-                  {
-                    fontSize: '1rem',
-                  }
+              }>
+                <Stack spacing={3} sx={{ mb: 4 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Iconify icon="material-symbols:check-circle" color="#00BB2D" width={50} height={50} />
+                  </Box>
+                  <Typography variant="h6" gutterBottom sx={
+                    {
+                      textAlign: 'center'
+                    }
+                  }>
+                    La orden se ha generado correctamente.
+                  </Typography>
+                  <Typography variant="body1" sx={
+                    {
+                      textAlign: 'center'
+                    }
+                  }>
+                    Puede descargar el PDF de la orden o crear una nueva.
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
+                    {
+                      invoice ?
+                        <a
+                          href={`http://localhost:8000/api/invoices/${invoice.id}/pdf/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          style={{ textDecoration: 'none' }}
+                        >
+                          <Button variant="contained"
+                            size='large'
+                            sx={{
+                              width: '100%',
+                            }}
+                            color="error"
+                            startIcon={<Iconify icon="mdi:file-pdf" />}
+                          >
+                            Descargar
+                          </Button>
+                        </a>
+                        : null
+                    }
+
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={
+                        () => {
+                          window.location.reload();
+                        }
+                      }
+                    >
+                      Crear nueva orden
+                    </Button>
+                  </Box>
+                </Stack>
+
+              </Container>
+            ) : (
+              <>
+
+                {
+                  activeStep + 1 === 1 ?
+                    <Box sx={
+                      {
+                        marginTop: '40px',
+                        marginBottom: '20px',
+                        padding: '20px',
+                        boxShadow: 1,
+                        borderRadius: 1,
+                      }
+                    }>
+                      {customerDetails()}
+                    </Box>
+                    : activeStep + 1 === 2 ?
+                      <Container sx={
+                        {
+                          marginTop: '40px',
+                          marginBottom: '20px',
+                          padding: '20px',
+                          boxShadow: 2,
+                          borderRadius: 1,
+                        }
+                      }>
+                        {itemDetails()}
+                      </Container>
+                      : activeStep + 1 === 3 ?
+                        <Container sx={
+                          {
+                            marginTop: '40px',
+                            marginBottom: '20px',
+                            padding: '20px',
+                            boxShadow: 2,
+                            borderRadius: 1,
+                          }
+                        }>{resumeOrder()}
+                        </Container>
+                        : null
                 }
-                  loading={isLoading}
-                  onClick={handleClickSubmit}
-                >
-                  Generar
-                </LoadingButton>
-              </Stack>
-              : null
-          }
-        </Container >
+                <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>
+                  <Button
+                    color="inherit"
+                    disabled={activeStep === 0}
+                    onClick={handleBack}
+                    sx={{ mr: 1 }}
+                  >
+                    Regresar
+                  </Button>
+
+                  <Box sx={{ flex: '1 1 auto' }} />
+                  {
+                    activeStep === steps.length - 1 || flagCustomer || flagItems ?
+                      null
+                      :
+                      <Button onClick={handleNext}>
+                        Siguiente
+                      </Button>
+                  }
+                </Box>
+
+              </>
+            )}
+          </Box>
+        </Container>
       </Card>
     </Container>
 
-    <Dialog
-      open={isComplete}
-      TransitionComponent={Transition}
-      keepMounted
-      onClose={() => {
-        setIsComplete(false);
-      }}
-      aria-describedby="alert-dialog-slide-description"
-      fullWidth
+    {/* Dialog sale */}
+
+    <BootstrapDialog
+      onClose={handleClose}
+      aria-labelledby="customized-dialog-title"
+      open={open}
       maxWidth='sm'
     >
+      <BootstrapDialogTitle id="customized-dialog-title" onClose={handleClose}>
+        Detalles del servicio
+      </BootstrapDialogTitle>
       <DialogContent dividers>
-
-        <Stack
-          direction="column"
-          sx={{
-            justifyContent: 'center',
-            alignItems: 'center',
-            width: '100%',
-          }}
-        >
-          <Box sx={{
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-            <Iconify icon="mdi:check-circle" color="#4caf50" width="130px" height="130px" />
-          </Box>
-
-          <Stack
-            direction="row"
-            sx={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              width: '100%',
-              gap: 2,
-              marginTop: 1,
-            }}
-          >
-            {/* Details */}
-            <Typography variant="subtitle1" sx={{ fontWeight: '600' }}>Factura</Typography>
-            {
-              invoice ? <Typography variant="subtitle1" sx={{ fontWeight: '600' }}>#{invoice.id}</Typography> : null
-            }
-          </Stack>
-
-          <Typography variant="h4" sx={{
-            fontWeight: '600',
-            marginTop: 2,
-          }}>Venta generada correctamente</Typography>
-
-          <Typography variant="h6" sx={{
-            marginY: 2,
-            fontWeight: '400'
-          }}>¿Desea descargar la factura?</Typography>
-          {
-            invoice ?
-              <a
-                href={`http://localhost:8000/api/invoices/${invoice.id}/pdf/`}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                style={{ textDecoration: 'none' }}
-              >
-                <Button variant="contained"
-                  size='large'
-                  sx={{
-                    width: '100%',
-                  }}
-                  color="error"
-                  startIcon={<Iconify icon="mdi:file-pdf" />}
-                >
-                  Descargar
-                </Button>
-              </a>
-              : null
-          }
-        </Stack>
-
+        {componentsForDialog[serviceSelected](typeSale)}
       </DialogContent>
-      <DialogActions
-        sx={{
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Button
-          variant="contained"
-          size='large'
-          sx={{
-            margin: 2,
-          }}
-          onClick={() => {
-            setIsComplete(false);
-          }}
-        >Cerrar</Button>
+      <DialogActions>
+        <Button size="large" onClick={handleClose}  >
+          Cancelar
+        </Button>
+        <Button size="large" autoFocus onClick={handleSave}>
+          Guardar
+        </Button>
       </DialogActions>
-    </Dialog>
+    </BootstrapDialog>
 
     <Backdrop
       sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}

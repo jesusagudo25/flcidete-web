@@ -770,7 +770,7 @@ const EventsPage = () => {
                 </Select>
               </FormControl>
 
-              <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
+              <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Fecha de inicio"
                   value={initialDate}
@@ -783,7 +783,7 @@ const EventsPage = () => {
                 />
               </LocalizationProvider>
 
-              <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
+              <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Fecha de finalización"
                   value={finalDate}
@@ -796,7 +796,7 @@ const EventsPage = () => {
                 />
               </LocalizationProvider>
 
-              <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
+              <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                 <TimePicker
                   label="Hora de inicio"
                   value={initialTime}
@@ -810,7 +810,7 @@ const EventsPage = () => {
                 />
               </LocalizationProvider>
 
-              <LocalizationProvider locale={es} dateAdapter={AdapterDateFns}>
+              <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                 <TimePicker
                   label="Hora de finalización"
                   value={finalTime}

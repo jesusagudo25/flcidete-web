@@ -34,7 +34,42 @@ const EmbroideryMaker = ({ itemSelected, handleAddThread, handleAddStabilizer, d
         </Table>
       </TableContainer>
 
+      <Stack direction="row" spacing={2} justifyContent="center">
       <SearchStabilizers itemSelected={itemSelected} handleAddStabilizer={handleAddStabilizer} updateItemEmbroidery={updateItemEmbroidery} />
+      <FormControl sx={{ width: '30%' }}>
+          <InputLabel htmlFor="outlined-adornment-amount">Ancho</InputLabel>
+          <OutlinedInput
+            id="outlined-adornment-amount"
+            startAdornment={<InputAdornment position="start">in</InputAdornment>}
+            label="Ancho"
+            placeholder='0'
+            size="small"
+            value={itemSelected.details.width}
+            onChange={(e) => {
+              itemSelected.details.width = e.target.value;
+              updateItemEmbroidery();
+            }}
+            type="number"
+          />
+        </FormControl>
+
+        <FormControl sx={{ width: '30%' }}>
+          <InputLabel htmlFor="outlined-adornment-amount">Alto</InputLabel>
+          <OutlinedInput
+            id="outlined-adornment-amount"
+            startAdornment={<InputAdornment position="start">ft</InputAdornment>}
+            label="Alto"
+            placeholder='0'
+            size="small"
+            value={itemSelected.details.height}
+            onChange={(e) => {
+              itemSelected.details.height = e.target.value;
+              updateItemEmbroidery();
+            }}
+            type="number"
+          />
+        </FormControl>
+      </Stack>
 
         <TextField
           id="outlined-number"

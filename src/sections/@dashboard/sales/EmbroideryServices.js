@@ -37,12 +37,12 @@ const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer
       <SearchStabilizers itemSelected={itemSelected} handleAddStabilizer={handleAddStabilizer} updateItemEmbroidery={updateItemEmbroidery} />
 
       <Stack direction="row" spacing={2} justifyContent="center">
-        <FormControl size="small" sx={{ width: '35%' }}>
-          <InputLabel id="hoop-select-label">Tamaño del bastidor</InputLabel>
+        <FormControl size="small" sx={{ width: '30%' }}>
+          <InputLabel id="hoop-select-label">Bastidor</InputLabel>
           <Select
             labelId="hoop-select-label"
             id="hoop-simple-select"
-            label="Tamaño de bastidor"
+            label="Bastidor"
             value={itemSelected.details.hoop_size}
             onChange={(e) => {
               itemSelected.details.hoop_size = e.target.value;
@@ -55,7 +55,7 @@ const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer
           </Select>
         </FormControl>
 
-        <FormControl sx={{ width: '30%' }}>
+        <FormControl sx={{ width: '32%' }}>
           <InputLabel htmlFor="outlined-adornment-amount">Ancho del bordado</InputLabel>
           <OutlinedInput
             id="outlined-adornment-amount"
@@ -72,12 +72,12 @@ const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer
           />
         </FormControl>
 
-        <FormControl sx={{ width: '30%' }}>
+        <FormControl sx={{ width: '32%' }}>
           <InputLabel htmlFor="outlined-adornment-amount">Alto de bordado</InputLabel>
           <OutlinedInput
             id="outlined-adornment-amount"
             startAdornment={<InputAdornment position="start">in</InputAdornment>}
-            label="Alto del bordado"
+            label="Alto de bordado"
             placeholder='0'
             size="small"
             value={itemSelected.details.height}
@@ -87,6 +87,15 @@ const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer
             }}
             type="number"
           />
+        </FormControl>
+
+        <FormControl sx={{ width: '30%' }}>
+          <TextField id="outlined-basic" label="Cantidad" variant="outlined" type="number" size='small' value={itemSelected.details.quantity} onChange={
+            (e) => {
+              itemSelected.details.quantity = parseInt(e.target.value, 10);
+              updateItemEmbroidery();
+            }
+          } />
         </FormControl>
       </Stack>
 

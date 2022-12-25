@@ -50,6 +50,7 @@ import { UserActivationPage } from './pages/UserActivationPage';
 import { CheckOut } from './pages/CheckOut';
 import AttentionPage from './pages/AttendPage';
 import SoftwareUpdate from './sections/@manage/pages/SoftwareUpdate';
+import PaymentPage from './pages/PaymentPage';
 
 // ----------------------------------------------------------------------
 
@@ -68,6 +69,7 @@ export default function Router() {
         { path: 'attend', element: <AttentionPage /> },
         { path: 'reports', element: <ReportsPage /> },
         { path: 'schedule', element: <Schedule /> },
+        { path: 'payments', element: <PaymentPage /> },
         
         { path: 'tasks', element: <UserPage /> },
 

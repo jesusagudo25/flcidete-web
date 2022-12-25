@@ -18,6 +18,7 @@ import {
   MenuItem,
   TableBody,
   TableCell,
+  TableHead,
   Container,
   Typography,
   IconButton,
@@ -38,9 +39,13 @@ import {
   styled,
   Switch,
   FormControl,
+  FormLabel,
+  Select,
+  InputLabel,
 } from '@mui/material';
 
 // components
+import { Link } from 'react-router-dom';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import Slide from '@mui/material/Slide';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -50,21 +55,25 @@ import CloseIcon from '@mui/icons-material/Close';
 // date-fns
 import { format, lastDayOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
-import Iconify from '../../../components/iconify';
-import Scrollbar from '../../../components/scrollbar';
+import Label from '../components/label';
+import Iconify from '../components/iconify';
+import Scrollbar from '../components/scrollbar';
 
 // Sections - Se debe reempazar el nombre del componente por uno mas general
-import { SuppliesListHead, SuppliesListToolbar } from '../areas';
+import { SuppliesListHead, SuppliesListToolbar } from '../sections/@manage/areas';
 
 const TABLE_HEAD = [
-  { id: 'id', label: '#', alignRight: false },
-  { id: 'receipt', label: 'Recibo UP', alignRight: false },
-  { id: 'customer', label: 'Cliente', alignRight: false },
-  { id: 'date', label: 'Fecha', alignRight: false },
+  { id: 'id', label: 'Factura', alignRight: false },
+  { id: 'name', label: 'Cliente', alignRight: false },
+  { id: 'description', label: 'Descripción', alignRight: false },
   { id: 'total', label: 'Total', alignRight: false },
+  { id: 'balance', label: 'Saldo', alignRight: false },
+  { id: 'created_at', label: 'Fecha de compra', alignRight: false },
+  { id: 'status', label: 'Estado', alignRight: false },
   { id: '' },
 ];
+
+/* --------------------> */
 
 const ButtonSwitch = styled(Switch)(({ theme }) => ({
   width: 28,
@@ -172,21 +181,22 @@ function applySortFilter(array, comparator, query) {
     return a[1] - b[1];
   });
   if (query) {
-    return filter(array, (_invoice) => _invoice.id.toString(2).toLowerCase().indexOf(query.toLowerCase()) !== -1);
+    return filter(array, (_area) => _area.id.toString(2).toLowerCase().indexOf(query.toLowerCase()) !== -1);
   }
   return stabilizedThis.map((el) => el[0]);
 }
 
-const InvoicesPage = () => {
+function PaymentPage() {
 
   /* Invoices */
 
   const [id, setId] = useState(0);
-  const [receipt, setReceipt] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+  const [historyPayment, setHistoryPayment] = useState([]);
 
-  /* DB */
+  /* Datatable */
 
-  const [invoices, setInvoices] = useState([]);
+  const [payments, setPayments] = useState([]);
 
   const [open, setOpen] = useState(false);
 
@@ -194,12 +204,11 @@ const InvoicesPage = () => {
 
   const [order, setOrder] = useState('asc');
 
-  const [orderBy, setOrderBy] = useState('date');
+  const [orderBy, setOrderBy] = useState('name');
 
   const [filterName, setFilterName] = useState('');
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
-
 
   const handleCloseDialog = () => {
     setOpen(false);
@@ -207,11 +216,15 @@ const InvoicesPage = () => {
 
   const handleSubmitDialog = async (event) => {
     event.preventDefault();
-    await axios.put(`/api/invoices/${id}`, {
-      receipt,
-    });
+    if (historyPayment.length < 2 && isComplete === true) {
+      await axios.post('/api/payments/', {
+        invoice_id: id,
+        payment_amount: historyPayment[0].payment_amount * 2,
+        balance: 0,
+      });
+    }
     handleCloseDialog();
-    getInvoices();
+    getPayments();
   };
 
   const handleRequestSort = (event, property) => {
@@ -234,37 +247,37 @@ const InvoicesPage = () => {
     setFilterName(event.target.value);
   };
 
-  const getInvoices = async () => {
-    const response = await axios.get('/api/invoices');
-    setInvoices(response.data);
+  const getPayments = async () => {
+    const response = await axios.get('/api/invoices/payments');
+    setPayments(response.data);
   }
 
   useEffect(() => {
-    getInvoices();
+    getPayments();
   }, []);
 
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - invoices.length) : 0;
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - payments.length) : 0;
 
-  const filteredInvoices = applySortFilter(invoices, getComparator(order, orderBy), filterName);
+  const filteredInvoices = applySortFilter(payments, getComparator(order, orderBy), filterName);
 
   const isNotFound = !filteredInvoices.length && !!filterName;
 
   return (
     <>
       <Helmet>
-        <title> Gestión: Fácturas | Fab Lab System </title>
+        <title> Control de salida | Fab Lab System </title>
       </Helmet>
 
       <Container>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4" gutterBottom>
-            Ventas generadas
+            Control de atención
           </Typography>
         </Stack>
 
+
         <Card>
           <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar factura..."} />
-
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
               <Table>
@@ -272,40 +285,48 @@ const InvoicesPage = () => {
                   order={order}
                   orderBy={orderBy}
                   headLabel={TABLE_HEAD}
-                  rowCount={invoices.length}
+                  rowCount={payments.length}
                   onRequestSort={handleRequestSort}
                 />
                 {/* Tiene que cargar primero... */}
-                {invoices.length > 0 ? (
+                {payments.length > 0 ? (
                   <TableBody>
                     {filteredInvoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id:uuid, receipt, customer, created_at: createdA, total } = row;
-
+                      const { id:uuid, customer, total, description, created_at: createdAt, payments, status } = row;
                       return (
                         <TableRow hover key={uuid} tabIndex={-1} role="checkbox">
 
                           <TableCell component="th" scope="row" padding="normal">
                             <Stack direction="row" alignItems="center" spacing={2}>
                               <Typography variant="subtitle2" noWrap>
-                                # {uuid}
+                                #{customer.uuid}
                               </Typography>
                             </Stack>
-                          </TableCell>
-
-                          <TableCell align="left">
-                            {receipt}
                           </TableCell>
 
                           <TableCell align="left">
                             {customer.name}
                           </TableCell>
 
+
                           <TableCell align="left">
-                            {createdA.split('T')[0]}
+                            {description}
                           </TableCell>
 
                           <TableCell align="left">
                             {total}
+                          </TableCell>
+
+                          <TableCell align="left">
+                            {payments.length > 1 ? payments[1].balance : payments[0].balance}
+                          </TableCell>
+
+                          <TableCell align="left">
+                            {createdAt.split('T')[0]}
+                          </TableCell>
+
+                          <TableCell align="left">
+                            <Label color={status === 'F' ? 'success' : 'error'}>{sentenceCase(status === 'A' ? 'Por Cancelar' : 'Cancelado')}</Label>
                           </TableCell>
 
                           <TableCell align="right">
@@ -322,7 +343,10 @@ const InvoicesPage = () => {
                             <IconButton size="large" color="inherit" onClick={() => {
                               setOpen(true);
                               setId(uuid);
-                              setReceipt(receipt);
+                              setHistoryPayment(payments);
+                              if (status === 'F') {
+                                setIsComplete(true);
+                              }
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
                             </IconButton>
@@ -332,7 +356,7 @@ const InvoicesPage = () => {
                     })}
                     {emptyRows > 0 && (
                       <TableRow style={{ height: 53 * emptyRows }}>
-                        <TableCell colSpan={6} />
+                        <TableCell colSpan={8} />
                       </TableRow>
                     )}
                   </TableBody>
@@ -341,7 +365,7 @@ const InvoicesPage = () => {
                   (
                     <TableBody>
                       <TableRow>
-                        <TableCell align="center" colSpan={6} sx={{ py: 3 }}>
+                        <TableCell align="center" colSpan={8} sx={{ py: 3 }}>
                           <Paper
                             sx={{
                               textAlign: 'center',
@@ -366,7 +390,7 @@ const InvoicesPage = () => {
                 {isNotFound && (
                   <TableBody>
                     <TableRow>
-                      <TableCell align="center" colSpan={6} sx={{ py: 3 }}>
+                      <TableCell align="center" colSpan={8} sx={{ py: 3 }}>
                         <Paper
                           sx={{
                             textAlign: 'center',
@@ -389,18 +413,18 @@ const InvoicesPage = () => {
               </Table>
             </TableContainer>
           </Scrollbar>
-
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
             labelRowsPerPage="Filas por página:"
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`}
-            count={invoices.length}
+            count={payments.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
           />
+
         </Card>
       </Container>
 
@@ -413,23 +437,68 @@ const InvoicesPage = () => {
         maxWidth='sm'
       >
         <BootstrapDialogTitle id="customized-dialog-title" onClose={handleCloseDialog}>
-          Gestión de facturas
+          Gestión de pagos
         </BootstrapDialogTitle>
         <DialogContent dividers>
-          <Stack spacing={4} sx={{ minWidth: 550 }}>
-            <FormControl sx={{ width: '100%' }}>
-              <TextField
-                id="outlined-basic"
-                label="Recibo UP"
-                variant="outlined"
-                size="small"
-                value={receipt}
-                onChange={(e) => {
-                  setReceipt(e.target.value)
-                }}
-                required
-              />
-            </FormControl>
+          <Stack spacing={3} sx={{ minWidth: 550 }}>
+
+            <Typography variant="subtitle1">
+              Historial de pagos
+            </Typography>
+            <TableContainer sx={{ minWidth: 550, }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell># Factura</TableCell>
+                    <TableCell >Cantidad abonada </TableCell>
+                    <TableCell >Balance</TableCell>
+                    <TableCell >Fecha</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {historyPayment.map((row) => {
+                    const { id, invoice_id: invoice, payment_amount: paymentAmount, balance, created_at: createdAtPayment } = row;
+                    return (
+                      <TableRow hover key={id} tabIndex={-1} role="checkbox">
+                        <TableCell component="th" scope="row" padding="normal">
+                          {invoice}
+                        </TableCell>
+                        <TableCell align="left">
+                          {paymentAmount}
+                        </TableCell>
+                        <TableCell align="left">
+                          {balance}
+                        </TableCell>
+                        <TableCell align="left">
+                          {createdAtPayment.split('T')[0]}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <Typography variant="subtitle1">
+              Nuevo pago
+            </Typography>
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  id={`complete-check`}
+                  name='complete-check'
+                  value={isComplete}
+                  color="primary"
+                  checked={isComplete}
+                  onChange={() => {
+                    setIsComplete(!isComplete);
+                  }}
+                  disabled={historyPayment.length > 1}
+                />
+              }
+              label='Completar'
+            />
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -445,4 +514,4 @@ const InvoicesPage = () => {
   )
 }
 
-export default InvoicesPage
+export default PaymentPage
