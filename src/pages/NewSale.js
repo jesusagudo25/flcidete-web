@@ -227,7 +227,6 @@ const NewSale = () => {
       .then((response) => {
         if (response.data.success) {
           setIsLoading(false);
-          setIsComplete(true);
           setInvoice(response.data.invoice);
 
           setContainerCustomer(false);
@@ -261,6 +260,67 @@ const NewSale = () => {
 
   };
 
+  const handleClickSubmitQuotation = () => {
+    setIsLoading(true);
+
+
+    const data = {
+      total,
+      id: localStorage.getItem('id'),
+      description,
+    }
+
+    /* User */
+    if (idCustomer) {
+      data.customer_id = idCustomer;
+    }
+    else {
+      data.document_type = documentType;
+      data.document_number = document;
+      data.name = name;
+      data.email = email;
+      data.telephone = telephone;
+      data.age_range_id = parseInt(ageRangeSelected, 10);
+      data.type_sex_id = parseInt(typeSexSelected, 10);
+      data.province_id = provinceSelected;
+      data.district_id = districtSelected;
+      data.township_id = townshipSelected;
+    }
+
+    axios.post('api/quotations', data)
+      .then((response) => {
+        if (response.data.success) {
+          setIsLoading(false);
+          setQuotation(response.data.quotation);
+
+          setContainerCustomer(false);
+          setDisabledAddCustomer(false);
+          setDocumentType('C');
+          setDocument('');
+          setName('');
+          setEmail('');
+          setTelephone('');
+          setAgeRangeSelected('');
+          setTypeSexSelected('');
+          setIdCustomer('');
+          setProvinceSelected(9);
+          setDistrictSelected(60);
+          setTownshipSelected(492);
+          setServiceCategory('a');
+          setService(1);
+          setItems([]);
+          setCount(1);
+          setTotal(0);
+          setTypeSale('S');
+          setDateDelivery(new Date());
+          setHours(0);
+          setMinutes(0);
+          setActiveStep((prevActiveStep) => prevActiveStep + 1);
+
+        }
+      }
+      );
+  };
   /* Manage item - variables */
 
   const [serviceSelected, setServiceSelected] = useState('Otros');
@@ -275,7 +335,7 @@ const NewSale = () => {
 
   const handleSave = () => {
     console.log(items);
-    calculateTotal(hours, minutes);
+    calculateTotal(hours, minutes, typeInvoice);
     setOpen(false);
   };
 
@@ -337,7 +397,7 @@ const NewSale = () => {
   const handleChangeMinutes = (event) => {
     if (event.target.value.length > 2 || event.target.value < 0) {
       setMinutes(0);
-      calculateTotal(hours, 0);
+      calculateTotal(hours, 0, typeInvoice);
     }
     else {
       setMinutes(event.target.value);
@@ -348,11 +408,11 @@ const NewSale = () => {
   const handleChangeHours = (event) => {
     if (event.target.value.length > 2 || event.target.value < 0) {
       setHours(0);
-      calculateTotal(0, minutes);
+      calculateTotal(0, minutes, typeInvoice);
     }
     else {
       setHours(event.target.value);
-      calculateTotal(event.target.value, minutes);
+      calculateTotal(event.target.value, minutes, typeInvoice);
     }
   };
 
@@ -381,7 +441,7 @@ const NewSale = () => {
 
   const handleChangeTypeInvoice = (event) => {
     setTypeInvoice(event.target.value);
-    calculateTotal(hours, minutes);
+    calculateTotal(hours, minutes, event.target.value);
   };
 
   const getServices = () => {
@@ -401,7 +461,7 @@ const NewSale = () => {
     getTypeSexes();
   }, []);
 
-  const calculateTotal = (hours = 0, minutes = 0) => {
+  const calculateTotal = (hours = 0, minutes = 0, typeInvoice = null) => {
 
     const minutesArea = (parseInt(hours, 10) * 60) + parseInt(minutes, 10);
 
@@ -1839,12 +1899,10 @@ const NewSale = () => {
         onClick: handleClickSubmit
       },
       {
-        name: 'En proceso',
-        icon: <Iconify icon={'material-symbols:hourglass-top'} color="#2065D1" width={32} />,
+        name: 'Cotización',
+        icon: <Iconify icon={'mdi:receipt-text-check-outline'} color="#2065D1" width={32} />,
         role: [1, 2, 3],
-        onClick: () => {
-          console.log('En proceso');
-        }
+        onClick: handleClickSubmitQuotation
       },
     ];
 
@@ -1980,60 +2038,117 @@ const NewSale = () => {
                 }
               }>
                 <Stack spacing={3} sx={{ mb: 4 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                    <Iconify icon="material-symbols:check-circle" color="#00BB2D" width={50} height={50} />
-                  </Box>
-                  <Typography variant="h6" gutterBottom sx={
-                    {
-                      textAlign: 'center'
-                    }
-                  }>
-                    La orden se ha generado correctamente.
-                  </Typography>
-                  <Typography variant="body1" sx={
-                    {
-                      textAlign: 'center'
-                    }
-                  }>
-                    Puede descargar el PDF de la orden o crear una nueva.
-                  </Typography>
+                  {
+                    invoice ?
+                      (
+                        <>
+                          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <Iconify icon="material-symbols:check-circle" color="#00BB2D" width={50} height={50} />
+                          </Box>
+                          <Typography variant="h6" gutterBottom sx={
+                            {
+                              textAlign: 'center'
+                            }
+                          }>
+                            La orden se ha generado correctamente.
+                          </Typography>
+                          <Typography variant="body1" sx={
+                            {
+                              textAlign: 'center'
+                            }
+                          }>
+                            Puede descargar el PDF de la orden o crear una nueva.
+                          </Typography>
 
-                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
-                    {
-                      invoice ?
-                        <a
-                          href={`http://localhost:8000/api/invoices/${invoice.id}/pdf/`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download
-                          style={{ textDecoration: 'none' }}
-                        >
-                          <Button variant="contained"
-                            size='large'
-                            sx={{
-                              width: '100%',
-                            }}
-                            color="error"
-                            startIcon={<Iconify icon="mdi:file-pdf" />}
-                          >
-                            Descargar
-                          </Button>
-                        </a>
-                        : null
-                    }
+                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
+                            <a
+                              href={`http://localhost:8000/api/invoices/${invoice.id}/pdf/`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              style={{ textDecoration: 'none' }}
+                            >
+                              <Button variant="contained"
+                                size='large'
+                                sx={{
+                                  width: '100%',
+                                }}
+                                color="error"
+                                startIcon={<Iconify icon="mdi:file-pdf" />}
+                              >
+                                Descargar
+                              </Button>
+                            </a>
 
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={
-                        () => {
-                          window.location.reload();
-                        }
-                      }
-                    >
-                      Crear nueva orden
-                    </Button>
-                  </Box>
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              onClick={
+                                () => {
+                                  window.location.reload();
+                                }
+                              }
+                            >
+                              Crear nueva orden
+                            </Button>
+                          </Box>
+                        </>
+                      )
+                      : (
+                        <>
+                          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <Iconify icon="material-symbols:check-circle" color="#00BB2D" width={50} height={50} />
+                          </Box>
+                          <Typography variant="h6" gutterBottom sx={
+                            {
+                              textAlign: 'center'
+                            }
+                          }>
+                            La cotización se ha generado correctamente.
+                          </Typography>
+                          <Typography variant="body1" sx={
+                            {
+                              textAlign: 'center'
+                            }
+                          }>
+                            Puede descargar el PDF de la cotización o crear una nueva.
+                          </Typography>
+
+                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
+                            <a
+                              href={`http://localhost:8000/api/quotations/${quotation.id}/pdf/`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download
+                              style={{ textDecoration: 'none' }}
+                            >
+                              <Button variant="contained"
+                                size='large'
+                                sx={{
+                                  width: '100%',
+                                }}
+                                color="error"
+                                startIcon={<Iconify icon="mdi:file-pdf" />}
+                              >
+                                Descargar
+                              </Button>
+                            </a>
+
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              onClick={
+                                () => {
+                                  window.location.reload();
+                                }
+                              }
+                            >
+                              Crear nueva cotización
+                            </Button>
+                          </Box>
+                        </>
+                      )
+                  }
                 </Stack>
 
               </Container>

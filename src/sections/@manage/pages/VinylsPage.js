@@ -48,7 +48,7 @@ import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 const TABLE_HEAD = [
   { id: 'name', label: 'Nombre', alignRight: false },
   { id: 'dimensions', label: 'Dimensiones', alignRight: false },
-  { id: 'area', label: 'Area', alignRight: false },
+  { id: 'area', label: 'Área en stock', alignRight: false },
   { id: 'cost', label: 'Costo de vinilo', alignRight: false },
   { id: 'sale_price', label: 'Precio de venta', alignRight: false },
   { id: 'active', label: 'Estado', alignRight: false },
@@ -294,22 +294,14 @@ const VinylsPage = () => {
       await axios.post('/api/vinyls', {
         'name': event.name.concat(' (', event.width, ' in x', event.height, ' ft)'),
         'cost': event.cost,
-        'cost_base': event.cost,
         'purchase_price': event.purchasePrice,
-        'purchase_price_base': event.purchasePrice,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
-        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.cost,
         'percentage': event.percentage,
-        'percentage_base': event.percentage,
         'sale_price': event.salePrice,
-        'sale_price_base': event.salePrice,
         'width': event.width,
-        'width_base': event.width,
         'height_in_feet': event.height,
         'height': event.height * 12,
-        'height_base': event.height * 12,
         'area': event.width * (event.height * 12),
-        'area_base': event.width * (event.height * 12),
         'quantity': event.quantity,
       });
     }

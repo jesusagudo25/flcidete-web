@@ -46,13 +46,13 @@ import Scrollbar from '../../../components/scrollbar';
 import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 
 const TABLE_HEAD = [
-    { id: 'name', label: 'Nombre', alignRight: false },
-    { id: 'purchase_price', label: 'Costo de software', alignRight: false },
-    { id: 'sale_price', label: 'Precio por hora', alignRight: false },
-    { id: 'expiration_date', label: 'Fecha de vencimiento', alignRight: false },
+    { id: 'purchase_price', label: 'Costo de componente', alignRight: false },
+    { id: 'quantity', label: 'Cantidad', alignRight: false },
+    { id: 'percentage', label: 'Porcentaje ganancia', alignRight: false },
+    { id: 'sale_price', label: 'Precio de venta', alignRight: false },
+    { id: 'created_at', label: 'Fecha', alignRight: false },
     { id: 'active', label: 'Estado', alignRight: false },
-    { id: '' },
-  ];
+];
 
 /* --------------------> */
 
@@ -223,7 +223,7 @@ const ComponentUpdate = () => {
 
     const [order, setOrder] = useState('asc');
 
-    const [orderBy, setOrderBy] = useState('name');
+    const [orderBy, setOrderBy] = useState('created_at');
 
     const [filterName, setFilterName] = useState('');
 
@@ -597,7 +597,7 @@ const ComponentUpdate = () => {
                                 render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
                                     <TextField
                                         id="outlined-basic"
-                                        label="Stock"
+                                        label="Cantidad"
                                         variant="outlined"
                                         size="small"
                                         type="number"

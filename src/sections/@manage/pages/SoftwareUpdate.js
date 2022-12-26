@@ -52,8 +52,7 @@ import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 const TABLE_HEAD = [
     { id: 'purchase_price', label: 'Costo de software', alignRight: false },
     { id: 'sale_price', label: 'Precio por hora', alignRight: false },
-    { id: 'purchased_date', label: 'Fecha de compra', alignRight: false },
-    { id: 'expiration_date', label: 'Fecha de vencimiento', alignRight: false },
+    { id: 'created_at', label: 'Fecha', alignRight: false },
     { id: 'active', label: 'Estado', alignRight: false },
 ];
 
@@ -217,7 +216,7 @@ const SoftwareUpdate = () => {
 
     const [order, setOrder] = useState('asc');
 
-    const [orderBy, setOrderBy] = useState('name');
+    const [orderBy, setOrderBy] = useState('created_at');
 
     const [filterName, setFilterName] = useState('');
 
@@ -242,8 +241,6 @@ const SoftwareUpdate = () => {
             'purchase_price': event.purchasePrice,
             'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
             'sale_price': event.salePrice,
-            'purchased_date': format(new Date(event.purchasedDate), 'yyyy-MM-dd'),
-            'expiration_date': format(new Date(event.expirationDate), 'yyyy-MM-dd'),
             'quantity': event.quantity,
         });
         showToastMessage();
@@ -304,7 +301,7 @@ const SoftwareUpdate = () => {
                 </Stack>
 
                 <Card>
-                    <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar software..."} />
+                    <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar actualización..."} />
 
                     <Scrollbar>
                         <TableContainer sx={{ minWidth: 800 }}>
@@ -320,7 +317,7 @@ const SoftwareUpdate = () => {
                                 {softwaresUpdate.length > 0 ? (
                                     <TableBody>
                                         {filteredSoftwares.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                                            const { id: uuid, name, purchase_price: purchasePrice, sale_price: salePrice, purchased_date: purchasedDate, expiration_date: expirationDate, active } = row;
+                                            const { id: uuid, name, purchase_price: purchasePrice, sale_price: salePrice, created_at: createdAt, active } = row;
 
                                             return (
                                                 <TableRow hover key={id} tabIndex={-1} role="checkbox">
@@ -336,11 +333,9 @@ const SoftwareUpdate = () => {
                                                     </TableCell>
 
                                                     <TableCell align="left">
-                                                        {purchasedDate}
-                                                    </TableCell>
-
-                                                    <TableCell align="left">
-                                                        {expirationDate}
+                                                        <Typography variant="subtitle2" noWrap>
+                                                            {createdAt.split('T')[0]}
+                                                        </Typography>
                                                     </TableCell>
 
                                                     <TableCell align="left">
@@ -365,6 +360,7 @@ const SoftwareUpdate = () => {
                                                             }
                                                         } />
                                                     </TableCell>
+
 
                                                 </TableRow>
                                             );
@@ -459,7 +455,7 @@ const SoftwareUpdate = () => {
                     Gestión de Softwares
                 </BootstrapDialogTitle>
                 <DialogContent dividers>
-                    <Stack spacing={4} sx={{ minWidth: 550 }}>
+                    <Stack spacing={3} sx={{ minWidth: 550 }}>
 
                         <FormControl sx={{ width: '100%' }} error={!!errors?.purchasePrice}>
                             <InputLabel htmlFor="outlined-adornment-amount">Costo del software</InputLabel>
@@ -545,60 +541,6 @@ const SoftwareUpdate = () => {
                                 :
                                 null
                         }
-
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
-                            <Controller
-                                name="purchasedDate"
-                                control={control}
-                                defaultValue={new Date()}
-                                rules={{
-                                    required: 'La fecha de compra es requerida'
-                                }}
-                                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
-                                    <DatePicker
-                                        label="Fecha de compra"
-                                        value={value}
-                                        onChange={onChange}
-                                        onBlur={onBlur}
-                                        required
-                                        renderInput={(params) =>
-                                            <TextField
-                                                {...params}
-                                                size='small'
-                                                error={!!error}
-                                                helperText={error?.message}
-                                            />}
-                                    />
-                                )}
-                            />
-                        </LocalizationProvider>
-
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
-                            <Controller
-                                name="expirationDate"
-                                control={control}
-                                defaultValue={new Date()}
-                                rules={{
-                                    required: 'La fecha de expiración es requerida'
-                                }}
-                                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
-                                    <DatePicker
-                                        label="Fecha de expiración"
-                                        value={value}
-                                        onChange={onChange}
-                                        onBlur={onBlur}
-                                        required
-                                        renderInput={(params) =>
-                                            <TextField
-                                                {...params}
-                                                size='small'
-                                                error={!!error}
-                                                helperText={error?.message}
-                                            />}
-                                    />
-                                )}
-                            />
-                        </LocalizationProvider>
 
                         <FormControl sx={{ width: '100%' }} error={!!errors?.salePrice}>
                             <InputLabel htmlFor="outlined-adornment-amount">Precio por hora</InputLabel>

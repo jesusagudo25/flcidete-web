@@ -219,7 +219,7 @@ function PaymentPage() {
     if (historyPayment.length < 2 && isComplete === true) {
       await axios.post('/api/payments/', {
         invoice_id: id,
-        payment_amount: historyPayment[0].payment_amount * 2,
+        payment_amount: historyPayment[0].payment_amount,
         balance: 0,
       });
     }
@@ -265,13 +265,13 @@ function PaymentPage() {
   return (
     <>
       <Helmet>
-        <title> Control de salida | Fab Lab System </title>
+        <title> Pagos | Fab Lab System </title>
       </Helmet>
 
       <Container>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4" gutterBottom>
-            Control de atención
+            Control de pagos
           </Typography>
         </Stack>
 

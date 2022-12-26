@@ -48,7 +48,7 @@ import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 const TABLE_HEAD = [
   { id: 'name', label: 'Nombre', alignRight: false },
   { id: 'dimensions', label: 'Dimensiones', alignRight: false },
-  { id: 'area', label: 'Area', alignRight: false },
+  { id: 'area', label: 'Área en stock', alignRight: false },
   { id: 'cost', label: 'Costo de material', alignRight: false },
   { id: 'sale_price', label: 'Precio de venta', alignRight: false },
   { id: 'active', label: 'Estado', alignRight: false },
@@ -293,23 +293,16 @@ const MaterialsLaserPage = () =>
       });
     } else {
       await axios.post('/api/materials-laser', {
-        'name': event.name.concat(' (', width, ' ft x', height, ' ft)'),
+        'name': event.name.concat(' (', event.width, ' ft x', event.height, ' ft)'),
         'cost': event.cost,
         'cost_base': event.cost,
         'purchase_price': event.purchasePrice,
-        'purchase_price_base': event.purchasePrice,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
-        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.cost,
         'percentage': event.percentage,
-        'percentage_base': event.percentage,
         'sale_price': event.salePrice,
-        'sale_price_base': event.salePrice,
         'width': event.width,
-        'width_base': event.width,
         'height': event.height,
-        'height_base': event.height,
         'area': event.width * event.height,
-        'area_base': event.width * event.height,
         'quantity': event.quantity,
       });
     }

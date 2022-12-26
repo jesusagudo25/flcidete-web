@@ -283,15 +283,10 @@ const ResinsPage = () => {
       await axios.post('/api/resins', {
         'name': event.name.concat(' (', event.weight, ' g)'),
         'purchase_price': event.purchasePrice,
-        'purchase_price_base': event.purchasePrice,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
-        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
         'percentage': event.percentage,
-        'percentage_base': event.percentage,
         'sale_price': event.salePrice,
-        'sale_price_base': event.salePrice,
         'purchased_weight': event.weight,
-        'purchased_weight_base': event.weight,
         'current_weight': event.weight,
         'quantity': event.quantity,
       });
@@ -383,19 +378,19 @@ const ResinsPage = () => {
                           </TableCell>
 
                           <TableCell align="left">
-                            {purchasePrice}
+                            $ {purchasePrice}
                           </TableCell>
 
                           <TableCell align="left">
-                            {salePrice}
+                            $ {salePrice}
                           </TableCell>
 
                           <TableCell align="left">
-                            {purchasedWeight}
+                            g {purchasedWeight}
                           </TableCell>
 
                           <TableCell align="left">
-                            {currentWeight}
+                            g {currentWeight}
                           </TableCell>
 
                           <TableCell align="left">

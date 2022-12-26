@@ -48,8 +48,8 @@ import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 const TABLE_HEAD = [
   { id: 'name', label: 'Nombre', alignRight: false },
   { id: 'dimensions', label: 'Dimensiones', alignRight: false },
-  { id: 'area', label: 'Area', alignRight: false },
-  { id: 'purchase_price', label: 'Costo de material', alignRight: false },
+  { id: 'area', label: 'Área en stock', alignRight: false },
+  { id: 'purchase_price', label: 'Costo actual', alignRight: false },
   { id: 'active', label: 'Estado', alignRight: false },
   { id: '' },
 ];
@@ -261,16 +261,12 @@ const StabilizersPage = () => {
       await axios.post('/api/stabilizers', {
         'name': event.name.concat(' (', event.width, ' in x', event.height, ' yd)'),
         'purchase_price': event.purchasePrice,
-        'purchase_price_base': event.purchasePrice,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
-        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
         'width_base': event.width,
         'width': event.width,
         'height_in_yd': event.height,
         'height': event.height * 36,
-        'height_base': event.height * 36,
         'area': event.width * (event.height * 36),
-        'area_base': event.width * (event.height * 36),
         'quantity': event.quantity,
       });
     }

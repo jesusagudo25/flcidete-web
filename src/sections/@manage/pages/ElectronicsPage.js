@@ -287,12 +287,8 @@ const ElectronicsPage = () => {
         name: event.name,
         'component_category_id': event.category,
         'purchase_price': event.purchasePrice,
-        'purchase_price_base': event.purchasePrice,
-        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
-        'percentage_base': event.percentage,
         'percentage': event.percentage,
-        'sale_price_base': event.salePrice,
         'sale_price': event.salePrice,
         'stock': event.stock,
         'quantity': event.stock,
@@ -741,7 +737,7 @@ const ElectronicsPage = () => {
                 render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
                   <TextField
                     id="outlined-basic"
-                    label="Stock"
+                    label="Cantidad"
                     variant="outlined"
                     size="small"
                     type="number"

@@ -53,7 +53,6 @@ const TABLE_HEAD = [
   { id: 'name', label: 'Nombre', alignRight: false },
   { id: 'purchase_price', label: 'Costo de software', alignRight: false },
   { id: 'sale_price', label: 'Precio por hora', alignRight: false },
-  { id: 'expiration_date', label: 'Fecha de vencimiento', alignRight: false },
   { id: 'active', label: 'Estado', alignRight: false },
   { id: '' },
 ];
@@ -215,10 +214,6 @@ const Softwares = () => {
 
   const [salePrice, setSalePrice] = useState('');
 
-  const [purchaseDate, setPurchaseDate] = useState(new Date());
-
-  const [expirationDate, setExpirationDate] = useState(new Date());
-
   const [percentage, setPercentage] = useState('');
 
   const [containerEstimatedValue, setContainerEstimatedValue] = useState(false);
@@ -266,23 +261,14 @@ const Softwares = () => {
         'purchase_price': event.purchasePrice,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
         'sale_price': event.salePrice,
-        'purchased_date': format(new Date(event.purchasedDate), 'yyyy-MM-dd'),
-        'expiration_date': format(new Date(event.expirationDate), 'yyyy-MM-dd')
       });
 
     } else {
       await axios.post('/api/softwares', {
         name: event.name,
         'purchase_price': event.purchasePrice,
-        'purchase_price_base': event.purchasePrice,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
-        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
         'sale_price': event.salePrice,
-        'sale_price_base': event.salePrice,
-        'purchased_date': format(new Date(event.purchasedDate), 'yyyy-MM-dd'),
-        'purchased_date_base': format(new Date(event.purchasedDate), 'yyyy-MM-dd'),
-        'expiration_date': format(new Date(event.expirationDate), 'yyyy-MM-dd'),
-        'expiration_date_base': format(new Date(event.expirationDate), 'yyyy-MM-dd'),
         'quantity': event.quantity,
       });
     }
@@ -359,7 +345,7 @@ const Softwares = () => {
                 {softwares.length > 0 ? (
                   <TableBody>
                     {filteredSoftwares.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, name, purchase_price: purchasePrice, sale_price: salePrice, purchased_date: purchasedDate, expiration_date: expirationDate, active } = row;
+                      const { id, name, purchase_price: purchasePrice, sale_price: salePrice, purchased_date: purchasedDate, active } = row;
 
                       return (
                         <TableRow hover key={id} tabIndex={-1} role="checkbox">
@@ -378,10 +364,6 @@ const Softwares = () => {
 
                           <TableCell align="left">
                             $ {salePrice}
-                          </TableCell>
-
-                          <TableCell align="left">
-                            {expirationDate}
                           </TableCell>
 
                           <TableCell align="left">
@@ -427,8 +409,6 @@ const Softwares = () => {
                               setValue('name', name);
                               setValue('purchasePrice', purchasePrice);
                               setValue('salePrice', salePrice);
-                              setValue('purchasedDate', purchasedDate);
-                              setValue('expirationDate', expirationDate);
                               if (parseFloat(purchasePrice) === 0)
                                 setContainerEstimatedValue(true)
                               else
@@ -531,7 +511,7 @@ const Softwares = () => {
           Gestión de Softwares
         </BootstrapDialogTitle>
         <DialogContent dividers>
-          <Stack spacing={4} sx={{ minWidth: 550 }}>
+          <Stack spacing={3} sx={{ minWidth: 550 }}>
 
             <FormControl sx={{ width: '100%' }}>
               <Controller
@@ -650,60 +630,6 @@ const Softwares = () => {
                 :
                 null
             }
-
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <Controller
-                name="purchasedDate"
-                control={control}
-                defaultValue={new Date()}
-                rules={{
-                  required: 'La fecha de compra es requerida'
-                }}
-                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
-                  <DatePicker
-                    label="Fecha de compra"
-                    value={value}
-                    onChange={onChange}
-                    onBlur={onBlur}
-                    required
-                    renderInput={(params) =>
-                      <TextField
-                        {...params}
-                        size='small'
-                        error={!!error}
-                        helperText={error?.message}
-                      />}
-                  />
-                )}
-              />
-            </LocalizationProvider>
-
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <Controller
-                name="expirationDate"
-                control={control}
-                defaultValue={new Date()}
-                rules={{
-                  required: 'La fecha de expiración es requerida'
-                }}
-                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
-                  <DatePicker
-                    label="Fecha de expiración"
-                    value={value}
-                    onChange={onChange}
-                    onBlur={onBlur}
-                    required
-                    renderInput={(params) =>
-                      <TextField
-                        {...params}
-                        size='small'
-                        error={!!error}
-                        helperText={error?.message}
-                      />}
-                  />
-                )}
-              />
-            </LocalizationProvider>
 
             <FormControl sx={{ width: '100%' }} error={!!errors?.salePrice}>
               <InputLabel htmlFor="outlined-adornment-amount">Precio por hora</InputLabel>

@@ -53,8 +53,8 @@ import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 
 const TABLE_HEAD = [
   { id: 'name', label: 'Nombre', alignRight: false },
-  { id: 'price_purchase', label: 'Costo de material', alignRight: false },
-  { id: 'purchased_amount', label: 'Cantidad comprada', alignRight: false },
+  { id: 'price_purchase', label: 'Costo actual', alignRight: false },
+  { id: 'purchased_amount', label: 'Longitud', alignRight: false },
   { id: 'status', label: 'Estado', alignRight: false },
   { id: '' },
 ];
@@ -261,11 +261,8 @@ const ThreadsPage = () => {
       await axios.post('/api/threads', {
         'name': event.name.concat(' (', event.purchasedAmount, ' yd)'),
         'price_purchase': event.pricePurchase,
-        'price_purchase_base': event.pricePurchase,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.pricePurchase,
-        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.pricePurchase,
         'purchased_amount': event.purchasedAmount,
-        'purchased_amount_base': event.purchasedAmount,
         'quantity': event.quantity
       });
     }

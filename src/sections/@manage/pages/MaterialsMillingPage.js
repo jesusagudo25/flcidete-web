@@ -278,13 +278,9 @@ const MaterialsMillingPage = () => {
       await axios.post('/api/materials-milling', {
         name: event.name,
         'purchase_price': event.purchasePrice,
-        'purchase_price_base': event.purchasePrice,
         'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
-        'estimated_value_base': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
         'percentage': event.percentage,
-        'percentage_base': event.percentage,
         'sale_price': event.salePrice,
-        'sale_price_base': event.salePrice,
         'stock': event.stock,
         'quantity': event.stock,
       });
@@ -679,7 +675,7 @@ const MaterialsMillingPage = () => {
                 render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
                   <TextField
                     id="outlined-basic"
-                    label="Stock"
+                    label="Cantidad"
                     variant="outlined"
                     size="small"
                     type="number"

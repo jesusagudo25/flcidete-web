@@ -225,7 +225,7 @@ const ResinUpdate = () => {
 
     const [order, setOrder] = useState('asc');
 
-    const [orderBy, setOrderBy] = useState('name');
+    const [orderBy, setOrderBy] = useState('created_at');
 
     const [filterName, setFilterName] = useState('');
 

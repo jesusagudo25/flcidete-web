@@ -225,7 +225,7 @@ const MillingUpdate = () => {
 
   const [order, setOrder] = useState('asc');
 
-  const [orderBy, setOrderBy] = useState('name');
+  const [orderBy, setOrderBy] = useState('created_at');
 
   const [filterName, setFilterName] = useState('');
 
@@ -600,7 +600,7 @@ const MillingUpdate = () => {
                 render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
                   <TextField
                     id="outlined-basic"
-                    label="Stock"
+                    label="Cantidad"
                     variant="outlined"
                     size="small"
                     type="number"

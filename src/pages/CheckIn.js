@@ -287,6 +287,9 @@ export default function CheckIn() {
 
   const handleCloseDialog = () => {
     setOpen(false);
+    setDocumentBooking('');
+    setOptionsBooking([]);
+    setDocumentTypeBooking('C');
   };
 
   const handleChangeReasonSelected = (event) => {
@@ -346,31 +349,33 @@ export default function CheckIn() {
   };
 
   const handleChangeDocument = (event, newInputValue) => {
-    setContainerCustomer(false);
+    setDocument(newInputValue);
     if (event) {
-      setDocument(newInputValue);
-      if (event.target.value.length > 0) {
-        getDataAutoComplete(event.target.value);
+      setContainerCustomer(false);
+      if (event.target.value) {
+        if (event.target.value.length > 3) {
+          getDataAutoComplete(event.target.value);
+        }
       }
       else {
         setOptions([]);
+        setDocument('');
+        setIdCustomer(null);
       }
-    }
-    else {
-      setDocument('');
-      setIdCustomer(null);
-      setOptions([]);
     }
   };
 
   const handleChangeDocumentBooking = (event, newInputValue) => {
     setDocumentBooking(newInputValue);
     if (event) {
-      if (event.target.value.length > 0) {
-        getDataAutoCompleteBooking(event.target.value);
+      if (event.target.value) {
+        if (event.target.value.length > 3) {
+          getDataAutoCompleteBooking(event.target.value);
+        }
       }
       else {
         setOptionsBooking([]);
+        setDocumentBooking('');
       }
     }
   };
@@ -395,7 +400,7 @@ export default function CheckIn() {
       setDocument(newValue.inputValue);
       setContainerCustomer(true);
       showToastMessageStatus('info', 'Cliente no registrado, por favor complete los datos');
-    } else {
+    } else if (newValue) {
       showToastMessageStatus('success', 'Cliente registrado, por favor confirme los datos');
       setIdCustomer(newValue.value);
       setContainerCustomer(true);
@@ -412,18 +417,20 @@ export default function CheckIn() {
   };
 
   const handleChangeIdBooking = (event, newValue) => {
-    setBookingSelected({
-      id: newValue.value,
-      documentNumber: newValue.label,
-      documentType: newValue.documentType,
-      name: newValue.name,
-      areas: newValue.areas,
-      customers: newValue.customers,
-      type: newValue.type,
-      reasonVisitId: newValue.reasonVisitId,
-      date: newValue.date,
-    })
-    showToastMessageStatus('success', 'Reserva seleccionada, por favor confirme los datos');
+    if (newValue) {
+      setBookingSelected({
+        id: newValue.value,
+        documentNumber: newValue.label,
+        documentType: newValue.documentType,
+        name: newValue.name,
+        areas: newValue.areas,
+        customers: newValue.customers,
+        type: newValue.type,
+        reasonVisitId: newValue.reasonVisitId,
+        date: newValue.date,
+      })
+      showToastMessageStatus('success', 'Reserva seleccionada, por favor confirme los datos');
+    }
   };
 
   const handleSelectedAreas = (position) => {
@@ -624,9 +631,9 @@ export default function CheckIn() {
       setAreasSelected(updatedCheckedState);
 
     } else {
-      
+
       const resul = bookingSelected.areas.find((item) => item.id === 1)
-      
+
       setCheckAll({
         timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
         timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`)),
