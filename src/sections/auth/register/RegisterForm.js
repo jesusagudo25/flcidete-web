@@ -2,15 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 // @mui
-import { Link, Stack, IconButton, InputAdornment, TextField, Checkbox, FormControlLabel, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
+import { Link, Stack, IconButton, InputAdornment, TextField, Checkbox, FormControlLabel, Select, MenuItem, InputLabel, FormControl, FormHelperText } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
+import { Controller, useForm } from "react-hook-form";
 // components
 import Iconify from '../../../components/iconify';
 
 // ----------------------------------------------------------------------
 
-export default function LoginForm({ setSuccess, email, setEmail}) {
-    const navigate = useNavigate();
+export default function LoginForm({ setSuccess, email, setEmail }) {
+
+    /* React Form Hook */
+
+    const { control, handleSubmit, reset, setValue, setError, getValues, clearErrors, watch, formState: { errors }, } = useForm({
+        reValidateMode: 'onBlur'
+    });
+
+    const watchEmail = watch('email');
+
+    /* Data */
 
     const [name, setNmae] = useState('');
     const [password, setPassword] = useState('');
@@ -35,16 +45,37 @@ export default function LoginForm({ setSuccess, email, setEmail}) {
         getRoles()
     }, []);
 
-    const handleClick = async () => {
-        if (terms) {
+    useEffect(() => {
+        const validate = async () => {
+            if (watchEmail !== '') {
+                axios.post('api/users/check-email', {
+                    email: watchEmail
+                }).then(response => {
+                    /* clear error */
+                    clearErrors('email')
+                }).catch(error => {
+                    console.log(error.response.data.message);
+                    setError('email', {
+                        type: 'server',
+                        message: 'El correo electrónico ya está registrado'
+                    })
+                })
+            }
+        }
+        validate()
+    }, [watchEmail]);
+
+    const handleClick = async (event) => {
+        setEmail(event.email)
+        if (event.terms) {
             setIsLoading(true)
             axios.get('sanctum/csrf-cookie')
                 .then(response => {
                     axios.post('api/register', {
-                        name,
-                        email,
-                        'role_id': roleId,
-                        password
+                        name: event.name,
+                        email: event.email,
+                        'role_id': event.roleId,
+                        password: event.password
                     }).then(response => {
                         if (response.data.status === 'success') {
                             localStorage.setItem('token', response.data.token)
@@ -68,81 +99,158 @@ export default function LoginForm({ setSuccess, email, setEmail}) {
     return (
         <>
             <Stack spacing={3}>
-                <TextField name="name" label="Nombre" value={name} onChange={
-                    (e) => {
-                        setNmae(e.target.value)
-                    }
-                } />
+                <Controller
+                    name="name"
+                    control={control}
+                    defaultValue=""
+                    rules={{
+                        required: 'El nombre es requerido',
+                        minLength: {
+                            value: 3,
+                            message: 'El nombre debe tener al menos 3 caracteres'
+                        },
+                        maxLength: {
+                            value: 50,
+                            message: 'El nombre debe tener máximo 50 caracteres'
+                        }
+                    }}
+                    render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                        <TextField
+                            label="Nombre"
+                            value={value}
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            error={!!error}
+                            helperText={error ? error.message : null}
+                        />
+                    )}
+                />
 
-                <TextField name="email" label="Correo electrónico" value={email} onChange={
-                    (e) => {
-                        setEmail(e.target.value)
-                    }
-                } />
+                <Controller
+                    name="email"
+                    control={control}
+                    defaultValue=""
+                    rules={{
+                        required: 'Correo electrónico es requerido',
+                        pattern: {
+                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                            message: 'Correo electrónico no válido'
+                        }
+                    }}
+                    render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                        <TextField
+                            label="Correo electrónico"
+                            value={value}
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            error={!!error}
+                            helperText={error ? error.message : null}
+                        />
+                    )}
+                />
 
-                <FormControl fullWidth>
+                <FormControl fullWidth error={!!errors?.roleId}>
                     <InputLabel id="rol-select-label">Tipo de rol</InputLabel>
-                    <Select
-                        labelId="rol-select-label"
-                        id="rol-select"
-                        value={roleId}
-                        label="Tipo de rol"
-                        onChange={
-                            (e) => {
-                                setRoleId(e.target.value)
-                            }
-                        }
-                    >
-                        {
-                            roles.map((role) => {
-                                return (
-                                    <MenuItem key={role.id} value={role.id}>{role.name}</MenuItem>
-                                )
-                            })
-                        }
-                    </Select>
+                    <Controller
+                        name="roleId"
+                        control={control}
+                        defaultValue=""
+                        rules={{
+                            required: 'El tipo de rol es requerido',
+                        }}
+                        render={({ field: { onChange, onBlur, value, } }) => (
+                            <Select
+                                labelId="rol-select-label"
+                                id="rol-select"
+                                value={value}
+                                label="Tipo de rol"
+                                onChange={onChange}
+                                onBlur={onBlur}
+                            >
+                                {
+                                    roles.map((role) => {
+                                        return (
+                                            <MenuItem key={role.id} value={role.id}>{role.name}</MenuItem>
+                                        )
+                                    })
+                                }
+                            </Select>
+                        )}
+                    />
+                    <FormHelperText>{errors?.roleId?.message}</FormHelperText>
                 </FormControl>
 
-                <TextField
+                <Controller
                     name="password"
-                    label="Contraseña"
-                    type={showPassword ? 'text' : 'password'}
-                    InputProps={{
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                                    <Iconify icon={showPassword ? 'eva:eye-fill' : 'eva:eye-off-fill'} />
-                                </IconButton>
-                            </InputAdornment>
-                        ),
+                    control={control}
+                    defaultValue=""
+                    rules={{
+                        required: 'La contraseña es requerida',
+                        minLength: {
+                            value: 8,
+                            message: 'La contraseña debe tener al menos 8 caracteres'
+                        },
+                        maxLength: {
+                            value: 20,
+                            message: 'La contraseña debe tener máximo 20 caracteres'
+                        },
+                        pattern: {
+                            value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,20}$/,
+                            message: 'La contraseña debe tener al menos una letra mayúscula, una minúscula, un número y un caracter especial'
+                        }
                     }}
-                    value={password}
-                    onChange={
-                        (e) => {
-                            setPassword(e.target.value)
-                        }
+                    render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                        <TextField
+                            name="password"
+                            label="Contraseña"
+                            type={showPassword ? 'text' : 'password'}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                                            <Iconify icon={showPassword ? 'eva:eye-fill' : 'eva:eye-off-fill'} />
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
+                            value={value}
+                            onChange={onChange}
+                            onBlur={onBlur}
+                            error={!!error}
+                            helperText={error ? error.message : null}
+                        />
+                    )}
+                />
+            </Stack>
+
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ my: 2 }}>
+                <FormControl component="fieldset" error={!!errors?.terms}>
+                    <FormControlLabel control={
+                        <Controller
+                            name="terms"
+                            control={control}
+                            defaultValue=""
+                            rules={{
+                                required: 'Debe aceptar los términos y condiciones',
+                            }}
+                            render={({ field: { onChange, onBlur, value } }) => (
+                                <Checkbox
+                                    color="primary"
+                                    inputProps={{ 'aria-label': 'checkbox with default color' }}
+                                    checked={value}
+                                    onChange={onChange}
+                                    onBlur={onBlur}
+                                />
+                            )}
+                        />
                     }
-                />
-            </Stack>
-
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ my: 2, textDecoration: 'underline' }}>
-                <FormControlLabel control={
-                    <Checkbox
-                        color="primary"
-                        inputProps={{ 'aria-label': 'checkbox with default color' }}
-                        checked={terms}
-                        onChange={
-                            (e) => {
-                                setTerms(e.target.checked)
-                            }
-                        }
+                        label="Estoy de acuerdo con los términos y condiciones"
                     />
-                }
-                    label="Estoy de acuerdo con los términos y condiciones"
-                />
+                    <FormHelperText>{errors?.terms?.message}</FormHelperText>
+                </FormControl>
             </Stack>
 
-            <LoadingButton fullWidth size="large" type="submit" variant="contained" onClick={handleClick} loading={isLoading}>
+            <LoadingButton fullWidth size="large" type="submit" variant="contained" onClick={handleSubmit(handleClick)} loading={isLoading}>
                 Crear cuenta
             </LoadingButton>
         </>

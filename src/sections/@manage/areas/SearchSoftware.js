@@ -4,7 +4,7 @@ import axios from 'axios';
 // material
 import { Autocomplete, TextField } from '@mui/material';
 
-const SearchSoftware = ({itemSelected, handleAddSoftware, updateItemSoftware }) => {
+const SearchSoftware = ({itemSelected, handleAddSoftware, updateItemSoftware, errors, setErrors }) => {
 
     const previousController = useRef();
 
@@ -52,6 +52,7 @@ const SearchSoftware = ({itemSelected, handleAddSoftware, updateItemSoftware }) 
                 id="combo-box-component"
                 options={options}
                 onChange={(event, newValue) => {
+                    setErrors({ ...errors, software: '' });
                     handleAddSoftware(
                         {
                             id: newValue.value,
@@ -69,11 +70,16 @@ const SearchSoftware = ({itemSelected, handleAddSoftware, updateItemSoftware }) 
                         }
                         updateItemSoftware();
                         if (event) {
-                            if (event.target.value.length > 0) {
-                                getDataAutoComplete(event.target.value);
+                            if(event.target.value){
+                                if (event.target.value.length > 0) {
+                                    getDataAutoComplete(event.target.value);
+                                }
+                                else {
+                                    setOptions([]);
+                                }
                             }
-                            else {
-                                setOptions([]);
+                            else if(event.target.value === undefined){
+                                    handleAddSoftware(null);
                             }
                         }
                     }
@@ -86,7 +92,11 @@ const SearchSoftware = ({itemSelected, handleAddSoftware, updateItemSoftware }) 
                 handleHomeEndKeys
                 clearOnEscape
                 blurOnSelect
-                renderInput={(params) => <TextField {...params} label="Nombre del software" />}
+                renderInput={(params) => <TextField {...params} 
+                label="Nombre del software"
+                error={errors.software}
+                helperText={errors.software ? errors.software : ''}
+                />}
             />
         </>
     )

@@ -25,9 +25,9 @@ const CartList = ({ items, setServiceSelected, setServiceSelectedId, setOpenMenu
             items.map((item) => (
                 <TableRow key={item.id}>
                     <TableCell align="left">
-                    <Typography variant="subtitle2" noWrap>
-                        {item.name}
-                    </Typography>
+                        <Typography variant="subtitle2" noWrap>
+                            {item.uuid}
+                        </Typography>
                     </TableCell>
                     <TableCell align="left">{item.details.base_cost ? item.details.base_cost : parseFloat(0).toFixed(2)}</TableCell>
                     <TableCell align="left" sx={{
@@ -56,7 +56,7 @@ const CartList = ({ items, setServiceSelected, setServiceSelectedId, setOpenMenu
                         />
                     </Box>
                     <Typography variant="subtitle1" sx={{ my: 1 }}>
-                        No hay productos en el carrito
+                        No hay servicios en el carrito
                     </Typography>
                 </TableCell>
             </TableRow>

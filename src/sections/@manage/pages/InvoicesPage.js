@@ -293,7 +293,7 @@ const InvoicesPage = () => {
                           </TableCell>
 
                           <TableCell align="left">
-                            {receipt}
+                            {receipt || 'No disponible'}
                           </TableCell>
 
                           <TableCell align="left">

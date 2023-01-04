@@ -390,10 +390,10 @@ const TechExpensesPage = () => {
                           <TableCell align="right">
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-/*                               setName(name);
-                              setDescription(description);
-                              setArea(area.id);
-                              setAmount(amount); */
+                              /*                               setName(name);
+                                                            setDescription(description);
+                                                            setArea(area.id);
+                                                            setAmount(amount); */
                               setValue('name', name);
                               setValue('description', description);
                               setValue('area', area.id);
@@ -408,7 +408,7 @@ const TechExpensesPage = () => {
                     })}
                     {emptyRows > 0 && (
                       <TableRow style={{ height: 53 * emptyRows }}>
-                        <TableCell colSpan={6} />
+                        <TableCell colSpan={7} />
                       </TableRow>
                     )}
                   </TableBody>
@@ -417,7 +417,7 @@ const TechExpensesPage = () => {
                   (
                     <TableBody>
                       <TableRow>
-                        <TableCell align="center" colSpan={6} sx={{ py: 3 }}>
+                        <TableCell align="center" colSpan={7} sx={{ py: 3 }}>
                           <Paper
                             sx={{
                               textAlign: 'center',
@@ -522,7 +522,7 @@ const TechExpensesPage = () => {
                 )}
               />
             </FormControl>
-            
+
             <FormControl sx={{ width: '100%' }}>
               <Controller
                 name="description"
@@ -559,21 +559,21 @@ const TechExpensesPage = () => {
                   required: 'El área es requerida',
                 }}
                 render={({ field: { onChange, onBlur, value, } }) => (
-              <Select
-                labelId="category-select-label"
-                id="category-select"
-                value={value}
-                label="Selecciona el área"
-                onChange={onChange}
-                onBlur={onBlur}
-                required
-              >
-                {
-                  areas.map((item) => (
-                    <MenuItem key={item.id} value={item.id}>{item.name}</MenuItem>
-                  ))
-                }
-              </Select>
+                  <Select
+                    labelId="category-select-label"
+                    id="category-select"
+                    value={value}
+                    label="Selecciona el área"
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                  >
+                    {
+                      areas.map((item) => (
+                        <MenuItem key={item.id} value={item.id}>{item.name}</MenuItem>
+                      ))
+                    }
+                  </Select>
                 )}
               />
               <FormHelperText>{errors?.area?.message}</FormHelperText>
@@ -597,18 +597,18 @@ const TechExpensesPage = () => {
                   }
                 }}
                 render={({ field: { onChange, onBlur, value, } }) => (
-              <OutlinedInput
-                id="outlined-adornment-amount"
-                startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                label="Costo"
-                placeholder='0'
-                size="small"
-                value={value}
-                onChange={onChange}
-                onBlur={onBlur}
-                type="number"
-                required
-              />
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Costo"
+                    placeholder='0'
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    type="number"
+                    required
+                  />
                 )}
               />
               <FormHelperText>{errors?.amount?.message}</FormHelperText>

@@ -239,6 +239,22 @@ const CustomersPage = () => {
 
   const handleCloseDialog = () => {
     setOpen(false);
+    axios.get(`http://127.0.0.1:8001/api/province/9/districts`)
+    .then((response) => {
+      setDistricts(response.data);
+      setDistrictSelected(response.data[0].id);
+      axios.get(`http://127.0.0.1:8001/api/district/60/townships`)
+        .then((response) => {
+          setTownships(response.data);
+          setTownshipSelected(response.data[0].id);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    })
+    .catch((error) => {
+      console.log(error);
+    });
   };
 
   const handleSubmitDialog = async (event) => {
@@ -414,7 +430,7 @@ const CustomersPage = () => {
                           </TableCell>
 
                           <TableCell align="left">
-                            {email}
+                            {email || 'No especificado'}
                           </TableCell>
 
                           <TableCell align="left">
@@ -453,6 +469,22 @@ const CustomersPage = () => {
                               setProvinceSelected(provinceId);
                               setDistrictSelected(districtId);
                               setTownshipSelected(townshipId);
+                              axios.get(`http://127.0.0.1:8001/api/province/${provinceId}/districts`)
+                              .then((response) => {
+                                setDistricts(response.data);
+                                setDistrictSelected(districtId);
+                                axios.get(`http://127.0.0.1:8001/api/district/${districtId}/townships`)
+                                  .then((response) => {
+                                    setTownships(response.data);
+                                    setTownshipSelected(townshipId);
+                                  })
+                                  .catch((error) => {
+                                    console.log(error);
+                                  });
+                              })
+                              .catch((error) => {
+                                console.log(error);
+                              });
                               setOpen(true)
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -463,7 +495,7 @@ const CustomersPage = () => {
                     })}
                     {emptyRows > 0 && (
                       <TableRow style={{ height: 53 * emptyRows }}>
-                        <TableCell colSpan={6} />
+                        <TableCell colSpan={7} />
                       </TableRow>
                     )}
                   </TableBody>
@@ -472,7 +504,7 @@ const CustomersPage = () => {
                   (
                     <TableBody>
                       <TableRow>
-                        <TableCell align="center" colSpan={6} sx={{ py: 3 }}>
+                        <TableCell align="center" colSpan={7} sx={{ py: 3 }}>
                           <Paper
                             sx={{
                               textAlign: 'center',

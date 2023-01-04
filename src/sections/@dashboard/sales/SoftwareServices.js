@@ -7,10 +7,10 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { SearchSoftware } from '../../@manage/areas';
 
-const SoftwareServices = ({ itemSelected, handleAddSoftware, updateItemSoftware }) => {
+const SoftwareServices = ({ itemSelected, handleAddSoftware, updateItemSoftware, errors, setErrors, handleOnBlurHoursArea}) => {
   return (
     <Stack spacing={3} sx={{ minWidth: 550,}}>
-      <SearchSoftware itemSelected={itemSelected} handleAddSoftware={handleAddSoftware} updateItemSoftware={updateItemSoftware} />
+      <SearchSoftware itemSelected={itemSelected} handleAddSoftware={handleAddSoftware} updateItemSoftware={updateItemSoftware} errors={errors} setErrors={setErrors} />
 
       <TextField
         id="outlined-number"
@@ -20,8 +20,12 @@ const SoftwareServices = ({ itemSelected, handleAddSoftware, updateItemSoftware 
         value={itemSelected.details.hours_area}
         onChange={(e) => {
           itemSelected.details.hours_area = e.target.value
+          setErrors({ ...errors, hours_area: '' });
           updateItemSoftware();
         }}
+        onBlur={handleOnBlurHoursArea}
+        error={!!errors.hours_area}
+        helperText={errors.hours_area ? errors.hours_area : null}
       />
 
       <FormControl sx={{ width: '100%' }}>

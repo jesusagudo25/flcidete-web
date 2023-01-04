@@ -10,7 +10,9 @@ const SearchBooking = ({
     documentBooking,
     optionsBooking,
     handleChangeIdBooking,
-    handleChangeDocumentBooking
+    handleChangeDocumentBooking,
+    errors,
+    handleOnBlurDocumentBooking
 }) => {
 
     return (
@@ -47,7 +49,13 @@ const SearchBooking = ({
                 handleHomeEndKeys
                 clearOnEscape
                 blurOnSelect
-                renderInput={(params) => <TextField {...params} label="Número de documento" />}
+                renderInput={(params) => <TextField 
+                    {...params} 
+                    label="Número de documento" 
+                    error={errors.documentBooking}
+                    helperText={errors.documentBooking ? errors.documentBooking : ''}
+                    />}
+                onBlur={handleOnBlurDocumentBooking}
             />
 
         </Stack>

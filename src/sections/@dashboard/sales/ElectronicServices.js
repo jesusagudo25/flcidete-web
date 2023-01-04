@@ -9,6 +9,7 @@ import {
   TableBody,
   TableCell,
   TextField,
+  FormHelperText,
 } from '@mui/material';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -20,11 +21,11 @@ Cerrar modal
 Guardar informacion
 */
 
-const ElectronicServices = ({ itemSelected, updateItemElectronic, handleAddComponent, deleteComponent}) => {
+const ElectronicServices = ({ itemSelected, updateItemElectronic, handleAddComponent, deleteComponent, errors, setErrors }) => {
 
   return (
     <Stack spacing={3}>
-      <SearchComponents handleAddComponent={handleAddComponent}  />
+      <SearchComponents handleAddComponent={handleAddComponent} errors={errors} setErrors={setErrors}/>
 
       <TableContainer sx={{ minWidth: 550, }}>
         <Table>
@@ -37,7 +38,7 @@ const ElectronicServices = ({ itemSelected, updateItemElectronic, handleAddCompo
             </TableRow>
           </TableHead>
           <TableBody>
-           <CartComponents components={itemSelected.details.components} deleteComponent={deleteComponent} updateItemElectronic={updateItemElectronic}/>
+            <CartComponents components={itemSelected.details.components} deleteComponent={deleteComponent} updateItemElectronic={updateItemElectronic} />
           </TableBody>
         </Table>
       </TableContainer>
@@ -52,8 +53,9 @@ const ElectronicServices = ({ itemSelected, updateItemElectronic, handleAddCompo
           size="small"
           value={itemSelected.details.extra}
           onChange={(e) => {
-              itemSelected.details.extra = e.target.value;
-              updateItemElectronic();
+            itemSelected.details.extra = e.target.value;
+            updateItemElectronic();
+            setErrors({ ...errors, base_cost: '' })
           }}
           type="number"
         />
@@ -73,7 +75,8 @@ const ElectronicServices = ({ itemSelected, updateItemElectronic, handleAddCompo
         />
       </FormControl>
 
-      <FormControl sx={{ width: '100%' }}>
+      <FormControl sx={{ width: '100%' }} error={!!errors?.base_cost}
+      >
         <InputLabel htmlFor="outlined-adornment-amount">Costo base</InputLabel>
         <OutlinedInput
           id="outlined-adornment-amount"
@@ -84,6 +87,7 @@ const ElectronicServices = ({ itemSelected, updateItemElectronic, handleAddCompo
           size="small"
           value={itemSelected.details.base_cost}
         />
+        <FormHelperText>{errors?.base_cost}</FormHelperText>
       </FormControl>
 
     </Stack>

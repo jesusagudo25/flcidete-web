@@ -15,7 +15,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartResins, SearchResins } from '../../@manage/areas';
 
-const ResinMaker = ({ itemSelected, handleAddResin, updateItemResin, deleteResin }) => {
+const ResinMaker = ({ itemSelected, handleAddResin, updateItemResin, deleteResin,  errors, setErrors, handleOnBlurHoursArea }) => {
   return (
     <Stack spacing={3}>
       <SearchResins handleAddResin={handleAddResin} />
@@ -43,8 +43,12 @@ const ResinMaker = ({ itemSelected, handleAddResin, updateItemResin, deleteResin
         value={itemSelected.details.hours_area}
         onChange={(e) => {
           itemSelected.details.hours_area = e.target.value
+          setErrors({ ...errors, hours_area: '' });
           updateItemResin();
         }}
+        onBlur={handleOnBlurHoursArea}
+        error={!!errors.hours_area}
+        helperText={errors.hours_area ? errors.hours_area : null}
       />
 
       <FormControl sx={{ width: '100%' }}>

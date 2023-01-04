@@ -15,7 +15,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartVinyls, SearchVinyls } from '../../@manage/areas'
 
-const VinylMaker = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVinyl }) => {
+const VinylMaker = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVinyl, errors, setErrors, handleOnBlurHoursArea }) => {
   return (
     <Stack spacing={3}>
       <SearchVinyls handleAddVinyl={handleAddVinyl} />
@@ -46,6 +46,9 @@ const VinylMaker = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVinyl
           itemSelected.details.hours_area = e.target.value
           updateItemVinyl();
         }}
+        onBlur={handleOnBlurHoursArea}
+        error={!!errors.hours_area}
+        helperText={errors.hours_area ? errors.hours_area : null}
       />
 
       <FormControl sx={{ width: '100%' }}>

@@ -9,7 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Iconify from '../../../components/iconify';
 
-const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected, handleChangeTimeIn, handleChangeTimeOut, checkAll, handleChangeCheckAll, handleChangeTimeInCheckAll, handleChangeTimeOutCheckAll }) => {
+const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected, handleChangeTimeIn, handleChangeTimeOut, checkAll, handleChangeCheckAll, handleChangeTimeInCheckAll, handleChangeTimeOutCheckAll, errors, setErrors }) => {
   return (
     <FormGroup>
       <FormLabel id="demo-radio-buttons-group-label" sx={
@@ -31,7 +31,10 @@ const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected
                   value={area.id}
                   color="primary"
                   checked={areasSelected[index].id !== ''}
-                  onChange={() => handleSelectedAreas(index)}
+                  onChange={() => {
+                    handleSelectedAreas(index);
+                    setErrors({ ...errors, areas: '' });
+                  }}
                   disabled={containerCheckAll}
                 />
               }
@@ -45,7 +48,7 @@ const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected
                   <LocalizationProvider locale={es} dateAdapter={AdapterDateFns} >
                     <TimePicker
                       label="Hora de entrada"
-                      renderInput={(params) => <TextField InputLabelProps={{shrink: true}} {...params} size="small" sx={{ width: '13%', marginLeft: '10px', }} />}
+                      renderInput={(params) => <TextField InputLabelProps={{shrink: true}} {...params} size="small" sx={{ width: '14%', marginLeft: '10px', }} />}
                       value={areasSelected[index].timeIn}
                       onChange={(newValue) => {
                         handleChangeTimeIn(index, newValue);
@@ -76,7 +79,7 @@ const AreaList = ({ areas, containerCheckAll, handleSelectedAreas, areasSelected
                         size="small"
                         sx={
                           {
-                            width: '13%',
+                            width: '14%',
                           }
                         }
                       />}

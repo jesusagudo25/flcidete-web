@@ -4,7 +4,7 @@ import axios from 'axios';
 // material
 import { Autocomplete, TextField } from '@mui/material';
 
-const SearchThreads = ({handleAddThread}) => {
+const SearchThreads = ({handleAddThread, errors, setErrors}) => {
 
   const previousController = useRef();
 
@@ -56,6 +56,7 @@ const SearchThreads = ({handleAddThread}) => {
           );
           setOptions([]);
           setName('');
+          setErrors({ ...errors, threads: '' })
         }}
         onInputChange={
           (event, newInputValue) => {

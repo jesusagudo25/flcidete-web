@@ -60,7 +60,7 @@ const CartMaterialsLaser = ({ materials, deleteMaterialLaser, updateItemLaser })
                       type="number"
                       value={material.width}
                       onChange={(e) => {
-                        material.width = parseInt(e.target.value, 10);
+                        material.width = parseFloat(e.target.value);
                         updateItemLaser();
                       }}
                     />
@@ -77,7 +77,7 @@ const CartMaterialsLaser = ({ materials, deleteMaterialLaser, updateItemLaser })
                       type="number"
                       value={material.height}
                       onChange={(e) => {
-                        material.height = parseInt(e.target.value, 10);
+                        material.height = parseFloat(e.target.value);
                         updateItemLaser();
                       }}
                     />

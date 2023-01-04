@@ -14,6 +14,8 @@ const SearchCustomer = ({
   handleChangeDocument,
   handleChangeIdCustomer,
   document,
+  handleOnBlurDocument,
+  errors,
 }) => {
 
   return (
@@ -85,7 +87,13 @@ const SearchCustomer = ({
         freeSolo
         loading
         loadingText="Cargando..."
-        renderInput={(params) => <TextField {...params} label="Número de documento" />}
+        renderInput={(params) => <TextField 
+          {...params} 
+          label="Número de documento"
+          error={errors.document}
+          helperText={errors.document ? errors.document : null}
+          />}
+        onBlur={handleOnBlurDocument}
       />
     </Stack>
 

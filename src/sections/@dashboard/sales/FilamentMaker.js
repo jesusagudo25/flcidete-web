@@ -13,7 +13,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartFilaments, SearchFilaments } from '../../@manage/areas';
 
-const FilamentMaker = ({ itemSelected, handleAddFilament, updateItemFilament, deleteFilament }) => {
+const FilamentMaker = ({ itemSelected, handleAddFilament, updateItemFilament, deleteFilament, errors, setErrors, handleOnBlurHoursArea }) => {
   return (
     <Stack spacing={3}>
       <SearchFilaments handleAddFilament={handleAddFilament} />
@@ -40,9 +40,13 @@ const FilamentMaker = ({ itemSelected, handleAddFilament, updateItemFilament, de
         size="small"
         value={itemSelected.details.hours_area}
         onChange={(e) => {
-          itemSelected.details.hours_area = e.target.value
+          itemSelected.details.hours_area = e.target.value;
+          setErrors({ ...errors, hours_area: '' });
           updateItemFilament();
         }}
+        onBlur={handleOnBlurHoursArea}
+        error={!!errors.hours_area}
+        helperText={errors.hours_area ? errors.hours_area : null}
       />
 
       <FormControl sx={{ width: '100%' }}>

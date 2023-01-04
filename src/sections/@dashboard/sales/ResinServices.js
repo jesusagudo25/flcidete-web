@@ -9,13 +9,14 @@ import {
   TableCell,
   TextField,
   Box,
-  FormLabel
+  FormLabel,
+  FormHelperText
 } from '@mui/material';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartResins, SearchResins } from '../../@manage/areas';
 
-const ResinServices = ({ itemSelected, handleAddResin, updateItemResin, deleteResin }) => {
+const ResinServices = ({ itemSelected, handleAddResin, updateItemResin, deleteResin, errors, setErrors  }) => {
   return (
     <Stack spacing={3}>
       <SearchResins handleAddResin={handleAddResin} />
@@ -35,6 +36,7 @@ const ResinServices = ({ itemSelected, handleAddResin, updateItemResin, deleteRe
         </Table>
       </TableContainer>
 
+      <Stack direction="column">
       <Box
         sx={{
           display: 'flex',
@@ -48,7 +50,7 @@ const ResinServices = ({ itemSelected, handleAddResin, updateItemResin, deleteRe
           fontSize: '0.875rem',
         }}>Tiempo de fabricación: </FormLabel>
 
-        <FormControl sx={{ width: '25%' }}>
+        <FormControl sx={{ width: '25%' }} error={!!errors?.hours}>
           <OutlinedInput
             id="outlined-adornment-amount"
             startAdornment={<InputAdornment position="start">H</InputAdornment>}
@@ -57,12 +59,13 @@ const ResinServices = ({ itemSelected, handleAddResin, updateItemResin, deleteRe
             value={itemSelected.details.hours}
             onChange={(e) => {
               itemSelected.details.hours = e.target.value;
+              setErrors({ ...errors, hours: '' })
               updateItemResin()
             }}
           />
         </FormControl>
 
-        <FormControl sx={{ width: '25%' }}>
+        <FormControl sx={{ width: '25%' }} error={!!errors?.minutes}>
           <OutlinedInput
             id="outlined-adornment-amount"
             startAdornment={<InputAdornment position="start">M</InputAdornment>}
@@ -71,12 +74,17 @@ const ResinServices = ({ itemSelected, handleAddResin, updateItemResin, deleteRe
             value={itemSelected.details.minutes}
             onChange={(e) => {
               itemSelected.details.minutes = e.target.value;
+              setErrors({ ...errors, minutes: '' })
               updateItemResin()
             }}
           />
         </FormControl>
       </Box>
-
+      <FormHelperText sx={{
+          color: 'red',
+          alignSelf: 'center',
+        }}>{errors.hours ? errors.hours : errors.minutes ? errors.minutes : null}</FormHelperText>
+      </Stack>
       <FormControl sx={{ width: '100%' }}>
         <InputLabel htmlFor="outlined-adornment-amount">Extra</InputLabel>
         <OutlinedInput

@@ -76,7 +76,7 @@ const ResetPasswordPage = () => {
             <Typography sx={{ color: 'text.secondary' }}
               align="center"
             >
-            Al terminar, te enviaremos a iniciar sesión de nuevo con tu nueva contraseña
+              Al terminar, te enviaremos a iniciar sesión de nuevo con tu nueva contraseña
             </Typography>
 
             <Divider sx={{ my: 3 }} />

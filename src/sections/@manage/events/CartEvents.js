@@ -5,6 +5,8 @@ import {
     Button,
     Box,
 } from '@mui/material';
+import { format, lastDayOfMonth, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import Iconify from '../../../components/iconify';
 
 const CartEvents = ({ event, deleteEvent }) => {
@@ -12,11 +14,11 @@ const CartEvents = ({ event, deleteEvent }) => {
         event ?
             (<TableRow >
                 <TableCell>
-                    <Typography variant="subtitle2" noWrap>
+                    <Typography variant="subtitle2" Wrap>
                         {event.name}
                     </Typography>
                 </TableCell>
-                <TableCell >{parseFloat(event.price).toFixed(2)}</TableCell>
+                <TableCell >$ {parseFloat(event.price).toFixed(2)}</TableCell>
                 <TableCell>
                     <Box
                         sx={{
@@ -25,10 +27,11 @@ const CartEvents = ({ event, deleteEvent }) => {
                         }}
                     >
                         <Typography variant="body2" noWrap>
-                            {`${event.initial_date.split('-')[2]} - ${event.initial_date.split('-')[1]}`}  {`${event.final_date.split('-')[2]} - ${event.final_date.split('-')[1]}`}
-                        </Typography>
-                        <Typography variant="body2" noWrap>
-                            {`${event.initial_time.split(':')[2]} - ${event.initial_time.split(':')[1]}`}
+                            {format(parseISO(`${event.initial_date.split('T')[0]} ${event.initial_time}`), 'dd MMMM', { locale: es })}
+                            &nbsp;
+                            - 
+                            &nbsp;
+                            {format(parseISO(`${event.final_date.split('T')[0]} ${event.final_time}`), 'dd MMMM', { locale: es })}
                         </Typography>
                     </Box>
 

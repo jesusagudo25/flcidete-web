@@ -15,6 +15,10 @@ import {
   DialogTitle,
   styled,
   IconButton,
+  FormHelperText,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 import { Stack } from '@mui/system';
 import { LoadingButton } from '@mui/lab';
@@ -82,7 +86,6 @@ BootstrapDialogTitle.propTypes = {
 export default function CheckIn() {
 
   /* Toastify */
-
   const showToastMessageStatus = (type, message) => {
     if (type === 'success') {
       toast.success(message, {
@@ -94,6 +97,11 @@ export default function CheckIn() {
         position: toast.POSITION.TOP_RIGHT
       });
     }
+    else if (type === 'warning') {
+      toast.warn(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
     else {
       toast.info(message, {
         position: toast.POSITION.TOP_RIGHT
@@ -102,10 +110,7 @@ export default function CheckIn() {
   };
 
   /* useForm */
-
-  const { control, handleSubmit, reset } = useForm({
-    reValidateMode: 'onBlur'
-  });
+  const [errors, setErrors] = useState({});
 
   /* Container True or False */
   const [containerBookingGroup, setContainerBookingGroup] = useState(false);
@@ -116,8 +121,13 @@ export default function CheckIn() {
   const [disabledAddCustomer, setDisabledAddCustomer] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [isErrorExcel, setIsErrorExcel] = useState(false);
+  const [errorsExcel, setErrorsExcel] = useState([]);
+  const [messageAlertBooking, setMessageAlertBooking] = useState(null);
+  const [isCompleteBooking, setIsCompleteBooking] = useState(false);
   const [open, setOpen] = useState(false);
   const [isSelectBooking, setIsSelectBooking] = useState(false);
+  const [isFormatExcel, setIsFormatExcel] = useState(false);
 
   const [documentType, setDocumentType] = useState('C');
   const [document, setDocument] = useState('');
@@ -139,7 +149,7 @@ export default function CheckIn() {
   const [districtSelected, setDistrictSelected] = useState(60);
   const [townshipSelected, setTownshipSelected] = useState(492);
 
-  const [bookingSelected, setBookingSelected] = useState([]);
+  const [bookingSelected, setBookingSelected] = useState(null);
 
   const [areas, setAreas] = useState([]);
   const [reasonVisits, setReasonVisits] = useState([]);
@@ -215,8 +225,10 @@ export default function CheckIn() {
   }
 
   const getAreas = () => {
+    setIsLoading(true);
     axios.get('/api/areas')
       .then(res => {
+        setIsLoading(false);
         setAreas(res.data);
         setAreasSelected(
           new Array(res.data.length).fill(
@@ -242,8 +254,10 @@ export default function CheckIn() {
   }
 
   const getReasonVisits = () => {
+    setIsLoading(true);
     axios.get('/api/reason-visits')
       .then(res => {
+        setIsLoading(false);
         setReasonVisits(res.data);
       }).catch(err => {
         console.log(err);
@@ -252,8 +266,10 @@ export default function CheckIn() {
   }
 
   const getAgeRanges = () => {
+    setIsLoading(true);
     axios.get('/api/age-ranges')
       .then(res => {
+        setIsLoading(false);
         setAgeRanges(res.data);
       }).catch(err => {
         console.log(err);
@@ -262,8 +278,10 @@ export default function CheckIn() {
   }
 
   const getTypeSexes = () => {
+    setIsLoading(true);
     axios.get('/api/type-sexes')
       .then(res => {
+        setIsLoading(false);
         setTypeSexes(res.data);
       }).catch(err => {
         console.log(err);
@@ -290,6 +308,12 @@ export default function CheckIn() {
     setDocumentBooking('');
     setOptionsBooking([]);
     setDocumentTypeBooking('C');
+    setErrors(
+      {
+        ...errors,
+        documentBooking: '',
+      }
+    )
   };
 
   const handleChangeReasonSelected = (event) => {
@@ -344,6 +368,8 @@ export default function CheckIn() {
     }
   }
 
+  /* Autocomplete - Booking vs Visit */
+
   const handleChangeDocumentType = (event) => {
     setDocumentType(event.target.value);
   };
@@ -352,12 +378,54 @@ export default function CheckIn() {
     setDocument(newInputValue);
     if (event) {
       setContainerCustomer(false);
+      if (bookingSelected) {
+        showToastMessageStatus('error', 'Se ha cancelado la reserva seleccionada')
+        setIsSelectBooking(false);
+        setBookingSelected(null);
+        setIsLoading(false);
+        /* Reset */
+        setContainerTypeVisit('I');
+        setDisabledAddCustomer(false);
+        setDocumentType('C');
+        setDocument('');
+        setName('');
+        setEmail('');
+        setTelephone('');
+        setAgeRangeSelected('');
+        setTypeSexSelected('');
+        setProvinceSelected(90);
+        setDistrictSelected(60);
+        setTownshipSelected(492);
+        setReasonSelected(1);
+        flexibleHandleChangeReason(1);
+        setAreasSelected(
+          areas.map((area) => {
+            return {
+              id: '',
+              visible: false,
+              timeIn: new Date(),
+              timeOut: null
+            }
+          }
+          )
+        );
+        setCheckAll({
+          visible: false,
+          timeIn: new Date(),
+          timeOut: null
+        });
+        setSelectedFile(null);
+        setContainerBookingGroup(false);
+      }
       if (event.target.value) {
         if (event.target.value.length > 3) {
           getDataAutoComplete(event.target.value);
         }
       }
       else {
+        if (newInputValue === '') {
+          showToastMessageStatus('warning', 'Se ha limpiado el campo de búsqueda');
+        }
         setOptions([]);
         setDocument('');
         setIdCustomer(null);
@@ -374,9 +442,12 @@ export default function CheckIn() {
         }
       }
       else {
+        setBookingSelected(null);
         setOptionsBooking([]);
         setDocumentBooking('');
       }
+    } else {
+      setOptionsBooking([]);
     }
   };
 
@@ -399,9 +470,19 @@ export default function CheckIn() {
       // Crear un nuevo valor a partir de la entrada del usuario
       setDocument(newValue.inputValue);
       setContainerCustomer(true);
-      showToastMessageStatus('info', 'Cliente no registrado, por favor complete los datos');
+      showToastMessageStatus('info', 'Por favor, Ingrese los datos del nuevo cliente');
+      setErrors({
+        ...errors,
+        document: '',
+        name: ''
+      })
     } else if (newValue) {
-      showToastMessageStatus('success', 'Cliente registrado, por favor confirme los datos');
+      showToastMessageStatus('success', 'Cliente seleccionado, por favor, verifique los datos');
+      setErrors({
+        ...errors,
+        document: '',
+        name: '',
+      })
       setIdCustomer(newValue.value);
       setContainerCustomer(true);
       setDisabledAddCustomer(true);
@@ -417,6 +498,7 @@ export default function CheckIn() {
   };
 
   const handleChangeIdBooking = (event, newValue) => {
+    setErrors({});
     if (newValue) {
       setBookingSelected({
         id: newValue.value,
@@ -429,10 +511,88 @@ export default function CheckIn() {
         reasonVisitId: newValue.reasonVisitId,
         date: newValue.date,
       })
-      showToastMessageStatus('success', 'Reserva seleccionada, por favor confirme los datos');
     }
   };
 
+  const handleOnBlurDocument = (event) => {
+    if (idCustomer === null && containerCustomer === false) {
+      setErrors({
+        ...errors,
+        document: 'Por favor, seleccione o agregue un cliente'
+      });
+    }
+    else {
+      setErrors({
+        ...errors,
+        document: ''
+      });
+    }
+
+    if (document !== '') {
+      axios.post('api/customers/check-document', {
+        document
+      }).then(response => {
+        console.log(response.data.message);
+      }).catch(error => {
+        console.log(error.response.data.message);
+      })
+    }
+  };
+
+  const validateEmail = (email) => {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
+  };
+
+  const handleOnBlurEmail = (event) => {
+    if (email !== '') {
+      if (!validateEmail(email)) {
+        setErrors({
+          ...errors,
+          email: 'Por favor, ingrese un correo válido'
+        });
+      }
+      else {
+        setErrors({
+          ...errors,
+          email: ''
+        });
+      }
+
+      axios.post('api/customers/check-email', {
+        email
+      }).then(response => {
+        console.log(response.data.message);
+      }
+      ).catch(error => {
+        console.log(error.response.data.message);
+        setErrors({
+          ...errors,
+          email: 'El correo ya se encuentra registrado'
+        });
+      }
+      )
+    }
+  };
+
+  const handleOnBlurDocumentBooking = (event) => {
+    if (bookingSelected === null) {
+      if (documentBooking === '') {
+        setErrors({
+          ...errors,
+          documentBooking: 'Por favor, seleccione una reserva'
+        });
+      }
+    }
+    else {
+      setErrors({
+        ...errors,
+        documentBooking: ''
+      });
+    }
+  };
+
+  /* -------------------- */
   const handleSelectedAreas = (position) => {
     const updatedCheckedState = areasSelected.map((item, index) =>
       index === position ? {
@@ -530,18 +690,45 @@ export default function CheckIn() {
 
   const handleChangeAgeRange = (event) => {
     setAgeRangeSelected(event.target.value);
+    setErrors({
+      ...errors,
+      age_range: ''
+    });
   };
 
   const handleChangeTypeSex = (event) => {
     setTypeSexSelected(event.target.value);
+    setErrors({
+      ...errors,
+      type_sex: ''
+    });
   };
 
   const handleChangeName = (event) => {
     setName(event.target.value);
   };
 
+  const handleOnBlurName = (event) => {
+    if (name === '') {
+      setErrors({
+        ...errors,
+        name: 'Por favor, ingrese el nombre del cliente'
+      });
+    }
+    else {
+      setErrors({
+        ...errors,
+        name: ''
+      });
+    }
+  };
+
   const handleChangeEmail = (event) => {
     setEmail(event.target.value);
+    setErrors({
+      ...errors,
+      email: ''
+    });
   };
 
   const handleChangeTelephone = (event) => {
@@ -558,198 +745,277 @@ export default function CheckIn() {
     },
   ];
 
+  /* Botones de submit */
+
   const LoadBooking = () => {
 
-    setContainerTypeVisit(bookingSelected.type);
-    setReasonSelected(bookingSelected.reasonVisitId);
-    flexibleHandleChangeReason(bookingSelected.reasonVisitId);
-    if (bookingSelected.type === 'I') {
-      axios.get(`api/customers/v/${bookingSelected.documentType}/${bookingSelected.documentNumber}`)
-        .then((response) => {
-          if (response.data) {
-            setIdCustomer(response.data.id);
-            setDocument(response.data.document_number);
-            setDocumentType(response.data.document_type);
-            setContainerCustomer(true);
-            setDisabledAddCustomer(true);
-            setName(response.data.name);
-            setEmail(response.data.email);
-            setTelephone(response.data.telephone);
-            setAgeRangeSelected(response.data.age_range_id);
-            setTypeSexSelected(response.data.type_sex_id);
-            setProvinceSelected(response.data.province_id);
-            setDistrictSelected(response.data.district_id);
-            setTownshipSelected(response.data.township_id);
-
-          }
-          else {
-            setIdCustomer(null);
-            setDisabledAddCustomer(false);
-            setAgeRangeSelected(null);
-            setTypeSexSelected(null);
-            setProvinceSelected(9);
-            setDistrictSelected(60);
-            setTownshipSelected(492);
-            setDocumentType(bookingSelected.documentType);
-            setDocument(bookingSelected.documentNumber);
-            setName(bookingSelected.name);
-            setContainerCustomer(true);
-          }
-        }
-        )
-        .catch((error) => {
-          console.log(error);
-        });
+    if (bookingSelected === null) {
+      setErrors({
+        ...errors,
+        documentBooking: 'Por favor, seleccione una reserva'
+      });
     }
     else {
-      setContainerBookingGroup(true);
-    }
-
-    /* bookingSelected.areas */
-    const updatedCheckedState = [];
-
-    if (bookingSelected.areas.length < areas.length) {
-
-      areasSelected.forEach((area, index) => {
-        const resul = bookingSelected.areas.find((item) => item.id === index + 1)
-        if (resul) {
-          updatedCheckedState.push({
-            id: resul.id,
-            visible: true,
-            timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
-            timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`))
+      setIsLoading(true);
+      setContainerTypeVisit(bookingSelected.type);
+      setReasonSelected(bookingSelected.reasonVisitId);
+      flexibleHandleChangeReason(bookingSelected.reasonVisitId);
+      if (bookingSelected.type === 'I') {
+        axios.get(`api/customers/v/${bookingSelected.documentType}/${bookingSelected.documentNumber}`)
+          .then((response) => {
+            setIsLoading(false);
+            if (response.data) {
+              setIdCustomer(response.data.id);
+              setDocument(response.data.document_number);
+              setDocumentType(response.data.document_type);
+              setContainerCustomer(true);
+              setDisabledAddCustomer(true);
+              setName(response.data.name);
+              setEmail(response.data.email);
+              setTelephone(response.data.telephone);
+              setAgeRangeSelected(response.data.age_range_id);
+              setTypeSexSelected(response.data.type_sex_id);
+              setProvinceSelected(response.data.province_id);
+              setDistrictSelected(response.data.district_id);
+              setTownshipSelected(response.data.township_id);
+            }
+            else {
+              setMessageAlertBooking('El cliente no se encuentra registrado, debes proceder a registrarlo.');
+              setIdCustomer(null);
+              setDisabledAddCustomer(false);
+              setAgeRangeSelected(null);
+              setTypeSexSelected(null);
+              setProvinceSelected(9);
+              setDistrictSelected(60);
+              setTownshipSelected(492);
+              setDocumentType(bookingSelected.documentType);
+              setDocument(bookingSelected.documentNumber);
+              setName(bookingSelected.name);
+              setContainerCustomer(true);
+            }
+            setIsCompleteBooking(true);
+          }
+          )
+          .catch((error) => {
+            console.log(error);
           });
-        } else {
-          updatedCheckedState.push({
-            id: '',
-            visible: false,
-            timeIn: new Date(),
-            timeOut: new Date()
-          });
-        }
-      });
-      setAreasSelected(updatedCheckedState);
+      }
+      else {
+        setIsLoading(false);
+        setIsCompleteBooking(true);
+        setContainerBookingGroup(true);
+      }
 
-    } else {
+      /* bookingSelected.areas */
+      const updatedCheckedState = [];
 
-      const resul = bookingSelected.areas.find((item) => item.id === 1)
+      if (bookingSelected.areas.length < areas.length) {
 
-      setCheckAll({
-        timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
-        timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`)),
-        visible: !checkAll.visible
-      });
-
-      if (!checkAll.visible) {
-        setAreasSelected(
-          areas.map((area) => {
-            return {
-              id: area.id,
-              visible: false,
+        areasSelected.forEach((area, index) => {
+          const resul = bookingSelected.areas.find((item) => item.id === index + 1)
+          if (resul) {
+            updatedCheckedState.push({
+              id: resul.id,
+              visible: true,
               timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
               timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`))
-            }
-          })
-        );
+            });
+          } else {
+            updatedCheckedState.push({
+              id: '',
+              visible: false,
+              timeIn: new Date(),
+              timeOut: new Date()
+            });
+          }
+        });
+        setAreasSelected(updatedCheckedState);
+
+      } else {
+
+        const resul = bookingSelected.areas.find((item) => item.id === 1)
+
+        setCheckAll({
+          timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
+          timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`)),
+          visible: !checkAll.visible
+        });
+
+        if (!checkAll.visible) {
+          setAreasSelected(
+            areas.map((area) => {
+              return {
+                id: area.id,
+                visible: false,
+                timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
+                timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`))
+              }
+            })
+          );
+
+        }
 
       }
 
+      setIsSelectBooking(true);
+      setOpen(false);
     }
-
-    setIsSelectBooking(true);
-    setOpen(false);
   };
 
   const handleClickSubmit = () => {
     setIsLoading(true);
+    const errorsDisplay = {};
+    let flag = false;
 
-    const data = {
-      'type': containerTypeVisit,
-      reason_visit_id: reasonSelected,
-      booking_id: bookingSelected.id,
-    };
 
     if (containerTypeVisit === 'I') {
-      if (idCustomer) {
-        data.customer_id = idCustomer;
+      if (idCustomer === null && containerCustomer === false) {
+        errorsDisplay.document = 'Por favor, ingrese el documento del cliente';
+        flag = true;
       }
-      else {
-        data.document_type = documentType;
-        data.document_number = document;
-        data.name = name;
-        data.email = email;
-        data.telephone = telephone;
-        data.age_range_id = parseInt(ageRangeSelected, 10);
-        data.type_sex_id = parseInt(typeSexSelected, 10);
-        data.province_id = provinceSelected;
-        data.district_id = districtSelected;
-        data.township_id = townshipSelected;
+      else if(containerCustomer){
+        if(errors.email){
+          errorsDisplay.email = errors.email;
+        }
       }
     }
-    else {
-      data.file = selectedFile;
+    else if (selectedFile === null && bookingSelected === null) {
+      errorsDisplay.file = 'Por favor, seleccione el archivo';
+      flag = true;
     }
 
-    data.areas = areasSelected.filter((area) => area.id !== '').map((area) => {
+    if (name === '' && containerCustomer === true) {
+      errorsDisplay.name = 'Por favor, ingrese el nombre del cliente';
+      flag = true;
+    }
+
+    const areasChecked = areasSelected.filter((area) => area.id !== '').map((area) => {
       return {
         area_id: area.id,
-        start_time: format(area.timeIn, 'HH:mm:ss'),
-        end_time: area.timeOut ? format(area.timeOut, 'HH:mm:ss') : null
       }
     });
 
+    if (areasChecked.length === 0) {
+      errorsDisplay.areas = 'Por favor, seleccione al menos un área';
+      flag = true;
+    }
 
-    axios.post('/api/visits', data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
+    if (ageRangeSelected === null && containerCustomer === true) {
+      errorsDisplay.age_range = 'Por favor, seleccione el rango de edad del cliente';
+      flag = true;
+    }
+
+    if (typeSexSelected === null && containerCustomer === true) {
+      errorsDisplay.type_sex = 'Por favor, seleccione el genero del cliente';
+      flag = true;
+    }
+
+    if (flag) {
+      console.log(errorsDisplay);
+      setErrors(errorsDisplay);
+      setIsLoading(false);
+    }
+    else {
+      const data = {
+        'type': containerTypeVisit,
+        reason_visit_id: reasonSelected,
+      };
+
+      if (bookingSelected) {
+        data.booking_id = bookingSelected.id;
       }
-    })
-      .then((response) => {
-        setIsLoading(false);
-        setIsComplete(true);
-        setIsSelectBooking(false);
 
-        /* Reset */
-        setContainerTypeVisit('I');
-        setContainerCustomer(false);
-        setDisabledAddCustomer(false);
-        setDocumentType('C');
-        setDocument('');
-        setName('');
-        setEmail('');
-        setTelephone('');
-        setAgeRangeSelected('');
-        setTypeSexSelected('');
-        setProvinceSelected('');
-        setDistrictSelected('');
-        setTownshipSelected('');
-        setReasonSelected(1);
-        flexibleHandleChangeReason(1);
+      if (containerTypeVisit === 'I') {
+        if (idCustomer) {
+          data.customer_id = idCustomer;
+        }
+        else {
+          data.document_type = documentType;
+          data.document_number = document;
+          data.name = name;
+          data.email = email;
+          data.telephone = telephone;
+          data.age_range_id = parseInt(ageRangeSelected, 10);
+          data.type_sex_id = parseInt(typeSexSelected, 10);
+          data.province_id = provinceSelected;
+          data.district_id = districtSelected;
+          data.township_id = townshipSelected;
+        }
+      }
+      else {
+        data.file = selectedFile;
+      }
 
-        setAreasSelected(
-          areas.map((area) => {
-            return {
-              id: '',
-              visible: false,
-              timeIn: new Date(),
-              timeOut: null
-            }
-          }
-          )
-        );
-        setCheckAll({
-          visible: false,
-          timeIn: new Date(),
-          timeOut: null
-        });
-        setSelectedFile(null);
+      data.areas = areasSelected.filter((area) => area.id !== '').map((area) => {
+        return {
+          area_id: area.id,
+          start_time: format(area.timeIn, 'HH:mm:ss'),
+          end_time: area.timeOut ? format(area.timeOut, 'HH:mm:ss') : null
+        }
+      });
 
+
+      console.log(data);
+      axios.post('/api/visits', data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        }
       })
-      .catch((error) => {
-        setIsLoading(false);
-        setIsComplete(false);
-      }
-      );
+        .then((response) => {
+          console.log(response);
+          setIsLoading(false);
+          setIsComplete(true);
+          setIsSelectBooking(false);
+
+          /* Reset */
+          setContainerTypeVisit('I');
+          setContainerCustomer(false);
+          setDisabledAddCustomer(false);
+          setDocumentType('C');
+          setDocument('');
+          setName('');
+          setEmail('');
+          setTelephone('');
+          setAgeRangeSelected('');
+          setTypeSexSelected('');
+          setProvinceSelected('');
+          setDistrictSelected('');
+          setTownshipSelected('');
+          setReasonSelected(1);
+          flexibleHandleChangeReason(1);
+
+          setAreasSelected(
+            areas.map((area) => {
+              return {
+                id: '',
+                visible: false,
+                timeIn: new Date(),
+                timeOut: null
+              }
+            }
+            )
+          );
+          setCheckAll({
+            visible: false,
+            timeIn: new Date(),
+            timeOut: null
+          });
+          setSelectedFile(null);
+
+        })
+        .catch((error) => {
+          if(error.response.data.type){
+            setIsFormatExcel(true);
+          }
+          else{
+            setIsErrorExcel(true);
+            setErrorsExcel(error.response.data.errors);
+            setIsComplete(false);
+          }
+          setIsLoading(false);
+        }
+        );
+    }
   }
 
   return (
@@ -794,88 +1060,129 @@ export default function CheckIn() {
               </RadioGroup>
             </FormControl>
 
-            {containerTypeVisit === 'I' ? <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} /> : (
-              containerBookingGroup ?
-                (
-                  <>
-                    <Stack spacing={3} sx={{ mb: 4 }}>
-                      <Divider />
-                      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                        <Iconify icon="mdi:users-check" color="primary.main" width={50} height={50} />
-                      </Box>
-                      <Typography variant="h6" gutterBottom sx={
-                        {
-                          textAlign: 'center'
-                        }
-                      }>
-                        Los visitantes han sido registrados correctamente.
-                      </Typography>
-                      <Typography variant="body1" sx={
-                        {
-                          textAlign: 'center'
-                        }
-                      }>
-                        Puedes seguir adelante con la visita.
-                      </Typography>
-                    </Stack>
-                  </>
-                ) : (
-                  <Stack
-                    direction="row"
-                    spacing={2}
-                    justifyContent="space-between"
-                    alignItems="center"
-                  >
-                    <Link
-                      sx={{
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        width: '35%'
-                      }}
-                      href="http://localhost:8000/api/customers/download"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download
+            {containerTypeVisit === 'I' ? (
+              <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} handleOnBlurDocument={handleOnBlurDocument} errors={errors} />
+            )
+              : (
+                containerBookingGroup ?
+                  (
+                    <>
+                      <Stack spacing={3} sx={{ mb: 4 }}>
+                        <Divider />
+                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                          <Iconify icon="mdi:users-check" color="primary.main" width={50} height={50} />
+                        </Box>
+                        <Typography variant="h6" gutterBottom sx={
+                          {
+                            textAlign: 'center'
+                          }
+                        }>
+                          Los visitantes han sido registrados correctamente.
+                        </Typography>
+                        <Typography variant="body1" sx={
+                          {
+                            textAlign: 'center'
+                          }
+                        }>
+                          Puedes seguir adelante con la visita.
+                        </Typography>
+                      </Stack>
+                    </>
+                  ) : (
+                    <Stack
+                      direction="row"
+                      spacing={2}
+                      justifyContent="space-between"
+                      alignItems="center"
                     >
-                      <Button variant="contained"
-                        size='large'
+                      <Link
                         sx={{
-                          width: '100%',
+                          textDecoration: 'none',
+                          color: 'inherit',
+                          width: '35%'
+                        }}
+                        href="http://localhost:8000/api/customers/download"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                      >
+                        <Button variant="contained"
+                          size='large'
+                          sx={{
+                            width: '100%',
+                          }}
+                        >
+                          Descargar</Button>
+                      </Link>
+
+                      <Avatar
+                        sx={{
+                          bgcolor: 'primary.main',
+                          color: 'primary.contrastText',
                         }}
                       >
-                        Descargar</Button>
-                    </Link>
-
-                    <Avatar
-                      sx={{
-                        bgcolor: 'primary.main',
-                        color: 'primary.contrastText',
-                      }}
-                    >
-                      <Iconify icon="bi:arrow-right" />
-                    </Avatar>
-                    {/* Input file blue */}
-                    <Input
-                      accept=".xlsx"
-                      type="file"
-                      onChange={(e) => {
-                        if (e.target.files[0].type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-                          setSelectedFile(e.target.files[0]);
-                        }
-                        else {
-                          alert('Formato no válido');
-                          setSelectedFile(null);
-                        }
-                      }}
-                    />
-                  </Stack>
-                )
-            )}
+                        <Iconify icon="bi:arrow-right" />
+                      </Avatar>
+                      {/* Input file blue */}
+                      <FormControl sx={{ width: '35%' }}>
+                        <Input
+                          accept=".xlsx"
+                          type="file"
+                          onChange={(e) => {
+                            if (e.target.files[0].type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                              setSelectedFile(e.target.files[0]);
+                              setErrors({
+                                ...errors,
+                                file: ''
+                              });
+                            }
+                            else {
+                              alert('Formato no válido');
+                              setSelectedFile(null);
+                            }
+                          }}
+                        />
+                        <FormHelperText
+                          sx={{
+                            color: '#FF4842',
+                          }}
+                        >{
+                            errors.file ? errors.file : ''
+                          }</FormHelperText>
+                      </FormControl>
+                    </Stack>
+                  )
+              )}
 
             {
               containerCustomer ?
-                <AddCustomer name={name} email={email} telephone={telephone} ageRangeSelected={ageRangeSelected} setAgeRangeSelected={setAgeRangeSelected} setTypeSexSelected={setTypeSexSelected} typeSexSelected={typeSexSelected} provinceSelected={provinceSelected}
-                  setProvinceSelected={setProvinceSelected} districtSelected={districtSelected} setDistrictSelected={setDistrictSelected} townshipSelected={townshipSelected} setTownshipSelected={setTownshipSelected} ageRanges={ageRanges} typeSexes={typeSexes} disabledAddCustomer={disabledAddCustomer} handleChangeAgeRange={handleChangeAgeRange} handleChangeTypeSex={handleChangeTypeSex} handleChangeName={handleChangeName} handleChangeEmail={handleChangeEmail} handleChangeTelephone={handleChangeTelephone} /> : null
+                <AddCustomer
+                  name={name}
+                  email={email}
+                  telephone={telephone}
+                  ageRangeSelected={ageRangeSelected}
+                  setAgeRangeSelected={setAgeRangeSelected}
+                  setTypeSexSelected={setTypeSexSelected}
+                  typeSexSelected={typeSexSelected}
+                  provinceSelected={provinceSelected}
+                  setProvinceSelected={setProvinceSelected}
+                  districtSelected={districtSelected}
+                  setDistrictSelected={setDistrictSelected}
+                  townshipSelected={townshipSelected}
+                  setTownshipSelected={setTownshipSelected}
+                  ageRanges={ageRanges}
+                  typeSexes={typeSexes}
+                  disabledAddCustomer={disabledAddCustomer}
+                  handleChangeAgeRange={handleChangeAgeRange}
+                  handleChangeTypeSex={handleChangeTypeSex}
+                  handleChangeName={handleChangeName}
+                  handleOnBlurName={handleOnBlurName}
+                  handleChangeEmail={handleChangeEmail}
+                  handleOnBlurEmail={handleOnBlurEmail}
+                  handleChangeTelephone={handleChangeTelephone}
+                  setIsLoading={setIsLoading}
+                  errors={errors}
+                /> : null
             }
 
           </Container>
@@ -922,23 +1229,22 @@ export default function CheckIn() {
                 handleChangeCheckAll={handleChangeCheckAll}
                 handleChangeTimeInCheckAll={handleChangeTimeInCheckAll}
                 handleChangeTimeOutCheckAll={handleChangeTimeOutCheckAll}
+                errors={errors}
+                setErrors={setErrors}
               />
 
-              <Divider sx={
-                {
+              <FormHelperText
+                sx={{
+                  color: '#FF4842',
                   marginTop: '10px',
-                }
-              } />
+                }}
+              >{errors.areas ? errors.areas : null}</FormHelperText>
+
+              <Divider sx={{ marginTop: '10px', }} />
 
               <Stack direction="row" alignItems="center" justifyContent="center" sx={{ my: 2 }}>
                 <LoadingButton size="large" type="submit" variant="contained" loading={isLoading} onClick={handleClickSubmit}
-                  sx={
-                    {
-                      width: '50%',
-                      marginTop: '10px'
-                    }
-                  }
-                >
+                  sx={{ width: '50%', marginTop: '10px' }}>
                   Registrar
                 </LoadingButton>
               </Stack>
@@ -951,7 +1257,248 @@ export default function CheckIn() {
 
       <ToastContainer />
 
-      {/* Feedback positive */}
+      {/* Feedback positive booking */}
+      <Dialog
+        open={isCompleteBooking}
+        TransitionComponent={Transition}
+        keepMounted
+        onClose={() => {
+          setIsCompleteBooking(false);
+          if (messageAlertBooking) {
+            showToastMessageStatus('info', 'Por favor, Ingrese los datos del nuevo cliente');
+          }
+          setMessageAlertBooking(null);
+        }}
+        aria-describedby="alert-dialog-slide-description"
+        fullWidth
+        maxWidth='sm'
+      >
+        <DialogContent dividers>
+
+          <Stack
+            direction="column"
+            sx={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+            }}
+          >
+            <Box sx={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <Iconify icon="mdi:check-circle" color="#4caf50" width="130px" height="130px" />
+            </Box>
+
+            <Typography variant="h4" sx={{
+              fontWeight: '600',
+              marginTop: 2,
+            }}>
+              La reserva se ha cargado correctamente!
+            </Typography>
+
+            <Typography variant="subtitle1" sx={{
+              fontWeight: '400',
+              marginTop: 2,
+            }}>
+              {messageAlertBooking || 'Por favor, verifique los datos de la reserva'}
+            </Typography>
+
+          </Stack>
+
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Button
+            variant="contained"
+            size='large'
+            sx={{
+              margin: 2,
+            }}
+            onClick={() => {
+              setIsCompleteBooking(false);
+              if (messageAlertBooking) {
+                showToastMessageStatus('info', 'Por favor, Ingrese los datos del nuevo cliente');
+              }
+              setMessageAlertBooking(null);
+            }}
+          >Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Feedback error visit format */}
+      <Dialog
+        open={isFormatExcel}
+        TransitionComponent={Transition}
+        keepMounted
+        onClose={() => {
+          setIsFormatExcel(false);
+        }}
+        aria-describedby="alert-dialog-slide-description"
+        fullWidth
+        maxWidth='sm'
+      >
+        <DialogContent dividers>
+
+          <Stack
+            direction="column"
+            sx={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+            }}
+          >
+            <Box sx={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              {/* Error X */}
+              <Iconify icon="mdi:close-circle" color="#FF4842" width="130px" height="130px" />
+            </Box>
+
+            <Typography variant="h4" sx={{
+              fontWeight: '600',
+              marginTop: 2,
+            }}>
+              Error al cargar el excel
+            </Typography>
+
+            <Typography variant="subtitle1" sx={{
+              fontWeight: '400',
+              marginTop: 2,
+              textAlign: 'justify',
+            }}>
+              No pudimos procesar su archivo debido a que no cumple con el formato correcto. Por favor, verifique los datos e intente nuevamente.
+            </Typography>
+
+
+          </Stack>
+
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Button
+            variant="contained"
+            size='large'
+            sx={{
+              margin: 2,
+            }}
+            onClick={() => {
+              setIsFormatExcel(false);
+            }}
+          >Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Feedback error visit */}
+      <Dialog
+        open={isErrorExcel}
+        TransitionComponent={Transition}
+        keepMounted
+        onClose={() => {
+          setErrorsExcel([]);
+          setIsErrorExcel(false);
+        }}
+        aria-describedby="alert-dialog-slide-description"
+        fullWidth
+        maxWidth='sm'
+      >
+        <DialogContent dividers>
+
+          <Stack
+            direction="column"
+            sx={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+            }}
+          >
+            <Box sx={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              {/* Error X */}
+              <Iconify icon="mdi:close-circle" color="#FF4842" width="130px" height="130px" />
+            </Box>
+
+            <Typography variant="h4" sx={{
+              fontWeight: '600',
+              marginTop: 2,
+            }}>
+              Error al cargar el excel
+            </Typography>
+
+            <Typography variant="subtitle1" sx={{
+              fontWeight: '400',
+              marginTop: 2,
+              textAlign: 'justify',
+            }}>
+              No pudimos procesar su archivo debido a uno o más errores. No se han creado clientes a partir de este archivo. Corrija los errores a continuación y vuelva a cargar el archivo para crear los clientes.
+              Para obtener más información sobre los <Box fontWeight='fontWeightMedium' display='inline'>requisitos de carga</Box>, consulte el <Box fontWeight='fontWeightMedium' display='inline'>manual de usuario</Box>.
+            </Typography>
+
+            {/* Errors Excel */}
+
+            <Stack
+              direction="column"
+              sx={{
+                marginTop: 1,
+                marginLeft: 6,
+                width: '100%',
+                lineHeight: '1.7',
+              }}
+            >
+              {
+                Object.keys(errorsExcel).map((key, index) => (
+                  <ul key={index}>
+                    <li>                                              {/* Name keys */}
+                      {`${key} es invalido en la fila: `}
+                      {/* Errors */}
+                      {errorsExcel[key].join(', ')}
+                    </li>
+                  </ul>
+                ))
+              }
+            </Stack>
+
+          </Stack>
+
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <Button
+            variant="contained"
+            size='large'
+            sx={{
+              margin: 2,
+            }}
+            onClick={() => {
+              setIsErrorExcel(false);
+              setErrorsExcel([]);
+            }}
+          >Cerrar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Feedback positive visit */}
       <Dialog
         open={isComplete}
         TransitionComponent={Transition}
@@ -1020,7 +1567,16 @@ export default function CheckIn() {
           Reservaciones
         </BootstrapDialogTitle>
         <DialogContent dividers>
-          <SearchBooking documentTypeBooking={documentTypeBooking} setDocumentTypeBooking={setDocumentTypeBooking} documentBooking={documentBooking} optionsBooking={optionsBooking} handleChangeIdBooking={handleChangeIdBooking} handleChangeDocumentBooking={handleChangeDocumentBooking} />
+          <SearchBooking
+            documentTypeBooking={documentTypeBooking}
+            setDocumentTypeBooking={setDocumentTypeBooking}
+            documentBooking={documentBooking}
+            optionsBooking={optionsBooking}
+            handleChangeIdBooking={handleChangeIdBooking}
+            handleChangeDocumentBooking={handleChangeDocumentBooking}
+            errors={errors}
+            handleOnBlurDocumentBooking={handleOnBlurDocumentBooking}
+          />
         </DialogContent>
         <DialogActions>
           <Button size="large" onClick={handleCloseDialog}  >
@@ -1055,7 +1611,9 @@ export default function CheckIn() {
         }}
         onClick={(() => {
           if (isSelectBooking) {
+            showToastMessageStatus('error', 'Se ha cancelado la reserva seleccionada')
             setIsSelectBooking(false);
+            setBookingSelected(null);
             setIsLoading(false);
             /* Reset */
             setContainerTypeVisit('I');
@@ -1087,7 +1645,7 @@ export default function CheckIn() {
             setCheckAll({
               visible: false,
               timeIn: new Date(),
-              timeOut: new Date()
+              timeOut: null
             });
             setSelectedFile(null);
             setContainerBookingGroup(false);

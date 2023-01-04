@@ -9,16 +9,18 @@ import {
   TableCell,
   TextField,
   Select,
-  MenuItem
+  MenuItem,
+  FormHelperText
 } from '@mui/material';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartThreads, SearchThreads, SearchStabilizers } from '../../@manage/areas';
 
-const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer, deleteThread, updateItemEmbroidery }) => {
+const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer, deleteThread, updateItemEmbroidery, errors, setErrors }) => {
   return (
     <Stack spacing={3}>
-      <SearchThreads handleAddThread={handleAddThread} />
+      <SearchThreads handleAddThread={handleAddThread} errors={errors} setErrors={setErrors} />
+
       <TableContainer sx={{ minWidth: 550, }}>
         <Table>
           <TableHead>
@@ -34,7 +36,7 @@ const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer
         </Table>
       </TableContainer>
 
-      <SearchStabilizers itemSelected={itemSelected} handleAddStabilizer={handleAddStabilizer} updateItemEmbroidery={updateItemEmbroidery} />
+      <SearchStabilizers itemSelected={itemSelected} handleAddStabilizer={handleAddStabilizer} updateItemEmbroidery={updateItemEmbroidery} errors={errors} setErrors={setErrors} />
 
       <Stack direction="row" spacing={2} justifyContent="center">
         <FormControl size="small" sx={{ width: '30%' }}>
@@ -111,6 +113,7 @@ const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer
           onChange={(e) => {
             itemSelected.details.extra = e.target.value;
             updateItemEmbroidery();
+            setErrors({ ...errors, base_cost: '' })
           }}
           type="number"
         />
@@ -130,7 +133,7 @@ const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer
         />
       </FormControl>
 
-      <FormControl sx={{ width: '100%' }}>
+      <FormControl sx={{ width: '100%' }} error={!!errors?.base_cost}>
         <InputLabel htmlFor="outlined-adornment-amount">Costo base</InputLabel>
         <OutlinedInput
           id="outlined-adornment-amount"
@@ -141,6 +144,7 @@ const EmbroideryServices = ({ itemSelected, handleAddThread, handleAddStabilizer
           size="small"
           value={itemSelected.details.base_cost}
         />
+        <FormHelperText>{errors?.base_cost}</FormHelperText>
       </FormControl>
     </Stack>
   )

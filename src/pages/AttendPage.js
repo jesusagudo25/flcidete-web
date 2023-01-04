@@ -4,6 +4,8 @@ import { filter } from 'lodash';
 import PropTypes from 'prop-types';
 import { sentenceCase } from 'change-case';
 import axios from 'axios';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 // @mui
 import { LoadingButton } from '@mui/lab';
 import {
@@ -181,6 +183,31 @@ function applySortFilter(array, comparator, query) {
   return stabilizedThis.map((el) => el[0]);
 }
 const AttendPage = () => {
+
+    /* Toastify */
+    const showToastMessageStatus = (type, message) => {
+      if (type === 'success') {
+        toast.success(message, {
+          position: toast.POSITION.TOP_RIGHT
+        });
+      }
+      else if (type === 'error') {
+        toast.error(message, {
+          position: toast.POSITION.TOP_RIGHT
+        });
+      }
+      else if (type === 'warning') {
+        toast.warn(message, {
+          position: toast.POSITION.TOP_RIGHT
+        });
+      }
+      else {
+        toast.info(message, {
+          position: toast.POSITION.TOP_RIGHT
+        });
+      }
+    };
+
   /* Datatable */
 
   const [visits, setVisits] = useState([]);
@@ -287,7 +314,7 @@ const AttendPage = () => {
                           </TableCell>
 
                           <TableCell align="left">
-                            <Label color={type === 'I' ? 'success' : type === 'G' ? 'warning' : 'error'}>{sentenceCase(type)}</Label>
+                            <Label color={type === 'I' ? 'success' : type === 'G' ? 'warning' : 'error'}>{sentenceCase(type === 'I' ? 'Individual' : 'Grupo')}</Label>
                           </TableCell>
 
                           <TableCell align="left">
@@ -298,6 +325,7 @@ const AttendPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={isAttended} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                showToastMessageStatus('success', 'La visita ha sido atendido con éxito');
                                 setVisits(visits.map((visit) => {
                                   if (visit.id === id) {
                                     return { ...visit, isAttended: !isAttended };
@@ -394,6 +422,10 @@ const AttendPage = () => {
 
         </Card>
       </Container>
+
+      {/* Toastify */}
+
+      <ToastContainer />
     </>
   )
 }

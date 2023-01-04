@@ -4,6 +4,8 @@ import { filter } from 'lodash';
 import PropTypes from 'prop-types';
 import { sentenceCase } from 'change-case';
 import axios from 'axios';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 // @mui
 import { LoadingButton } from '@mui/lab';
 import {
@@ -193,7 +195,8 @@ function PaymentPage() {
   const [id, setId] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [historyPayment, setHistoryPayment] = useState([]);
-
+  
+  const [isLoading, setIsLoading] = useState(false);
   /* Datatable */
 
   const [payments, setPayments] = useState([]);
@@ -216,11 +219,18 @@ function PaymentPage() {
 
   const handleSubmitDialog = async (event) => {
     event.preventDefault();
+    setIsLoading(true);
     if (historyPayment.length < 2 && isComplete === true) {
       await axios.post('/api/payments/', {
         invoice_id: id,
-        payment_amount: historyPayment[0].payment_amount,
+        payment_amount: historyPayment[0].balance,
         balance: 0,
+      }).then((response) => {
+        setIsLoading(false);
+        console.log(response);
+      }).catch((error) => {
+        setIsLoading(false);
+        console.log(error);
       });
     }
     handleCloseDialog();
@@ -249,10 +259,12 @@ function PaymentPage() {
 
   const getPayments = async () => {
     const response = await axios.get('/api/invoices/payments');
+    setIsLoading(false);
     setPayments(response.data);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getPayments();
   }, []);
 
@@ -292,14 +304,14 @@ function PaymentPage() {
                 {payments.length > 0 ? (
                   <TableBody>
                     {filteredInvoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id:uuid, customer, total, description, created_at: createdAt, payments, status } = row;
+                      const { id: uuid, customer, total, description, created_at: createdAt, payments, status } = row;
                       return (
                         <TableRow hover key={uuid} tabIndex={-1} role="checkbox">
 
                           <TableCell component="th" scope="row" padding="normal">
                             <Stack direction="row" alignItems="center" spacing={2}>
                               <Typography variant="subtitle2" noWrap>
-                                #{customer.uuid}
+                                #{uuid}
                               </Typography>
                             </Stack>
                           </TableCell>
@@ -428,6 +440,10 @@ function PaymentPage() {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -449,7 +465,6 @@ function PaymentPage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell># Factura</TableCell>
                     <TableCell >Cantidad abonada </TableCell>
                     <TableCell >Balance</TableCell>
                     <TableCell >Fecha</TableCell>
@@ -460,9 +475,6 @@ function PaymentPage() {
                     const { id, invoice_id: invoice, payment_amount: paymentAmount, balance, created_at: createdAtPayment } = row;
                     return (
                       <TableRow hover key={id} tabIndex={-1} role="checkbox">
-                        <TableCell component="th" scope="row" padding="normal">
-                          {invoice}
-                        </TableCell>
                         <TableCell align="left">
                           {paymentAmount}
                         </TableCell>
@@ -510,6 +522,14 @@ function PaymentPage() {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

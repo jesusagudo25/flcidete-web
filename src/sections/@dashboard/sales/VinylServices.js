@@ -9,13 +9,14 @@ import {
   TableCell,
   TextField,
   Box,
-  FormLabel
+  FormLabel,
+  FormHelperText
 } from '@mui/material';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartVinyls, SearchVinyls } from '../../@manage/areas'
 
-const VinylServices = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVinyl }) => {
+const VinylServices = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVinyl, errors, setErrors }) => {
   return (
     <Stack spacing={3}>
       <SearchVinyls handleAddVinyl={handleAddVinyl} />
@@ -36,6 +37,7 @@ const VinylServices = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVi
         </Table>
       </TableContainer>
 
+      <Stack direction="column">
       <Box
         sx={{
           display: 'flex',
@@ -49,7 +51,7 @@ const VinylServices = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVi
           fontSize: '0.875rem',
         }}>Tiempo de fabricación: </FormLabel>
 
-        <FormControl sx={{ width: '25%' }}>
+        <FormControl sx={{ width: '25%' }} error={!!errors?.hours}>
           <OutlinedInput
             id="outlined-adornment-amount"
             startAdornment={<InputAdornment position="start">H</InputAdornment>}
@@ -58,12 +60,13 @@ const VinylServices = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVi
             value={itemSelected.details.hours}
             onChange={(e) => {
               itemSelected.details.hours = e.target.value;
+              setErrors({ ...errors, hours: '' })
               updateItemVinyl()
             }}
           />
         </FormControl>
 
-        <FormControl sx={{ width: '25%' }}>
+        <FormControl sx={{ width: '25%' }}  error={!!errors?.minutes}>
           <OutlinedInput
             id="outlined-adornment-amount"
             startAdornment={<InputAdornment position="start">M</InputAdornment>}
@@ -72,12 +75,17 @@ const VinylServices = ({ itemSelected, handleAddVinyl, updateItemVinyl, deleteVi
             value={itemSelected.details.minutes}
             onChange={(e) => {
               itemSelected.details.minutes = e.target.value;
+              setErrors({ ...errors, minutes: '' })
               updateItemVinyl()
             }}
           />
         </FormControl>
       </Box>
-
+      <FormHelperText sx={{
+          color: 'red',
+          alignSelf: 'center',
+        }}>{errors.hours ? errors.hours : errors.minutes ? errors.minutes : null}</FormHelperText>
+      </Stack>
       <FormControl sx={{ width: '100%' }}>
         <InputLabel htmlFor="outlined-adornment-amount">Extra</InputLabel>
         <OutlinedInput

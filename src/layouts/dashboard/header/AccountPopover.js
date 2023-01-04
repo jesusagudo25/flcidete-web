@@ -12,7 +12,7 @@ const MENU_OPTIONS = [
   {
     label: 'Ajustes',
     icon: 'eva:settings-2-fill',
-    linkTo: './settings',
+    linkTo: '/dashboard/settings',
   },
 ];
 
@@ -20,7 +20,7 @@ const MENU_OPTIONS = [
 
 export default function AccountPopover() {
   const navigate = useNavigate();
-  
+
   const [open, setOpen] = useState(null);
   const [account, setAccount] = useState([]);
 
@@ -37,20 +37,23 @@ export default function AccountPopover() {
     await axios.post('api/logout')
     localStorage.removeItem('token')
     localStorage.removeItem('name')
+    localStorage.removeItem('id')
+    localStorage.removeItem('role_id')
+    localStorage.removeItem('remember_me')
     navigate('/login')
   };
 
   const getProfile = () => {
-    axios.get(`api/users/${ localStorage.getItem('id') }}`)
-    .then((response) => {
-      setAccount(response.data)
-    })
+    axios.get(`api/users/${localStorage.getItem('id')}}`)
+      .then((response) => {
+        setAccount(response.data)
+      })
   }
 
   useEffect(() => {
     getProfile()
   }, []);
-  
+
 
   return (
     <>
@@ -106,9 +109,9 @@ export default function AccountPopover() {
 
         <Stack sx={{ p: 1 }}>
           {MENU_OPTIONS.map((option) => (
-            <MenuItem key={option.label} component={"a"} href={option.linkTo} 
-            onClick={handleClose}>
-                {option.label}
+            <MenuItem key={option.label} component={"a"} href={option.linkTo}
+              onClick={handleClose}>
+              {option.label}
             </MenuItem>
           ))}
         </Stack>

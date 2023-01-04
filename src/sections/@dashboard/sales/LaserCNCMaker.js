@@ -15,7 +15,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartMaterialsLaser, SearchMaterialsLaser } from '../../@manage/areas'
 
-const LaserCNCMaker = ({ itemSelected, handleAddMaterialLaser, updateItemLaser, deleteMaterialLaser }) => {
+const LaserCNCMaker = ({ itemSelected, handleAddMaterialLaser, updateItemLaser, deleteMaterialLaser,  errors, setErrors, handleOnBlurHoursArea }) => {
   return (
     <Stack spacing={3}>
       <SearchMaterialsLaser handleAddMaterialLaser={handleAddMaterialLaser} />
@@ -45,7 +45,11 @@ const LaserCNCMaker = ({ itemSelected, handleAddMaterialLaser, updateItemLaser, 
         onChange={(e) => {
           itemSelected.details.hours_area = e.target.value
           updateItemLaser();
+          setErrors({ ...errors, hours_area: '' })
         }}
+        onBlur={handleOnBlurHoursArea}
+        error={!!errors.hours_area}
+        helperText={errors.hours_area ? errors.hours_area : null}
       />
 
       <FormControl sx={{ width: '100%' }}>

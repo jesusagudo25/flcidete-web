@@ -13,7 +13,7 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartMaterialsMillings, SearchMaterialsMillings } from '../../@manage/areas'
 
-const MiniCNCMaker = ({ itemSelected, handleAddMaterialMilling, updateItemMilling, deleteMaterialMilling }) => {
+const MiniCNCMaker = ({ itemSelected, handleAddMaterialMilling, updateItemMilling, deleteMaterialMilling, errors, setErrors, handleOnBlurHoursArea }) => {
   return (
     <Stack spacing={3}>
       <SearchMaterialsMillings handleAddMaterialMilling={handleAddMaterialMilling} />
@@ -43,7 +43,11 @@ const MiniCNCMaker = ({ itemSelected, handleAddMaterialMilling, updateItemMillin
         onChange={(e) => {
           itemSelected.details.hours_area = e.target.value
           updateItemMilling();
+          setErrors({ ...errors, hours_area: '' });
         }}
+        onBlur={handleOnBlurHoursArea}
+        error={!!errors.hours_area}
+        helperText={errors.hours_area ? errors.hours_area : null}
       />
 
       <FormControl sx={{ width: '100%' }}>

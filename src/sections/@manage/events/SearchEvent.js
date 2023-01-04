@@ -4,7 +4,7 @@ import axios from 'axios';
 // material
 import { Autocomplete, TextField } from '@mui/material';
 
-const SearchEvent = ({ itemSelected, handleAddEvent }) => {
+const SearchEvent = ({ itemSelected, handleAddEvent, errors, setErrors }) => {
 
     const previousController = useRef();
 
@@ -61,6 +61,7 @@ const SearchEvent = ({ itemSelected, handleAddEvent }) => {
                     );
                     setName('');
                     setOptions([]);
+                    setErrors({ ...errors, event: false });
                 }}
                 onInputChange={
                     (event, newInputValue) => {
@@ -83,7 +84,11 @@ const SearchEvent = ({ itemSelected, handleAddEvent }) => {
                 handleHomeEndKeys
                 clearOnEscape
                 blurOnSelect
-                renderInput={(params) => <TextField {...params} label="Nombre del evento" />}
+                renderInput={(params) => <TextField {...params} 
+                label="Nombre del evento"
+                error={errors.event}
+                helperText={errors.event ? errors.event : ''}
+                />}
             />
         </>
     )

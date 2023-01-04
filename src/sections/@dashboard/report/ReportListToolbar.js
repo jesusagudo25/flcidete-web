@@ -51,12 +51,6 @@ export default function ReportListToolbar({ filterDate, onFilterDate }) {
           </InputAdornment>
         }
       />
-
-      <Tooltip title="Filter list">
-        <IconButton>
-          <Iconify icon="ic:round-filter-list" />
-        </IconButton>
-      </Tooltip>
     </StyledRoot>
   )
 }

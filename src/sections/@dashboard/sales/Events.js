@@ -13,19 +13,18 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartEvents, SearchEvent } from '../../@manage/events';
 
-const Events = ({ itemSelected, handleAddEvent, deleteEvent }) => {
-    console.log(itemSelected);
+const Events = ({ itemSelected, handleAddEvent, deleteEvent, errors, setErrors}) => {
     return (
         <Stack spacing={3} sx={{ minWidth: 550 }}>
-            <SearchEvent itemSelected={itemSelected} handleAddEvent={handleAddEvent} />
+            <SearchEvent itemSelected={itemSelected} handleAddEvent={handleAddEvent} errors={errors} setErrors={setErrors} />
 
             <TableContainer sx={{ minWidth: 550, }}>
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell width="40%">Nombre</TableCell>
+                            <TableCell>Nombre</TableCell>
                             <TableCell >Precio </TableCell>
-                            <TableCell >Fecha</TableCell>
+                            <TableCell>Fecha</TableCell>
                             <TableCell >Acción</TableCell>
                         </TableRow>
                     </TableHead>

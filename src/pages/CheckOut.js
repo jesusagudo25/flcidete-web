@@ -20,10 +20,10 @@ import {
   IconButton,
   TableContainer,
   TablePagination,
-
-} from '@mui/material';
+  Backdrop,
+  CircularProgress } from '@mui/material';
 // components
-import {Link} from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Label from '../components/label';
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
@@ -74,6 +74,8 @@ function applySortFilter(array, comparator, query) {
 export const CheckOut = () => {
 
   /* Datatable */
+  
+  const [isLoading, setIsLoading] = useState(false);
 
   const [visits, setVisits] = useState([]);
 
@@ -113,10 +115,12 @@ export const CheckOut = () => {
 
   const getVisits = async () => {
     const response = await axios.get('/api/visits/endtime-null');
+    setIsLoading(false);
     setVisits(response.data);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getVisits();
   }, []);
 
@@ -126,33 +130,33 @@ export const CheckOut = () => {
 
   const isNotFound = !filteredVisits.length && !!filterName;
   return (
-      <>
-        <Helmet>
-          <title> Control de salida | Fab Lab System </title>
-        </Helmet>
+    <>
+      <Helmet>
+        <title> Control de salida | Fab Lab System </title>
+      </Helmet>
 
-        <Container>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
-            <Typography variant="h4" gutterBottom>
-              Control de salida
-            </Typography>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+      <Container>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
+          <Typography variant="h4" gutterBottom>
+            Control de salida
+          </Typography>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
 
             <a
-                href='/dashboard/management/visits'
-                style={{ textDecoration: 'none' }}
-              >
-                <Button color='success' variant="contained" sx={
-                  {
-                    color: 'white',
-                  }}>
-                  Gestionar visitas
-                </Button>
-              </a>
-            </Stack>
+              href='/dashboard/management/visits'
+              style={{ textDecoration: 'none' }}
+            >
+              <Button color='success' variant="contained" sx={
+                {
+                  color: 'white',
+                }}>
+                Gestionar visitas
+              </Button>
+            </a>
           </Stack>
-          
-          
+        </Stack>
+
+
         <Card>
           <VisitListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar componente..."} />
           <Scrollbar>
@@ -169,22 +173,21 @@ export const CheckOut = () => {
                 {visits.length > 0 ? (
                   <TableBody>
                     {filteredVisits.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, customers, type, reason_visit: reasonVisit,  areas } = row;
-                      console.log(customers);
+                      const { id, customers, type, reason_visit: reasonVisit, areas } = row;
                       return (
                         <TableRow hover key={id} tabIndex={-1} role="checkbox">
 
                           <TableCell component="th" scope="row" padding="normal">
                             <Stack direction="row" alignItems="center" spacing={2}>
                               <Typography variant="subtitle2" noWrap>
-                                {customers.length > 0 ? customers[0].name: 'Indefinido' }
+                                {customers.length > 0 ? customers[0].name : 'Indefinido'}
                               </Typography>
                             </Stack>
                           </TableCell>
 
                           <TableCell align="left">
-                            <Label color={type === 'I' ? 'success' : type === 'G' ? 'warning' : 'error'}>{sentenceCase(type)}</Label>
-                              </TableCell>
+                            <Label color={type === 'I' ? 'success' : type === 'G' ? 'warning' : 'error'}>{sentenceCase(type === 'I' ? 'Individual' : 'Grupo')}</Label>
+                          </TableCell>
 
                           <TableCell align="left">
                             {reasonVisit.name}
@@ -275,11 +278,17 @@ export const CheckOut = () => {
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
           />
-          
-          </Card>
-          </Container>
-          </>
+
+        </Card>
+      </Container>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+    </>
   );
 };
-          
-              
+

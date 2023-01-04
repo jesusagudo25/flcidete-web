@@ -9,13 +9,14 @@ import {
   TableCell,
   TextField,
   Box,
-  FormLabel
+  FormLabel,
+  FormHelperText
 } from '@mui/material';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartMaterialsLaser, SearchMaterialsLaser } from '../../@manage/areas';
 
-const LaserCNCServices = ({ itemSelected, handleAddMaterialLaser, updateItemLaser, deleteMaterialLaser }) => {
+const LaserCNCServices = ({ itemSelected, handleAddMaterialLaser, updateItemLaser, deleteMaterialLaser, errors, setErrors }) => {
   return (
     <Stack spacing={3}>
       <SearchMaterialsLaser handleAddMaterialLaser={handleAddMaterialLaser} />
@@ -36,47 +37,55 @@ const LaserCNCServices = ({ itemSelected, handleAddMaterialLaser, updateItemLase
         </Table>
       </TableContainer>
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-start',
-          gap: '15px',
-        }}
-      >
-        <FormLabel component="legend" sx={{
-          fontSize: '0.875rem',
-        }}>Tiempo de fabricación: </FormLabel>
+      <Stack direction="column">
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-start',
+            gap: '15px',
+          }}
+        >
+          <FormLabel component="legend" sx={{
+            fontSize: '0.875rem',
+          }}>Tiempo de fabricación: </FormLabel>
 
-        <FormControl sx={{ width: '25%' }}>
-          <OutlinedInput
-            id="outlined-adornment-amount"
-            startAdornment={<InputAdornment position="start">H</InputAdornment>}
-            placeholder='0'
-            size="small"
-            value={itemSelected.details.hours}
-            onChange={(e) => {
-              itemSelected.details.hours = e.target.value;
-              updateItemLaser()
-            }}
-          />
-        </FormControl>
+          <FormControl sx={{ width: '25%' }} error={!!errors?.hours}>
+            <OutlinedInput
+              id="outlined-adornment-amount"
+              startAdornment={<InputAdornment position="start">H</InputAdornment>}
+              placeholder='0'
+              size="small"
+              value={itemSelected.details.hours}
+              onChange={(e) => {
+                itemSelected.details.hours = e.target.value;
+                setErrors({ ...errors, hours: '' })
+                updateItemLaser()
+              }}
+            />
+          </FormControl>
 
-        <FormControl sx={{ width: '25%' }}>
-          <OutlinedInput
-            id="outlined-adornment-amount"
-            startAdornment={<InputAdornment position="start">M</InputAdornment>}
-            placeholder='0'
-            size="small"
-            value={itemSelected.details.minutes}
-            onChange={(e) => {
-              itemSelected.details.minutes = e.target.value;
-              updateItemLaser()
-            }}
-          />
-        </FormControl>
-      </Box>
+          <FormControl sx={{ width: '25%' }} error={!!errors?.minutes}>
+            <OutlinedInput
+              id="outlined-adornment-amount"
+              startAdornment={<InputAdornment position="start">M</InputAdornment>}
+              placeholder='0'
+              size="small"
+              value={itemSelected.details.minutes}
+              onChange={(e) => {
+                itemSelected.details.minutes = e.target.value;
+                setErrors({ ...errors, minutes: '' })
+                updateItemLaser()
+              }}
+            />
+          </FormControl>
+        </Box>
+        <FormHelperText sx={{
+          color: 'red',
+          alignSelf: 'center',
+        }}>{errors.hours ? errors.hours : errors.minutes ? errors.minutes : null}</FormHelperText>
+      </Stack>
 
       <FormControl sx={{ width: '100%' }}>
         <InputLabel htmlFor="outlined-adornment-amount">Extra</InputLabel>
@@ -91,6 +100,7 @@ const LaserCNCServices = ({ itemSelected, handleAddMaterialLaser, updateItemLase
             itemSelected.details.extra = e.target.value;
             updateItemLaser();
           }}
+          type="number"
         />
       </FormControl>
 

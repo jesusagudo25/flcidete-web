@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async';
-import { Breadcrumbs, Link, Typography, Container, Stack, Card, Box, Tab, Tabs, FormControl, TextField, IconButton, InputAdornment, } from '@mui/material'
+import { Breadcrumbs, Link, Typography, Container, Stack, Card, Box, Tab, Tabs, FormControl, TextField, IconButton, InputAdornment , Backdrop,
+  CircularProgress } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import axios from 'axios';
 import PropTypes from 'prop-types';
+import { ToastContainer, toast } from 'react-toastify';
 import Iconify from '../components/iconify';
 
 function TabPanel(props) {
@@ -42,7 +44,31 @@ function a11yProps(index) {
 
 const SettingsPage = () => {
 
-  const [id, setId] = localStorage.getItem('id');
+  const id = localStorage.getItem('id');
+        /* Toastify */
+        const showNotification = (type, message) => {
+          if (type === 'success') {
+            toast.success(message, {
+              position: toast.POSITION.TOP_RIGHT
+            });
+          }
+          else if (type === 'error') {
+            toast.error(message, {
+              position: toast.POSITION.TOP_RIGHT
+            });
+          }
+          else if (type === 'warning') {
+            toast.warn(message, {
+              position: toast.POSITION.TOP_RIGHT
+            });
+          }
+          else {
+            toast.info(message, {
+              position: toast.POSITION.TOP_RIGHT
+            });
+          }
+        };
+  const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [currentPassword, setCurrentPassword] = React.useState('');
@@ -55,11 +81,13 @@ const SettingsPage = () => {
 
   const getAccount = async () => {
     const response = await axios.get(`/api/users/${id}`);
+    setIsLoading(false);
     setName(response.data.name);
     setEmail(response.data.email);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getAccount();
   }, []);
 
@@ -81,13 +109,13 @@ const SettingsPage = () => {
         </Stack>
 
         <Breadcrumbs aria-label="breadcrumb">
-          <Link underline="hover" color="inherit" href="/">
+          <Link underline="hover" color="inherit" href="/dashboard/app">
             Panel de inicio
           </Link>
           <Link
             underline="hover"
             color="inherit"
-            href="/material-ui/getting-started/installation/"
+            href="#"
           >
             Usuario
           </Link>
@@ -160,18 +188,21 @@ const SettingsPage = () => {
               }>
                 <LoadingButton variant="contained" color="primary" onClick={
                   () => {
+                    setIsLoading(true);
                     axios.put(`/api/users/${id}`, {
                       name,
                       email,
                     })
                       .then((response) => {
                         console.log(response);
+                        setIsLoading(false);
+                        showNotification('success', 'Cambios guardados correctamente');
                       })
                       .catch((error) => {
                         console.log(error);
                       });
                   }
-                }>
+                }loading={isLoading}>
                   Guardar cambios
                 </LoadingButton>
               </Stack>
@@ -262,18 +293,25 @@ const SettingsPage = () => {
                 }>
                   <LoadingButton variant="contained" color="primary" onClick={
                     () => {
+                      setIsLoading(true);
                       axios.put(`/api/users/${id}/password`, {
-                        name,
-                        email,
+                        currentPassword,
+                        password: newPassword,
                       })
                         .then((response) => {
+                          setCurrentPassword('');
+                          setNewPassword('');
                           console.log(response);
+                          setIsLoading(false);
+                          showNotification('success', 'Cambios guardados correctamente');
                         })
                         .catch((error) => {
                           console.log(error);
                         });
                     }
-                  }>
+                  }
+                  loading={isLoading}
+                  >
                     Guardar cambios
                   </LoadingButton>
                 </Stack>
@@ -282,6 +320,17 @@ const SettingsPage = () => {
         </Card>
 
       </Container>
+
+            {/* Toastify */}
+
+            <ToastContainer />
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

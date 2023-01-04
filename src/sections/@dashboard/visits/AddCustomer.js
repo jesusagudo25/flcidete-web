@@ -2,19 +2,21 @@ import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import { useState, useEffect, useRef } from 'react';
 // @mui
-import { Button, Card, Container, Typography, FormControlLabel, Select, MenuItem, InputLabel, FormControl, Radio, FormLabel, RadioGroup, Divider, Input, Box, TextField } from '@mui/material';
+import { Button, Card, Container, Typography, FormControlLabel, Select, MenuItem, InputLabel, FormControl, Radio, FormLabel, RadioGroup, Divider, Input, Box, TextField, FormHelperText } from '@mui/material';
 import { Stack } from '@mui/system';
 
-const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSelected, typeSexSelected, setTypeSexSelected, provinceSelected, setProvinceSelected, districtSelected, setDistrictSelected, townshipSelected, setTownshipSelected, ageRanges, typeSexes, disabledAddCustomer, handleChangeAgeRange, handleChangeTypeSex, handleChangeName, handleChangeEmail, handleChangeTelephone }) => {
+const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSelected, typeSexSelected, setTypeSexSelected, provinceSelected, setProvinceSelected, districtSelected, setDistrictSelected, townshipSelected, setTownshipSelected, ageRanges, typeSexes, disabledAddCustomer, handleChangeAgeRange, handleChangeTypeSex, handleChangeName, handleOnBlurName, handleChangeEmail, handleOnBlurEmail, handleChangeTelephone, setIsLoading, errors }) => {
 
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [townships, setTownships] = useState([]);
 
     const getProvinces = () => {
+        setIsLoading(true);
         axios.get('http://127.0.0.1:8001/api/provinces')
             .then((response) => {
                 setProvinces(response.data);
+                setIsLoading(false);
             })
             .catch((error) => {
                 console.log(error);
@@ -22,8 +24,10 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
     };
 
     const getDistricts = (id) => {
+        setIsLoading(true);
         axios.get(`http://127.0.0.1:8001/api/province/${id}/districts`)
             .then((response) => {
+                setIsLoading(false);
                 setDistricts(response.data);
             })
             .catch((error) => {
@@ -32,8 +36,10 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
     };
 
     const getTownships = (id) => {
+        setIsLoading(true);
         axios.get(`http://127.0.0.1:8001/api/district/${id}/townships`)
             .then((response) => {
+                setIsLoading(false);
                 setTownships(response.data);
             })
             .catch((error) => {
@@ -56,16 +62,16 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
             <FormControl
                 sx={{ marginTop: '15px', width: '50%' }}
             >
-                <TextField id="outlined-basic" label="Nombre" variant="outlined" value={name} onChange={handleChangeName} disabled={disabledAddCustomer} required />
+                <TextField id="outlined-basic" label="Nombre" variant="outlined" value={name} onChange={handleChangeName} disabled={disabledAddCustomer} required onBlur={handleOnBlurName} error={errors.name} helperText={errors.name ? errors.name : null} />
 
             </FormControl>
 
             <FormControl sx={{ marginTop: '15px', width: '45%' }}>
-                <TextField id="outlined-basic" label="Correo" variant="outlined" value={email} onChange={handleChangeEmail}  disabled={disabledAddCustomer} required />
+                <TextField id="outlined-basic" label="Correo" variant="outlined" value={email} onChange={handleChangeEmail} onBlur={handleOnBlurEmail} error={errors.email} helperText={errors.email ? errors.email : null} disabled={disabledAddCustomer} required />
             </FormControl>
 
             <FormControl sx={{ marginTop: '15px', width: '50%' }}>
-                <TextField id="outlined-basic" label="Teléfono" variant="outlined" value={telephone} onChange={handleChangeTelephone} disabled={disabledAddCustomer} required/>
+                <TextField id="outlined-basic" label="Teléfono" variant="outlined" value={telephone} onChange={handleChangeTelephone} disabled={disabledAddCustomer} required />
             </FormControl>
 
             <FormControl sx={{ marginTop: '15px', width: '45%' }}>
@@ -91,7 +97,11 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
                                 key={ageRange.id}
                             />
                     ))}
-
+                    <FormHelperText
+                        sx={{
+                            color: '#FF4842',
+                        }}
+                    >{errors.age_range ? errors.age_range : null}</FormHelperText>
                 </RadioGroup>
             </FormControl>
 
@@ -118,6 +128,11 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
                                 key={typeSex.id}
                             />
                     ))}
+                    <FormHelperText
+                        sx={{
+                            color: '#FF4842',
+                        }}
+                    >{errors.type_sex ? errors.type_sex : null}</FormHelperText>
                 </RadioGroup>
             </FormControl>
 
@@ -129,6 +144,7 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
                     label="Provincia"
                     value={provinceSelected}
                     onChange={(e) => {
+                        setIsLoading(true);
                         setProvinceSelected(e.target.value);
                         axios.get(`http://127.0.0.1:8001/api/province/${e.target.value}/districts`)
                             .then((response) => {
@@ -138,6 +154,7 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
                                     .then((response) => {
                                         setTownships(response.data);
                                         setTownshipSelected(response.data[0].id);
+                                        setIsLoading(false);
                                     })
                                     .catch((error) => {
                                         console.log(error);
@@ -164,9 +181,11 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
                     label="Distrito"
                     value={districtSelected}
                     onChange={(e) => {
+                        setIsLoading(true);
                         setDistrictSelected(e.target.value);
                         axios.get(`http://127.0.0.1:8001/api/district/${e.target.value}/townships`)
                             .then((response) => {
+                                setIsLoading(false);
                                 setTownships(response.data);
                                 setTownshipSelected(response.data[0].id);
                             })

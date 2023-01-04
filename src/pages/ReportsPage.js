@@ -2,6 +2,8 @@ import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import { sentenceCase } from 'change-case';
 import React, { useState, useEffect } from 'react';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
 import { LoadingButton } from '@mui/lab';
@@ -118,6 +120,16 @@ function applySortFilter(array, comparator, query) {
 const Transition = React.forwardRef((props, ref) => <Slide direction="up" ref={ref} {...props} />);
 
 const ReportsPage = () => {
+
+    /* Notify */
+
+    const showToastMessage = () => {
+        toast.error('Reporte eliminado!', {
+            position: toast.POSITION.TOP_RIGHT
+        });
+    };
+
+    /* Reports */
 
     const [report, setReport] = useState(null);
 
@@ -312,7 +324,7 @@ const ReportsPage = () => {
                                                         </Stack>
                                                     </TableCell>
                                                     <TableCell align="left">
-                                                        <Label color={type === 'g' ? 'success' : type === 'v' ? 'warning' : 'error'}>{sentenceCase(type)}</Label>
+                                                        <Label color={type === 'g' ? 'success' : type === 'v' ? 'warning' : 'error'}>{sentenceCase(type === 'g' ? 'General' : type === 'v' ? 'Visitas' : 'Insumos')}</Label>
                                                     </TableCell>
                                                     <TableCell align="left">{user.name}</TableCell>
 
@@ -402,6 +414,10 @@ const ReportsPage = () => {
                     />
                 </Card>
             </Container>
+
+            {/* Toastify */}
+
+            <ToastContainer />
 
             {/* Dialog - report result */}
             <Dialog
@@ -599,6 +615,7 @@ const ReportsPage = () => {
 
                 <MenuItem sx={{ color: 'error.main' }} onClick={
                     () => {
+                        showToastMessage();
                         setOpen(null);
                         setReports(reports.filter((report) => report.id !== itemSelected));
                         axios.delete(`http://localhost:8000/api/reports/${itemSelected}/`);

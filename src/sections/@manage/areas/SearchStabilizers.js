@@ -4,7 +4,7 @@ import axios from 'axios';
 // material
 import { Autocomplete, TextField } from '@mui/material';
 
-const SearchStabilizers = ({ itemSelected, handleAddStabilizer, updateItemEmbroidery }) => {
+const SearchStabilizers = ({ itemSelected, handleAddStabilizer, updateItemEmbroidery, errors, setErrors }) => {
 
   const previousController = useRef();
 
@@ -56,6 +56,7 @@ const SearchStabilizers = ({ itemSelected, handleAddStabilizer, updateItemEmbroi
             area: newValue.area,
           }
         );
+        setErrors({ ...errors, base_cost: '' })
       }}
       onInputChange={
         (event, newInputValue) => {

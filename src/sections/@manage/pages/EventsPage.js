@@ -217,7 +217,7 @@ TabPanel.propTypes = {
 };
 
 const EventsPage = () => {
-  
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -406,7 +406,7 @@ const EventsPage = () => {
           }
         })
       });
-    } 
+    }
 
     setValue(0);
     showToastMessage();
@@ -519,7 +519,7 @@ const EventsPage = () => {
                 {events.length > 0 ? (
                   <TableBody>
                     {filteredEvents.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, name, event_category: eventCategory, initial_date: initialDate, final_date: finalDate, initial_time: initialTime, final_time: finalTime, max_participants: maxParticipants, price, expenses, description_expenses: descriptionExpenses, areas: areasEvent, active } = row;
+                      const { id, name, event_category: eventCategory, initial_date: initialDate, final_date: finalDate, initial_time: initialTime, final_time: finalTime, max_participants: maxParticipants, quotas,price, expenses, description_expenses: descriptionExpenses, areas: areasEvent, active } = row;
 
                       return (
                         <TableRow hover key={id} tabIndex={-1} role="checkbox">
@@ -537,15 +537,23 @@ const EventsPage = () => {
                           </TableCell>
 
                           <TableCell align="left">
-                            {initialDate} &rarr; {finalDate}
+                            {format(parseISO(`${initialDate.split('T')[0]} ${initialTime}`), 'dd/MM/yyyy', { locale: es })}
+                            &nbsp;
+                            -
+                            &nbsp;
+                            {format(parseISO(`${finalDate.split('T')[0]} ${finalTime}`), 'dd/MM/yyyy', { locale: es })}
                           </TableCell>
 
                           <TableCell align="left">
-                            {initialTime.split(':')[0]} : {initialTime.split(':')[1]} &rarr; {finalTime.split(':')[0]} : {finalTime.split(':')[1]}
+                          {format(parseISO(`${initialDate.split('T')[0]} ${initialTime}`), 'h:mm a', { locale: es })}
+                          &nbsp;
+                          - 
+                          &nbsp;
+                          {format(parseISO(`${finalDate.split('T')[0]} ${finalTime}`), 'h:mm a', { locale: es })}
                           </TableCell>
 
                           <TableCell align="left">
-                            {maxParticipants}
+                            {quotas}
                           </TableCell>
 
                           <TableCell align="left">
@@ -589,7 +597,7 @@ const EventsPage = () => {
                               setId(id);
                               setName(name);
                               setCategory(eventCategory.id);
-                              
+
                               setInitialDate(new Date(`${initialDate}T00:00:00`));
                               setFinalDate(new Date(`${finalDate}T00:00:00`));
                               setInitialTime(parseISO(`${initialDate}T${initialTime}`));
@@ -641,7 +649,7 @@ const EventsPage = () => {
                     })}
                     {emptyRows > 0 && (
                       <TableRow style={{ height: 53 * emptyRows }}>
-                        <TableCell colSpan={6} />
+                        <TableCell colSpan={8} />
                       </TableRow>
                     )}
                   </TableBody>
@@ -650,7 +658,7 @@ const EventsPage = () => {
                   (
                     <TableBody>
                       <TableRow>
-                        <TableCell align="center" colSpan={6} sx={{ py: 3 }}>
+                        <TableCell align="center" colSpan={8} sx={{ py: 3 }}>
                           <Paper
                             sx={{
                               textAlign: 'center',
@@ -829,7 +837,9 @@ const EventsPage = () => {
                   setMaxParticipants(event.target.value)
                 }}
                   type="number"
-                  required />
+                  required
+                  disabled={id !== ''}
+                  />
               </FormControl>
 
               <FormControl sx={{ width: '48%' }}>

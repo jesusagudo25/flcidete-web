@@ -351,7 +351,7 @@ const VisitsCustomers = () => {
                           </TableCell>
 
                           <TableCell align="left">
-                            {email}
+                            {email || 'No registrado'}
                           </TableCell>
 
                           <TableCell align="right">

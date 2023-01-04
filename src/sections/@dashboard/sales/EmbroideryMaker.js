@@ -15,10 +15,10 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import { CartThreads, SearchThreads, SearchStabilizers } from '../../@manage/areas';
 
-const EmbroideryMaker = ({ itemSelected, handleAddThread, handleAddStabilizer, deleteThread, updateItemEmbroidery }) => {
+const EmbroideryMaker = ({ itemSelected, handleAddThread, handleAddStabilizer, deleteThread, updateItemEmbroidery, errors, setErrors, handleOnBlurHoursArea }) => {
   return (
     <Stack spacing={3}>
-      <SearchThreads handleAddThread={handleAddThread} />
+      <SearchThreads handleAddThread={handleAddThread} errors={errors} setErrors={setErrors} />
       <TableContainer sx={{ minWidth: 550, }}>
         <Table>
           <TableHead>
@@ -35,7 +35,7 @@ const EmbroideryMaker = ({ itemSelected, handleAddThread, handleAddStabilizer, d
       </TableContainer>
 
       <Stack direction="row" spacing={2} justifyContent="center">
-      <SearchStabilizers itemSelected={itemSelected} handleAddStabilizer={handleAddStabilizer} updateItemEmbroidery={updateItemEmbroidery} />
+      <SearchStabilizers itemSelected={itemSelected} handleAddStabilizer={handleAddStabilizer} updateItemEmbroidery={updateItemEmbroidery} errors={errors} setErrors={setErrors}/>
       <FormControl sx={{ width: '30%' }}>
           <InputLabel htmlFor="outlined-adornment-amount">Ancho</InputLabel>
           <OutlinedInput
@@ -80,7 +80,11 @@ const EmbroideryMaker = ({ itemSelected, handleAddThread, handleAddStabilizer, d
           onChange={(e) => {
             itemSelected.details.hours_area = e.target.value
             updateItemEmbroidery();
+            setErrors({ ...errors, hours_area: null })
           }}
+          onBlur={handleOnBlurHoursArea}
+          error={!!errors.hours_area}
+          helperText={errors.hours_area ? errors.hours_area : null}
         />
 
       <FormControl sx={{ width: '100%' }}>

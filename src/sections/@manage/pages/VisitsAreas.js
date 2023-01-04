@@ -3,6 +3,8 @@ import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
 import { sentenceCase } from 'change-case';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
 import { LoadingButton } from '@mui/lab';
@@ -182,6 +184,33 @@ function applySortFilter(array, comparator, query) {
 }
 
 const VisitsAreas = () => {
+
+    /* Toastify */
+    const showToastMessageStatus = (type, message) => {
+        if (type === 'success') {
+            toast.success(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+        else if (type === 'error') {
+            toast.error(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+        else if (type === 'warning') {
+            toast.warn(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+        else {
+            toast.info(message, {
+                position: toast.POSITION.TOP_RIGHT
+            });
+        }
+    };
+
+
+    /* Datatable */
     const { id } = useParams()
 
     const [area, setArea] = useState(''); /* Area seleccionada */
@@ -248,13 +277,14 @@ const VisitsAreas = () => {
                 return {
                     area_id: area,
                     'start_time': format(startTime, 'HH:mm:ss'),
-                    'end_time':  endTime ? format(endTime, 'HH:mm:ss') : null,
+                    'end_time': endTime ? format(endTime, 'HH:mm:ss') : null,
                 }
             });
             await axios.post('api/visits/areas/update', {
                 visit_id: id,
                 areas,
             });
+            showToastMessageStatus('success', 'Se actualizaron las áreas de visita correctamente');
         }
         else if (itemSelected.areaId) {
             await axios.put(`/api/visits/${id}/areas`, {
@@ -262,6 +292,7 @@ const VisitsAreas = () => {
                 'start_time': format(startTime, 'HH:mm:ss'),
                 'end_time': endTime ? format(endTime, 'HH:mm:ss') : null,
             });
+            showToastMessageStatus('success', 'Se actualizo el área de visita correctamente');
         } else {
             await axios.post('/api/visits/areas', {
                 visit_id: id,
@@ -269,6 +300,7 @@ const VisitsAreas = () => {
                 'start_time': format(startTime, 'HH:mm:ss'),
                 'end_time': endTime ? format(endTime, 'HH:mm:ss') : null,
             });
+            showToastMessageStatus('success', 'Se agrego el área de visita correctamente');
         }
         setEditAll(false);
         setItemSelected({
@@ -401,11 +433,11 @@ const VisitsAreas = () => {
                                                         </Stack>
                                                     </TableCell>
                                                     <TableCell align="left">
-                                                        {startTime}
+                                                        {format(parseISO(`${createdAt.split('T')[0]} ${startTime}`), 'h:mm a', { locale: es })}
                                                     </TableCell>
 
                                                     <TableCell align="left">
-                                                        {endTime}
+                                                        {endTime ? format(parseISO(`${createdAt.split('T')[0]} ${endTime}`), 'h:mm a', { locale: es }) : 'Sin finalizar'}
                                                     </TableCell>
 
                                                     <TableCell align="right">
@@ -499,6 +531,11 @@ const VisitsAreas = () => {
                 </Card>
             </Container>
 
+            {/* Toastify */}
+
+            <ToastContainer />
+
+
             {/* Dialog */}
 
             <BootstrapDialog
@@ -542,7 +579,7 @@ const VisitsAreas = () => {
                         }
 
 
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                             <TimePicker
                                 label="Hora de entrada"
                                 value={startTime}
@@ -550,10 +587,13 @@ const VisitsAreas = () => {
                                     setStartTime(newValue)
                                 }}
                                 renderInput={(params) => <TextField size='small' {...params} />}
+                                ampm
+                                minTime={parseISO('2021-01-01T08:00:00')}
+                                maxTime={parseISO('2021-01-01T16:00:00')}
                             />
                         </LocalizationProvider>
 
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
                             <TimePicker
                                 label="Hora de salida"
                                 value={endTime}
@@ -561,6 +601,9 @@ const VisitsAreas = () => {
                                     setEndTime(newValue);
                                 }}
                                 renderInput={(params) => <TextField size='small' {...params} />}
+                                ampm
+                                minTime={parseISO('2021-01-01T08:00:00')}
+                                maxTime={parseISO('2021-01-01T16:00:00')}
                             />
                         </LocalizationProvider>
 

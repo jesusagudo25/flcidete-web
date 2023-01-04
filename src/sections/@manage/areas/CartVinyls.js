@@ -52,7 +52,7 @@ const CartVinyls = ({ vinyls, deleteVinyl, updateItemVinyl }) => {
                       type="number"
                       value={vinyl.width}
                       onChange={(e) => {
-                        vinyl.width = parseInt(e.target.value, 10);
+                        vinyl.width = parseFloat(e.target.value);
                         updateItemVinyl();
                       }}
                       inputProps={{ min: 4 }}
@@ -78,7 +78,7 @@ const CartVinyls = ({ vinyls, deleteVinyl, updateItemVinyl }) => {
                       type="number"
                       value={vinyl.height}
                       onChange={(e) => {
-                        vinyl.height = parseInt(e.target.value, 10);
+                        vinyl.height = parseFloat(e.target.value);
                         updateItemVinyl();
                       }}
                       inputProps={{ min: 4 }}

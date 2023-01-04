@@ -15,7 +15,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Iconify from '../../../components/iconify';
 import { SearchComponents, CartComponents } from '../../@manage/areas'
 
-const ElectronicMaker = ({ itemSelected, updateItemElectronic, handleAddComponent, deleteComponent }) => {
+const ElectronicMaker = ({ itemSelected, updateItemElectronic, handleAddComponent, deleteComponent, errors, setErrors, handleOnBlurHoursArea }) => {
 
 
   return (
@@ -47,7 +47,11 @@ const ElectronicMaker = ({ itemSelected, updateItemElectronic, handleAddComponen
         onChange={(e) => {
           itemSelected.details.hours_area = e.target.value
           updateItemElectronic()
+          setErrors({ ...errors, hours_area: '' })
         }}
+        onBlur={handleOnBlurHoursArea}
+        error={!!errors.hours_area}
+        helperText={errors.hours_area ? errors.hours_area : null}
       />
 
       <FormControl sx={{ width: '100%' }}>
@@ -63,6 +67,7 @@ const ElectronicMaker = ({ itemSelected, updateItemElectronic, handleAddComponen
             itemSelected.details.extra = e.target.value;
             updateItemElectronic();
           }}
+          type="number"
         />
       </FormControl>
 

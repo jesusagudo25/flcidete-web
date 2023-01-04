@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Helmet } from 'react-helmet-async';
 import PropTypes from 'prop-types';
+import { Controller, useForm } from "react-hook-form";
+import { ToastContainer, toast } from 'react-toastify';
 import {
   Card, Container, Stack, Typography, FormControl, InputLabel,
   Select,
@@ -122,6 +124,33 @@ const Transition = React.forwardRef((props, ref) => <Slide direction="up" ref={r
 
 const NewSale = () => {
 
+  /* Toastify */
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else if (type === 'error') {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else if (type === 'warning') {
+      toast.warn(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.info(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
+  /* useForm */
+  const [errors, setErrors] = useState({});
+
   /* Container - variables */
 
   const [containerCustomer, setContainerCustomer] = useState(false); /* Contenedor de datos cliente */
@@ -132,6 +161,8 @@ const NewSale = () => {
   const [isComplete, setIsComplete] = useState(false);
   const [flagCustomer, setFlagCustomer] = useState(true);
   const [flagItems, setFlagItems] = useState(false);
+  const [isErrorRows, setIsErrorRows] = useState(false);
+  const [rowsEmpty, setRowsEmpty] = useState([]);
 
   /* Customer - variables */
 
@@ -142,7 +173,7 @@ const NewSale = () => {
   const [telephone, setTelephone] = useState('');
   const [ageRangeSelected, setAgeRangeSelected] = useState('');
   const [typeSexSelected, setTypeSexSelected] = useState('');
-  const [idCustomer, setIdCustomer] = useState('');
+  const [idCustomer, setIdCustomer] = useState(null);
   const [provinceSelected, setProvinceSelected] = useState(9);
   const [districtSelected, setDistrictSelected] = useState(60);
   const [townshipSelected, setTownshipSelected] = useState(492);
@@ -173,6 +204,7 @@ const NewSale = () => {
     { id: 'ec', name: 'Eventos' }
   ]);
 
+
   /* Data invoices */
 
   const [invoice, setInvoice] = useState(null);
@@ -185,159 +217,161 @@ const NewSale = () => {
 
   const handleClickSubmit = () => {
     setIsLoading(true);
+    let flag = false;
 
-    const laborTime = parseInt(hours, 10) + parseFloat((minutes / 60));
-    const data = {
-      items,
-      total,
-      id: localStorage.getItem('id'),
-      description,
-      typeInvoice,
-      payment,
-      balance,
-    };
-
-    if (typeSale === 'S') {
-      data.typeSale = typeSale;
-      data.dateDelivery = dateDelivery ? format(dateDelivery, 'yyyy-MM-dd', { locale: es }) : null;
-      data.laborTime = laborTime !== 0.00 ? laborTime : null;
-    }
-    else {
-      data.typeSale = typeSale;
+    if (description === '') {
+      setErrors({
+        description: 'Por favor, ingrese una descripción.'
+      });
+      flag = true;
+      setIsLoading(false);
     }
 
-    /* User */
-    if (idCustomer) {
-      data.customer_id = idCustomer;
-    }
-    else {
-      data.document_type = documentType;
-      data.document_number = document;
-      data.name = name;
-      data.email = email;
-      data.telephone = telephone;
-      data.age_range_id = parseInt(ageRangeSelected, 10);
-      data.type_sex_id = parseInt(typeSexSelected, 10);
-      data.province_id = provinceSelected;
-      data.district_id = districtSelected;
-      data.township_id = townshipSelected;
-    }
+    if (!flag) {
+      const laborTime = parseInt(hours, 10) + parseFloat((minutes / 60));
+      const data = {
+        items,
+        total,
+        id: localStorage.getItem('id'),
+        description,
+        typeInvoice,
+        payment,
+        balance,
+      };
 
-    axios.post('api/invoices', data)
-      .then((response) => {
-        if (response.data.success) {
-          setIsLoading(false);
-          setInvoice(response.data.invoice);
-
-          setContainerCustomer(false);
-          setDisabledAddCustomer(false);
-          setDocumentType('C');
-          setDocument('');
-          setName('');
-          setEmail('');
-          setTelephone('');
-          setAgeRangeSelected('');
-          setTypeSexSelected('');
-          setIdCustomer('');
-          setProvinceSelected(9);
-          setDistrictSelected(60);
-          setTownshipSelected(492);
-          setServiceCategory('a');
-          setService(1);
-          setItems([]);
-          setCount(1);
-          setTotal(0);
-          setTypeSale('S');
-          setDateDelivery(new Date());
-          setHours(0);
-          setMinutes(0);
-          setActiveStep((prevActiveStep) => prevActiveStep + 1);
-
-        }
+      if (typeSale === 'S') {
+        data.typeSale = typeSale;
+        data.dateDelivery = dateDelivery ? format(dateDelivery, 'yyyy-MM-dd', { locale: es }) : null;
+        data.laborTime = laborTime !== 0.00 ? laborTime : null;
       }
-      );
+      else {
+        data.typeSale = typeSale;
+      }
+
+      /* User */
+      if (idCustomer) {
+        data.customer_id = idCustomer;
+      }
+      else {
+        data.document_type = documentType;
+        data.document_number = document;
+        data.name = name;
+        data.email = email;
+        data.telephone = telephone;
+        data.age_range_id = parseInt(ageRangeSelected, 10);
+        data.type_sex_id = parseInt(typeSexSelected, 10);
+        data.province_id = provinceSelected;
+        data.district_id = districtSelected;
+        data.township_id = townshipSelected;
+      }
+
+      axios.post('api/invoices', data)
+        .then((response) => {
+          if (response.data.success) {
+            setIsLoading(false);
+            setInvoice(response.data.invoice);
+
+            setContainerCustomer(false);
+            setDisabledAddCustomer(false);
+            setDocumentType('C');
+            setDocument('');
+            setName('');
+            setEmail('');
+            setTelephone('');
+            setAgeRangeSelected('');
+            setTypeSexSelected('');
+            setIdCustomer(null);
+            setProvinceSelected(9);
+            setDistrictSelected(60);
+            setTownshipSelected(492);
+            setServiceCategory('a');
+            setService(1);
+            setItems([]);
+            setCount(1);
+            setTotal(0);
+            setTypeSale('S');
+            setDateDelivery(new Date());
+            setHours(0);
+            setMinutes(0);
+            setActiveStep((prevActiveStep) => prevActiveStep + 1);
+
+          }
+        }
+        );
+
+    }
+
 
 
   };
 
   const handleClickSubmitQuotation = () => {
-    setIsLoading(true);
+    if (serviceCategory !== 'ec') {
+      setIsLoading(true);
 
-
-    const data = {
-      total,
-      id: localStorage.getItem('id'),
-      description,
-    }
-
-    /* User */
-    if (idCustomer) {
-      data.customer_id = idCustomer;
-    }
-    else {
-      data.document_type = documentType;
-      data.document_number = document;
-      data.name = name;
-      data.email = email;
-      data.telephone = telephone;
-      data.age_range_id = parseInt(ageRangeSelected, 10);
-      data.type_sex_id = parseInt(typeSexSelected, 10);
-      data.province_id = provinceSelected;
-      data.district_id = districtSelected;
-      data.township_id = townshipSelected;
-    }
-
-    axios.post('api/quotations', data)
-      .then((response) => {
-        if (response.data.success) {
-          setIsLoading(false);
-          setQuotation(response.data.quotation);
-
-          setContainerCustomer(false);
-          setDisabledAddCustomer(false);
-          setDocumentType('C');
-          setDocument('');
-          setName('');
-          setEmail('');
-          setTelephone('');
-          setAgeRangeSelected('');
-          setTypeSexSelected('');
-          setIdCustomer('');
-          setProvinceSelected(9);
-          setDistrictSelected(60);
-          setTownshipSelected(492);
-          setServiceCategory('a');
-          setService(1);
-          setItems([]);
-          setCount(1);
-          setTotal(0);
-          setTypeSale('S');
-          setDateDelivery(new Date());
-          setHours(0);
-          setMinutes(0);
-          setActiveStep((prevActiveStep) => prevActiveStep + 1);
-
-        }
+      const data = {
+        total,
+        id: localStorage.getItem('id'),
+        description,
       }
-      );
+
+      /* User */
+      if (idCustomer) {
+        data.customer_id = idCustomer;
+      }
+      else {
+        data.document_type = documentType;
+        data.document_number = document;
+        data.name = name;
+        data.email = email;
+        data.telephone = telephone;
+        data.age_range_id = parseInt(ageRangeSelected, 10);
+        data.type_sex_id = parseInt(typeSexSelected, 10);
+        data.province_id = provinceSelected;
+        data.district_id = districtSelected;
+        data.township_id = townshipSelected;
+      }
+
+      axios.post('api/quotations', data)
+        .then((response) => {
+          if (response.data.success) {
+            setIsLoading(false);
+            setQuotation(response.data.quotation);
+
+            setContainerCustomer(false);
+            setDisabledAddCustomer(false);
+            setDocumentType('C');
+            setDocument('');
+            setName('');
+            setEmail('');
+            setTelephone('');
+            setAgeRangeSelected('');
+            setTypeSexSelected('');
+            setIdCustomer(null);
+            setProvinceSelected(9);
+            setDistrictSelected(60);
+            setTownshipSelected(492);
+            setServiceCategory('a');
+            setService(1);
+            setItems([]);
+            setCount(1);
+            setTotal(0);
+            setTypeSale('S');
+            setDateDelivery(new Date());
+            setHours(0);
+            setMinutes(0);
+            setActiveStep((prevActiveStep) => prevActiveStep + 1);
+
+          }
+        }
+        );
+    }
   };
   /* Manage item - variables */
 
   const [serviceSelected, setServiceSelected] = useState('Otros');
   const [serviceSelectedId, setServiceSelectedId] = useState(null);
   const [itemSelected, setItemSelected] = useState([]);
-
-  /* Modal - methods */
-  const handleClose = () => {
-    /*     const cancelItem = items.find(item => item.id === serviceSelectedId) */
-    setOpen(false);
-  };
-
-  const handleSave = () => {
-    console.log(items);
-    calculateTotal(hours, minutes, typeInvoice);
-    setOpen(false);
-  };
 
   /* Popper - methods */
 
@@ -349,19 +383,76 @@ const NewSale = () => {
 
   const [activeStep, setActiveStep] = React.useState(0);
 
+  /* Validate Steppers */
   const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
-    switch (activeStep) {
-      case 0:
-        if (items.length > 0) {
-          setFlagItems(false);
-          setFlagCustomer(false);
+    const errorsDisplay = {};
+    let flag = false;
+    if (activeStep === 0) {
+      if (idCustomer === null && containerCustomer === false) {
+        errorsDisplay.document = 'Por favor, ingrese el documento del cliente';
+        flag = true;
+      }
+      else if (containerCustomer) {
+        if (errors.email) {
+          errorsDisplay.email = errors.email;
         }
-        else {
-          setFlagItems(true);
-        }
-        break;
-      default:
+      }
+
+      if (name === '' && containerCustomer === true) {
+        errorsDisplay.name = 'Por favor, ingrese el nombre del cliente';
+        flag = true;
+      }
+
+      if (ageRangeSelected === null && containerCustomer === true) {
+        errorsDisplay.age_range = 'Por favor, seleccione el rango de edad del cliente';
+        flag = true;
+      }
+
+      if (typeSexSelected === null && containerCustomer === true) {
+        errorsDisplay.type_sex = 'Por favor, seleccione el genero del cliente';
+        flag = true;
+      }
+
+    }
+    else if (activeStep === 1) {
+      if (dateDelivery === null && serviceCategory !== 'ec' && typeSale === 'S') {
+        errorsDisplay.date_delivery = 'Seleccione la fecha de entrega';
+        flag = true;
+      }
+
+      /* Get items details lenght === 0  */
+      const itemsDetailsEmpty = items.filter((item) => Object.keys(item.details).length === 0);
+      if (itemsDetailsEmpty.length > 0) {
+        errorsDisplay.items = 'Por favor, seleccione los detalles de los productos';
+        setRowsEmpty(itemsDetailsEmpty);
+        flag = true;
+      }
+    }
+
+
+    if (flag) {
+      console.log(errorsDisplay);
+      if (errorsDisplay.items) {
+        setIsErrorRows(true);
+      }
+      setErrors(errorsDisplay);
+    }
+    else {
+      setErrors({});
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+
+      switch (activeStep) {
+        case 0:
+          if (items.length > 0) {
+            setFlagItems(false);
+            setFlagCustomer(false);
+          }
+          else {
+            setFlagItems(true);
+          }
+          break;
+        default:
+      }
     }
 
   };
@@ -418,6 +509,7 @@ const NewSale = () => {
 
   const handleChangeTypeSale = (event) => {
     setTypeSale(event.target.value);
+    setTypeInvoice('T');
     setHours(0);
     setMinutes(0);
     setTotal(0);
@@ -444,9 +536,13 @@ const NewSale = () => {
     calculateTotal(hours, minutes, event.target.value);
   };
 
+  /* ---------------------- */
+
   const getServices = () => {
+    setIsLoading(true);
     axios.get('/api/services')
       .then(res => {
+        setIsLoading(false);
         setServices(res.data);
         setContainerServices(res.data.a);
       }).catch(err => {
@@ -518,8 +614,10 @@ const NewSale = () => {
   }
 
   const getAgeRanges = () => {
+    setIsLoading(true);
     axios.get('/api/age-ranges')
       .then(res => {
+        setIsLoading(false);
         setAgeRanges(res.data);
       }).catch(err => {
         console.log(err);
@@ -528,8 +626,10 @@ const NewSale = () => {
   }
 
   const getTypeSexes = () => {
+    setIsLoading(true);
     axios.get('/api/type-sexes')
       .then(res => {
+        setIsLoading(false);
         setTypeSexes(res.data);
       }).catch(err => {
         console.log(err);
@@ -545,15 +645,21 @@ const NewSale = () => {
   };
 
   const handleChangeDocument = (event, newInputValue) => {
+    if (newInputValue !== '') {
+      setDocument(newInputValue);
+    }
     if (event) {
       setContainerCustomer(false);
-      setDocument(newInputValue);
       if (event.target.value) {
         if (event.target.value.length > 3) {
           getDataAutoComplete(event.target.value);
         }
       }
       else {
+        if (newInputValue === '') {
+          showToastMessageStatus('warning', 'Se ha limpiado el campo de búsqueda');
+        }
+        setDocument('');
         setOptions([]);
         setFlagCustomer(true);
       }
@@ -580,7 +686,17 @@ const NewSale = () => {
       setDocument(newValue.inputValue);
       setContainerCustomer(true);
       setFlagCustomer(false);
+      showToastMessageStatus('info', 'Por favor, Ingrese los datos del nuevo cliente');
+      setErrors({
+        ...errors,
+        document: ''
+      })
     } else if (newValue) {
+      showToastMessageStatus('success', 'Cliente seleccionado, por favor, verifique los datos');
+      setErrors({
+        ...errors,
+        document: ''
+      })
       setFlagCustomer(false);
       setIdCustomer(newValue.value);
       setContainerCustomer(true);
@@ -596,22 +712,96 @@ const NewSale = () => {
     }
   };
 
+  const handleOnBlurDocument = (event) => {
+    if (idCustomer === null && containerCustomer === false) {
+      setErrors({
+        ...errors,
+        document: 'Por favor, seleccione o agregue un cliente'
+      });
+    }
+    else {
+      setErrors({
+        ...errors,
+        document: ''
+      });
+    }
+  };
+
   /* -------------------- */
 
   const handleChangeAgeRange = (event) => {
     setAgeRangeSelected(event.target.value);
+    setErrors({
+      ...errors,
+      age_range: ''
+    });
   };
 
   const handleChangeTypeSex = (event) => {
     setTypeSexSelected(event.target.value);
+    setErrors({
+      ...errors,
+      type_sex: ''
+    });
   };
 
   const handleChangeName = (event) => {
     setName(event.target.value);
   };
 
+  const handleOnBlurName = (event) => {
+    if (name === '') {
+      setErrors({
+        ...errors,
+        name: 'Por favor, ingrese el nombre del cliente'
+      });
+    }
+    else {
+      setErrors({
+        ...errors,
+        name: ''
+      });
+    }
+  };
+
   const handleChangeEmail = (event) => {
     setEmail(event.target.value);
+  };
+
+  const validateEmail = (email) => {
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
+  };
+
+  const handleOnBlurEmail = (event) => {
+    if (email !== '') {
+      if (!validateEmail(email)) {
+        setErrors({
+          ...errors,
+          email: 'Por favor, ingrese un correo válido'
+        });
+      }
+      else {
+        setErrors({
+          ...errors,
+          email: ''
+        });
+      }
+
+      axios.post('api/customers/check-email', {
+        email
+      }).then(response => {
+        console.log(response.data.message);
+      }
+      ).catch(error => {
+        console.log(error.response.data.message);
+        setErrors({
+          ...errors,
+          email: 'El correo ya se encuentra registrado'
+        });
+      }
+      )
+    }
   };
 
   const handleChangeTelephone = (event) => {
@@ -623,6 +813,311 @@ const NewSale = () => {
     setItemSelected(items.find(item => item.id === serviceSelectedId));
     setOpen(true);
   };
+
+  /* Modal - methods */
+  const handleClose = () => {
+    const cancelItem = items.find(item => item.id === serviceSelectedId);
+    console.log(cancelItem);
+
+    setErrors({
+      ...errors,
+      base_cost: '',
+      hours_area: '',
+      hours: '',
+      minutes: '',
+      time: '',
+      software: '',
+      event: '',
+    });
+    setOpen(false);
+    calculateTotal(hours, minutes, typeInvoice);
+
+  };
+
+  const handleSave = () => {
+    console.log(items);
+    /* Validate */
+    const resul = ValidateForDialog[serviceSelected](typeSale)
+    if (!resul) {
+      calculateTotal(hours, minutes, typeInvoice);
+      setOpen(false);
+      showToastMessageStatus('success', 'Servicio actualizado correctamente');
+    }
+  };
+
+  const ValidateForDialog = {
+    'Electrónica': (type) => {
+      if (type === 'S') {
+        if (itemSelected.details.base_cost === undefined || itemSelected.details.base_cost === '' || itemSelected.details.base_cost === null || itemSelected.details.base_cost === "0.00") {
+          setErrors({
+            ...errors,
+            base_cost: 'Por favor, ingrese componentes y/o extras'
+          });
+          return true;
+        }
+        setErrors({
+          ...errors,
+          base_cost: ''
+        });
+        return false;
+      }
+      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
+        setErrors({
+          ...errors,
+          hours_area: 'Por favor, ingrese la cantidad de horas'
+        });
+        return true;
+      }
+      setErrors({
+        ...errors,
+        hours_area: ''
+      });
+      return false;
+    },
+    'Mini Fresadora CNC': (type) => {
+      if (type === 'S') {
+        const flag = {};
+        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+          flag.hours = 'Por favor, ingrese la cantidad de horas'
+        }
+
+        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+        }
+
+        if (Object.keys(flag).length > 0) {
+          setErrors({
+            ...flag
+          });
+          return true;
+        }
+        return false;
+      }
+
+      /* Maker */
+      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
+        setErrors({
+          ...errors,
+          hours_area: 'Por favor, ingrese la cantidad de horas'
+        });
+        return true;
+      }
+      setErrors({
+        ...errors,
+        hours_area: ''
+      });
+
+      return false;
+
+    },
+    'Láser CNC': (type) => {
+      if (type === 'S') {
+        const flag = {};
+        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+          flag.hours = 'Por favor, ingrese la cantidad de horas'
+        }
+
+        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+        }
+
+        if (Object.keys(flag).length > 0) {
+          setErrors({
+            ...flag
+          });
+          return true;
+        }
+        return false;
+      }
+      /* Maker */
+      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
+        setErrors({
+          ...errors,
+          hours_area: 'Por favor, ingrese la cantidad de horas'
+        });
+        return true;
+      }
+      setErrors({
+        ...errors,
+        hours_area: ''
+      });
+
+      return false;
+    },
+    'Cortadora de Vinilo': (type) => {
+      if (type === 'S') {
+        const flag = {};
+        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+          flag.hours = 'Por favor, ingrese la cantidad de horas'
+        }
+
+        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+        }
+
+        if (Object.keys(flag).length > 0) {
+          setErrors({
+            ...flag
+          });
+          return true;
+        }
+        return false;
+      }
+      /* Maker */
+      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
+        setErrors({
+          ...errors,
+          hours_area: 'Por favor, ingrese la cantidad de horas'
+        });
+        return true;
+      }
+      setErrors({
+        ...errors,
+        hours_area: ''
+      });
+
+      return false;
+    },
+    'Impresión 3D en filamento': (type) => {
+      if (type === 'S') {
+        const flag = {};
+        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+          flag.hours = 'Por favor, ingrese la cantidad de horas'
+        }
+
+        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+        }
+
+        if (Object.keys(flag).length > 0) {
+          setErrors({
+            ...flag
+          });
+          return true;
+        }
+        return false;
+      }
+      /* Maker */
+      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
+        setErrors({
+          ...errors,
+          hours_area: 'Por favor, ingrese la cantidad de horas'
+        });
+        return true;
+      }
+      setErrors({
+        ...errors,
+        hours_area: ''
+      });
+
+      return false;
+    },
+    'Impresión 3D en resina': (type) => {
+      if (type === 'S') {
+        const flag = {};
+        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+          flag.hours = 'Por favor, ingrese la cantidad de horas'
+        }
+
+        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+        }
+
+        if (Object.keys(flag).length > 0) {
+          setErrors({
+            ...flag
+          });
+          return true;
+        }
+        return false;
+      }
+      /* Maker */
+      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
+        setErrors({
+          ...errors,
+          hours_area: 'Por favor, ingrese la cantidad de horas'
+        });
+        return true;
+      }
+      setErrors({
+        ...errors,
+        hours_area: ''
+      });
+
+      return false;
+    },
+    'Softwares': (type = null) => {
+      const flag = {};
+      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === 0) {
+        flag.hours_area = 'Por favor, ingrese la cantidad de horas'
+      }
+
+      console.log(itemSelected.details.software);
+      if (itemSelected.details.software === undefined || itemSelected.details.software === '' || itemSelected.details.software === null) {
+        flag.software = 'Por favor, seleccione un software'
+      }
+
+      if (Object.keys(flag).length > 0) {
+        console.log(flag);
+        setErrors({
+          ...flag
+        });
+        return true;
+      }
+      return false;
+    },
+    'Bordadora CNC': (type) => {
+      if (type === 'S') {
+        if (itemSelected.details.base_cost === undefined || itemSelected.details.base_cost === '' || itemSelected.details.base_cost === null || itemSelected.details.base_cost === "0.00") {
+          setErrors({
+            ...errors,
+            base_cost: 'Por favor, ingrese materiales y/o extras'
+          });
+          return true;
+        }
+        setErrors({
+          ...errors,
+          base_cost: ''
+        });
+        return false;
+      }
+      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
+        setErrors({
+          ...errors,
+          hours_area: 'Por favor, ingrese la cantidad de horas'
+        });
+        return true;
+      }
+      setErrors({
+        ...errors,
+        hours_area: ''
+      });
+      return false;
+    },
+    'Capacitaciones': (type = null) => {
+      if (itemSelected.details.event === undefined || itemSelected.details.event === '' || itemSelected.details.event === null) {
+        setErrors({
+          ...errors,
+          event: 'Por favor, seleccione un evento'
+        });
+        return true;
+      }
+      setErrors({
+        ...errors,
+        event: ''
+      });
+      return false;
+    },
+    'Workshop': (type = null) => {
+      console.log('Workshop');
+    },
+    'Fab Lab Kids': (type = null) => {
+      console.log('Fab Lab Kids');
+    },
+    'Otros': (type = null) => {
+      return <></>
+    }
+  }
 
   const deleteItem = (id) => {
     const newItems = items.filter(item => item.id !== id);
@@ -641,48 +1136,71 @@ const NewSale = () => {
         } else {
           setItems(items.filter((item) => item.id !== id));
         } */
-  }
+  };
+
+  const handleOnBlurHoursArea = (event) => {
+    const value = event.target.value;
+    if (value === '' || value === undefined || value === null) {
+      setErrors({
+        ...errors,
+        hours_area: 'Por favor, ingrese la cantidad de horas'
+      });
+    }
+    else {
+      setErrors({
+        ...errors,
+        hours_area: ''
+      });
+    }
+  };
 
   const componentsForDialog = {
     'Electrónica': (type) => {
-      if (type === 'S') return <ElectronicServices itemSelected={itemSelected} updateItemElectronic={updateItemElectronic} handleAddComponent={handleAddComponent} deleteComponent={deleteComponent} />
-      return <ElectronicMaker itemSelected={itemSelected} updateItemElectronic={updateItemElectronic} handleAddComponent={handleAddComponent} deleteComponent={deleteComponent} />
+      if (type === 'S') return <ElectronicServices itemSelected={itemSelected} updateItemElectronic={updateItemElectronic} handleAddComponent={handleAddComponent} deleteComponent={deleteComponent} errors={errors} setErrors={setErrors} />
+
+      return <ElectronicMaker itemSelected={itemSelected} updateItemElectronic={updateItemElectronic} handleAddComponent={handleAddComponent} deleteComponent={deleteComponent} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
     },
     'Mini Fresadora CNC': (type) => {
-      if (type === 'S') return <MiniCNCServices itemSelected={itemSelected} handleAddMaterialMilling={handleAddMaterialMilling} updateItemMilling={updateItemMilling} deleteMaterialMilling={deleteMaterialMilling} />
-      return <MiniCNCMaker itemSelected={itemSelected} handleAddMaterialMilling={handleAddMaterialMilling} updateItemMilling={updateItemMilling} deleteMaterialMilling={deleteMaterialMilling} />
+      if (type === 'S') return <MiniCNCServices itemSelected={itemSelected} handleAddMaterialMilling={handleAddMaterialMilling} updateItemMilling={updateItemMilling} deleteMaterialMilling={deleteMaterialMilling} errors={errors} setErrors={setErrors} />
+
+      return <MiniCNCMaker itemSelected={itemSelected} handleAddMaterialMilling={handleAddMaterialMilling} updateItemMilling={updateItemMilling} deleteMaterialMilling={deleteMaterialMilling} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
     },
     'Láser CNC': (type) => {
-      if (type === 'S') return <LaserCNCServices itemSelected={itemSelected} handleAddMaterialLaser={handleAddMaterialLaser} updateItemLaser={updateItemLaser} deleteMaterialLaser={deleteMaterialLaser} />
-      return <LaserCNCMaker itemSelected={itemSelected} handleAddMaterialLaser={handleAddMaterialLaser} updateItemLaser={updateItemLaser} deleteMaterialLaser={deleteMaterialLaser} />
+      if (type === 'S') return <LaserCNCServices itemSelected={itemSelected} handleAddMaterialLaser={handleAddMaterialLaser} updateItemLaser={updateItemLaser} deleteMaterialLaser={deleteMaterialLaser} errors={errors} setErrors={setErrors} />
+
+      return <LaserCNCMaker itemSelected={itemSelected} handleAddMaterialLaser={handleAddMaterialLaser} updateItemLaser={updateItemLaser} deleteMaterialLaser={deleteMaterialLaser} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
     },
     'Cortadora de Vinilo': (type) => {
-      if (type === 'S') return <VinylServices itemSelected={itemSelected} handleAddVinyl={handleAddVinyl} updateItemVinyl={updateItemVinyl} deleteVinyl={deleteVinyl} />
-      return <VinylMaker itemSelected={itemSelected} handleAddVinyl={handleAddVinyl} updateItemVinyl={updateItemVinyl} deleteVinyl={deleteVinyl} />
+      if (type === 'S') return <VinylServices itemSelected={itemSelected} handleAddVinyl={handleAddVinyl} updateItemVinyl={updateItemVinyl} deleteVinyl={deleteVinyl} errors={errors} setErrors={setErrors} />
+
+      return <VinylMaker itemSelected={itemSelected} handleAddVinyl={handleAddVinyl} updateItemVinyl={updateItemVinyl} deleteVinyl={deleteVinyl} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
     },
     'Impresión 3D en filamento': (type) => {
-      if (type === 'S') return <FilamentServices itemSelected={itemSelected} handleAddFilament={handleAddFilament} updateItemFilament={updateItemFilament} deleteFilament={deleteFilament} />
-      return <FilamentMaker itemSelected={itemSelected} handleAddFilament={handleAddFilament} updateItemFilament={updateItemFilament} deleteFilament={deleteFilament} />
+      if (type === 'S') return <FilamentServices itemSelected={itemSelected} handleAddFilament={handleAddFilament} updateItemFilament={updateItemFilament} deleteFilament={deleteFilament} errors={errors} setErrors={setErrors} />
+
+      return <FilamentMaker itemSelected={itemSelected} handleAddFilament={handleAddFilament} updateItemFilament={updateItemFilament} deleteFilament={deleteFilament} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
     },
     'Impresión 3D en resina': (type) => {
-      if (type === 'S') return <ResinServices itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} />
-      return <ResinMaker itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} />
+      if (type === 'S') return <ResinServices itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} errors={errors} setErrors={setErrors} />
+
+      return <ResinMaker itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
     },
     'Softwares': (type = null) => {
-      return <SoftwareServices itemSelected={itemSelected} handleAddSoftware={handleAddSoftware} updateItemSoftware={updateItemSoftware} />
+      return <SoftwareServices itemSelected={itemSelected} handleAddSoftware={handleAddSoftware} updateItemSoftware={updateItemSoftware} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
     },
     'Bordadora CNC': (type) => {
-      if (type === 'S') return <EmbroideryServices itemSelected={itemSelected} handleAddThread={handleAddThread} handleAddStabilizer={handleAddStabilizer} deleteThread={deleteThread} updateItemEmbroidery={updateItemEmbroidery} />
-      return <EmbroideryMaker itemSelected={itemSelected} handleAddThread={handleAddThread} handleAddStabilizer={handleAddStabilizer} deleteThread={deleteThread} updateItemEmbroidery={updateItemEmbroidery} />
+      if (type === 'S') return <EmbroideryServices itemSelected={itemSelected} handleAddThread={handleAddThread} handleAddStabilizer={handleAddStabilizer} deleteThread={deleteThread} updateItemEmbroidery={updateItemEmbroidery} errors={errors} setErrors={setErrors} />
+
+      return <EmbroideryMaker itemSelected={itemSelected} handleAddThread={handleAddThread} handleAddStabilizer={handleAddStabilizer} deleteThread={deleteThread} updateItemEmbroidery={updateItemEmbroidery} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
     },
     'Capacitaciones': (type = null) => {
-      return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} />
+      return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} errors={errors} setErrors={setErrors} />
     },
     'Workshop': (type = null) => {
-      return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} />
+      return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} errors={errors} setErrors={setErrors} />
     },
     'Fab Lab Kids': (type = null) => {
-      return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} />
+      return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} errors={errors} setErrors={setErrors} />
     },
     'Otros': (type = null) => {
       return <></>
@@ -769,20 +1287,26 @@ const NewSale = () => {
     const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
-    if (extra < -componentsTotal) {
-      extra = -componentsTotal;
-      itemSelected.details.extra = extra;
-    }
 
     let totalHours = 0;
     let total = 0;
     if (hoursArea > 0) {
       totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = componentsTotal + extra + totalHours;
+      total = componentsTotal + totalHours;
       itemSelected.details.cost_hours = totalHours;
     }
     else {
-      total = componentsTotal + extra;
+      total = componentsTotal
+    }
+
+    /* Extra */
+    if (extra < -total) {
+      extra = -total;
+      itemSelected.details.extra = extra;
+      total += extra;
+    }
+    else {
+      total += extra;
     }
 
     if (Number.isNaN(total) && Number.isNaN(componentsTotal)) {
@@ -851,32 +1375,39 @@ const NewSale = () => {
     let total = 0;
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
-    if (extra < -materialsTotal) {
-      extra = -materialsTotal;
-      itemSelected.details.extra = extra;
-    }
 
     if (minutesArea > 0) {
       if (materialsTotal === 0) {
         totalMinutes = (minutesArea * PRICE_MINUTES[itemSelected.name]);
-        total = materialsTotal + extra + totalMinutes;
+        total = materialsTotal + totalMinutes;
       }
       else {
         const minutesToHours = minutesArea / 60;
         /* 6 months (4392 hours) */
         totalMinutes = Number((PRICE_MACHINE[itemSelected.name] / 4392) * minutesToHours);
-        total = materialsTotal + extra + totalMinutes;
+        total = materialsTotal + totalMinutes;
       }
 
       itemSelected.details.cost_hours = parseFloat(totalMinutes).toFixed(2);
     }
     else if (hoursArea > 0) {
       totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = materialsTotal + extra + totalHours;
+      total = materialsTotal + totalHours;
       itemSelected.details.cost_hours = parseFloat(totalHours).toFixed(2);
     }
     else {
-      total = materialsTotal + extra;
+      total = materialsTotal;
+    }
+
+    /* Extra */
+    if (extra < -total) {
+      extra = -total;
+      itemSelected.details.extra = extra;
+      total += extra;
+    }
+    else {
+      console.log(total, extra);
+      total += extra;
     }
 
     if (Number.isNaN(total) && Number.isNaN(materialsTotal)) {
@@ -886,6 +1417,7 @@ const NewSale = () => {
       itemSelected.details.base_cost = parseFloat(materialsTotal).toFixed(2);
     }
     else {
+      console.log(total, 'total');
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
     }
   };
@@ -959,31 +1491,37 @@ const NewSale = () => {
     let total = 0;
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
-    if (extra < -materialsTotal) {
-      extra = -materialsTotal;
-      itemSelected.details.extra = extra;
-    }
 
     if (minutesArea > 0) {
       if (materialsTotal === 0) {
         totalMinutes = (minutesArea * PRICE_MINUTES[itemSelected.name]);
-        total = materialsTotal + extra + totalMinutes;
+        total = materialsTotal + totalMinutes;
       }
       else {
         const minutesToHours = minutesArea / 60;
         /* 6 months (4392 hours) */
         totalMinutes = Number((PRICE_MACHINE[itemSelected.name] / 4392) * minutesToHours);
-        total = materialsTotal + extra + totalMinutes;
+        total = materialsTotal + totalMinutes;
       }
       itemSelected.details.cost_hours = parseFloat(totalMinutes).toFixed(2);
     }
     else if (hoursArea > 0) {
       totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = materialsTotal + extra + totalHours;
+      total = materialsTotal + totalHours;
       itemSelected.details.cost_hours = parseFloat(totalHours).toFixed(2);
     }
     else {
-      total = materialsTotal + extra;
+      total = materialsTotal
+    }
+
+    /* Extra */
+    if (extra < -total) {
+      extra = -total;
+      itemSelected.details.extra = extra;
+      total += extra;
+    }
+    else {
+      total += extra;
     }
 
     if (Number.isNaN(total) && Number.isNaN(materialsTotal)) {
@@ -1067,33 +1605,39 @@ const NewSale = () => {
     let total = 0;
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
-    if (extra < -vinylsTotal) {
-      extra = -vinylsTotal;
-      itemSelected.details.extra = extra;
-    }
 
     if (minutesArea > 0) {
       if (vinylsTotal === 0) {
         totalMinutes = (minutesArea * PRICE_MINUTES[itemSelected.name]);
-        total = vinylsTotal + extra + totalMinutes;
+        total = vinylsTotal + totalMinutes;
       }
       else {
         const minutesToHours = minutesArea / 60;
         /* 6 months (4392 hours) */
         totalMinutes = Number((PRICE_MACHINE[itemSelected.name] / 4392) * minutesToHours);
-        total = vinylsTotal + extra + totalMinutes;
+        total = vinylsTotal + totalMinutes;
       }
 
       itemSelected.details.cost_hours = parseFloat(totalMinutes).toFixed(2);
     }
     else if (hoursArea > 0) {
       totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = vinylsTotal + extra + totalHours;
+      total = vinylsTotal + totalHours;
 
       itemSelected.details.cost_hours = parseFloat(totalHours).toFixed(2);
     }
     else {
-      total = vinylsTotal + extra;
+      total = vinylsTotal;
+    }
+
+    /* Extra */
+    if (extra < -total) {
+      extra = -total;
+      itemSelected.details.extra = extra;
+      total += extra;
+    }
+    else {
+      total += extra;
     }
 
     if (Number.isNaN(total) && Number.isNaN(vinylsTotal)) {
@@ -1175,32 +1719,38 @@ const NewSale = () => {
     let total = 0;
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
-    if (extra < -filamentsTotal) {
-      extra = -filamentsTotal;
-      itemSelected.details.extra = extra;
-    }
 
     if (minutesArea > 0) {
       if (filamentsTotal === 0) {
         totalMinutes = (minutesArea * PRICE_MINUTES[itemSelected.name]);
-        total = filamentsTotal + extra + totalMinutes;
+        total = filamentsTotal + totalMinutes;
       }
       else {
         const minutesToHours = minutesArea / 60;
         /* 6 months (4392 hours) */
         totalMinutes = Number((PRICE_MACHINE[itemSelected.name] / 4392) * minutesToHours);
-        total = filamentsTotal + extra + totalMinutes;
+        total = filamentsTotal + totalMinutes;
       }
       itemSelected.details.cost_hour = parseFloat(totalMinutes).toFixed(2);
     }
     else if (hoursArea > 0) {
       totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = filamentsTotal + extra + totalHours;
+      total = filamentsTotal + totalHours;
 
       itemSelected.details.cost_hour = parseFloat(totalHours).toFixed(2);
     }
     else {
-      total = filamentsTotal + extra;
+      total = filamentsTotal
+    }
+
+    /* Extra */
+    if (extra < -total) {
+      extra = -total;
+      itemSelected.details.extra = extra;
+      total += extra;
+    }
+    else {
+      total += extra;
     }
 
     if (Number.isNaN(total) && Number.isNaN(filamentsTotal)) {
@@ -1282,31 +1832,37 @@ const NewSale = () => {
     let total = 0;
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
-    if (extra < -resinsTotal) {
-      extra = -resinsTotal;
-      itemSelected.details.extra = extra;
-    }
 
     if (minutesArea > 0) {
       if (resinsTotal === 0) {
         totalMinutes = (minutesArea * PRICE_MINUTES[itemSelected.name]);
-        total = resinsTotal + extra + totalMinutes;
+        total = resinsTotal + totalMinutes;
       }
       else {
         const minutesToHours = minutesArea / 60;
         /* 6 months (4392 hours) */
         totalMinutes = Number((PRICE_MACHINE[itemSelected.name] / 4392) * minutesToHours);
-        total = resinsTotal + extra + totalMinutes;
+        total = resinsTotal + totalMinutes;
       }
       itemSelected.details.cost_hour = parseFloat(totalMinutes).toFixed(2);
     }
     else if (hoursArea > 0) {
       totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = resinsTotal + extra + totalHours;
+      total = resinsTotal + totalHours;
       itemSelected.details.cost_hour = parseFloat(totalHours).toFixed(2);
     }
     else {
-      total = resinsTotal + extra;
+      total = resinsTotal;
+    }
+
+    /* Extra */
+    if (extra < -total) {
+      extra = -total;
+      itemSelected.details.extra = extra;
+      total += extra;
+    }
+    else {
+      total += extra;
     }
 
     if (Number.isNaN(total) && Number.isNaN(resinsTotal)) {
@@ -1323,7 +1879,14 @@ const NewSale = () => {
   /* Sofware - methods */
 
   const handleAddSoftware = (software) => {
+
+    if (software === null) {
+      itemSelected.details.hours_area = 0;
+      itemSelected.details.base_cost = parseFloat(0).toFixed(2);
+      itemSelected.details.cost_hours = 0;
+    }
     itemSelected.details.software = software
+
     updateItemSoftware();
   };
 
@@ -1343,15 +1906,18 @@ const NewSale = () => {
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
 
-    if (extra < -totalHours) {
-      extra = -totalHours;
-      itemSelected.details.extra = extra;
+    if (hoursArea > 0 && itemSelected.details.software) {
+      total = totalHours;
     }
-    else if (hoursArea > 0 && itemSelected.details.software) {
-      total = totalHours + extra;
+
+    /* Extra */
+    if (extra < -total) {
+      extra = -total;
+      itemSelected.details.extra = extra;
+      total += extra;
     }
     else {
-      total = extra;
+      total += extra;
     }
 
     if (Number.isNaN(total)) {
@@ -1410,6 +1976,34 @@ const NewSale = () => {
     let materialCost = 0;
     let totalHours = 0;
 
+    console.log(typeSale);
+    if(typeSale === 'S'){
+      if (quantity > 7) {
+        itemSelected.details.quantity = 7;
+      }
+  
+      if (width > 5) {
+        itemSelected.details.width = 5;
+      }
+  
+      if (height > 7) {
+        itemSelected.details.height = 7;
+      }
+    }
+    else{
+      if(width > 50) {
+        itemSelected.details.width = 30;
+      }
+      if(height > 100) {
+        itemSelected.details.height = 100;
+      }
+      const area = width * height;
+      if(area > itemSelected.details.stabilizer?.area){
+        itemSelected.details.width = 0;
+        itemSelected.details.height = 0;
+      }
+    }
+
     if (width && height && hoopSize && quantity) {
       if (width > hoopSize.split('x')[0]) {
         itemSelected.details.width = hoopSize.split('x')[0];
@@ -1420,6 +2014,7 @@ const NewSale = () => {
 
       materialCost += width > height ? (width * PRICE_THREAD) * (quantity) : (height * PRICE_THREAD * (quantity));
       itemSelected.details.embroidery_cost = materialCost;
+      setErrors({ ...errors, base_cost: '' })
     }
 
     if (hours > 0) {
@@ -1431,18 +2026,22 @@ const NewSale = () => {
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
 
-    if (extra < -materialCost) {
-      extra = -materialCost;
-      itemSelected.details.extra = extra;
-    }
-
     if (totalHours > 0) {
-      total = totalHours + extra;
+      total = totalHours;
     }
     else {
-      total = materialCost + extra;
+      total = materialCost;
     }
 
+    /* Extra */
+    if (extra < -total) {
+      extra = -total;
+      itemSelected.details.extra = extra;
+      total += extra;
+    }
+    else {
+      total += extra;
+    }
 
     if (Number.isNaN(total)) {
       itemSelected.details.base_cost = 0.00;
@@ -1494,12 +2093,38 @@ const NewSale = () => {
         <Typography variant="subtitle1" gutterBottom marginBottom={4}>
           Ingrese los datos del cliente
         </Typography>
-        <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} />
+        <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} handleOnBlurDocument={handleOnBlurDocument} errors={errors} />
 
         {
           containerCustomer ?
-            <AddCustomer name={name} email={email} telephone={telephone} ageRangeSelected={ageRangeSelected} setAgeRangeSelected={setAgeRangeSelected} setTypeSexSelected={setTypeSexSelected} typeSexSelected={typeSexSelected} provinceSelected={provinceSelected}
-              setProvinceSelected={setProvinceSelected} districtSelected={districtSelected} setDistrictSelected={setDistrictSelected} townshipSelected={townshipSelected} setTownshipSelected={setTownshipSelected} ageRanges={ageRanges} typeSexes={typeSexes} disabledAddCustomer={disabledAddCustomer} handleChangeAgeRange={handleChangeAgeRange} handleChangeTypeSex={handleChangeTypeSex} handleChangeName={handleChangeName} handleChangeEmail={handleChangeEmail} handleChangeTelephone={handleChangeTelephone} /> : null
+            <AddCustomer
+              name={name}
+              email={email}
+              telephone={telephone}
+              ageRangeSelected={ageRangeSelected}
+              setAgeRangeSelected={setAgeRangeSelected}
+              setTypeSexSelected={setTypeSexSelected}
+              typeSexSelected={typeSexSelected}
+              provinceSelected={provinceSelected}
+              setProvinceSelected={setProvinceSelected}
+              districtSelected={districtSelected}
+              setDistrictSelected={setDistrictSelected}
+              townshipSelected={townshipSelected}
+              setTownshipSelected={setTownshipSelected}
+              ageRanges={ageRanges}
+              typeSexes={typeSexes}
+              disabledAddCustomer={disabledAddCustomer}
+              handleChangeAgeRange={handleChangeAgeRange}
+              handleChangeTypeSex={handleChangeTypeSex}
+              handleChangeName={handleChangeName}
+              handleOnBlurName={handleOnBlurName}
+              handleChangeEmail={handleChangeEmail}
+              handleOnBlurEmail={handleOnBlurEmail}
+              handleChangeTelephone={handleChangeTelephone}
+              setIsLoading={setIsLoading}
+              errors={errors}
+            /> : null
+
         }
       </>
     )
@@ -1552,7 +2177,7 @@ const NewSale = () => {
           </FormControl>
 
           {
-            typeSale === 'S' ?
+            typeSale === 'S' && serviceCategory !== 'ec' ?
               <Stack
                 direction="row"
                 sx={{
@@ -1650,8 +2275,12 @@ const NewSale = () => {
                       value={dateDelivery}
                       onChange={(newValue) => {
                         setDateDelivery(newValue);
+                        setErrors({ ...errors, date_delivery: '' })
                       }}
-                      renderInput={(params) => <TextField size='small' {...params} />}
+                      renderInput={(params) => <TextField size='small' {...params}
+                        error={!!errors?.date_delivery}
+                        helperText={errors?.date_delivery}
+                      />}
                       inputFormat="dd/MM/yyyy"
                       disablePast
                     />
@@ -1682,6 +2311,14 @@ const NewSale = () => {
                   setContainerServices(services[e.target.value]);
                   setServiceCategory(e.target.value);
                   setService(1);
+                  setTypeInvoice('T');
+                  setItems([]);
+                  setHours(0);
+                  setMinutes(0);
+                  setTotal(0);
+                  setPayment(0);
+                  setBalance(0);
+                  setDateDelivery(null);
                 }}
                 value={serviceCategory}
               >
@@ -1733,14 +2370,15 @@ const NewSale = () => {
                   setCount(count + 1);
                   items.push({
                     id: count,
+                    uuid: `${services[serviceCategory].find((s) => s.id === service).name} (${services[serviceCategory].find((s) => s.id === service).name.substring(0, 2).toUpperCase()}${Math.floor((Math.random() * 100) + 1)})`,
                     name: services[serviceCategory].find((s) => s.id === service).name,
                     id_service: services[serviceCategory].find((s) => s.id === service).id,
                     category_service: serviceCategory,
                     details: {}
                   });
                   setFlagItems(false);
-
                   calculateTotal(hours, minutes);
+                  showToastMessageStatus('success', 'Servicio agregado correctamente');
                 }
               }
             >
@@ -1882,30 +2520,6 @@ const NewSale = () => {
 
   function resumeOrder() {
 
-    const list = [
-      {
-        name: 'Anulación',
-        icon: <Iconify icon={'mdi:close-circle-outline'} color="red" width={32} />,
-        role: [1, 2, 3],
-        onClick: () => {
-          /* Reaload  */
-          window.location.reload();
-        }
-      },
-      {
-        name: 'Generar orden',
-        icon: <Iconify icon={'material-symbols:save'} color="green" width={32} />,
-        role: [1],
-        onClick: handleClickSubmit
-      },
-      {
-        name: 'Cotización',
-        icon: <Iconify icon={'mdi:receipt-text-check-outline'} color="#2065D1" width={32} />,
-        role: [1, 2, 3],
-        onClick: handleClickSubmitQuotation
-      },
-    ];
-
     return (
       <>
         <Typography variant="h6" sx={{ mb: 3 }}>
@@ -1927,7 +2541,7 @@ const NewSale = () => {
               Teléfono
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {telephone}
+              {telephone || 'No especificado'}
             </Typography>
           </Grid>
           <Grid item xs={12} md={6} lg={4}>
@@ -1935,7 +2549,7 @@ const NewSale = () => {
               Correo
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {email}
+              {email || 'No especificado'}
             </Typography>
           </Grid>
         </Grid>
@@ -1949,12 +2563,17 @@ const NewSale = () => {
             InputLabelProps={{
               shrink: true,
             }}
-            placeholder="Por favor, ingrese una descripción de la orden"
+            placeholder="Ingrese una descripción de la orden"
             multiline
             rows={4}
             variant="outlined"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              setErrors({ ...errors, description: '' });
+            }}
+            error={errors.description}
+            helperText={errors.description ? errors.description : ''}
           />
         </FormControl>
         <Typography variant="subtitle1" sx={{ marginY: 2, textAlign: 'center' }}>
@@ -1971,25 +2590,64 @@ const NewSale = () => {
               gridTemplateColumns: 'repeat(3, 1fr)',
             }}
           >
-            {list.map((site, index) => (
-              <Button
-                style={{ textDecoration: 'none', color: 'inherit' }}
-                key={index}
-                onClick={site.onClick}
-              >
-                <Paper key={site.name} variant="outlined" sx={{
-                  py: 2, textAlign: 'center',
-                  width: '100%',
-                  height: '100%',
-                }}>
-                  <Box sx={{ mb: 0.5 }}>{site.icon}</Box>
+            <Button
+              style={{ textDecoration: 'none', color: 'inherit' }}
+              onClick={
+                () => {
+                  /* Reaload  */
+                  window.location.reload();
+                }
+              }
+            >
+              <Paper key='Anulación' variant="outlined" sx={{
+                py: 2, textAlign: 'center',
+                width: '100%',
+                height: '100%',
+              }}>
+                <Box sx={{ mb: 0.5 }}><Iconify icon={'mdi:close-circle-outline'} color="red" width={32} /></Box>
 
-                  <Typography variant="body1" sx={{ color: 'text.secondary', textDecoration: 'none' }}>
-                    {site.name}
-                  </Typography>
-                </Paper>
-              </Button>
-            ))}
+                <Typography variant="body1" sx={{ color: 'text.secondary', textDecoration: 'none' }}>
+                  Anulación
+                </Typography>
+              </Paper>
+            </Button>
+
+            <Button
+              style={{ textDecoration: 'none', color: 'inherit' }}
+              onClick={handleClickSubmit}
+            >
+              <Paper variant="outlined" sx={{
+                py: 2, textAlign: 'center',
+                width: '100%',
+                height: '100%',
+              }}>
+                <Box sx={{ mb: 0.5 }}><Iconify icon={'material-symbols:save'} color="green" width={32} /></Box>
+
+                <Typography variant="body1" sx={{ color: 'text.secondary', textDecoration: 'none' }}>
+                  Generar orden
+                </Typography>
+              </Paper>
+            </Button>
+
+            <Button
+              style={{ textDecoration: 'none', color: 'inherit' }}
+              onClick={handleClickSubmitQuotation}
+              disabled={serviceCategory === 'ec' || typeSale === 'M'}
+            >
+              <Paper variant="outlined" sx={{
+                py: 2, textAlign: 'center',
+                width: '100%',
+                height: '100%',
+              }}>
+                <Box sx={{ mb: 0.5 }}><Iconify icon={'mdi:receipt-text-check-outline'} color={
+                  serviceCategory === 'ec' || typeSale === 'M' ? '#637381' : '#2065D1'
+                } width={32} /></Box>
+
+                <Typography variant="body1" sx={{ color: 'text.secondary', textDecoration: 'none' }}>
+                  Cotización
+                </Typography>
+              </Paper>
+            </Button>
           </Box>
         </Grid>
       </>
@@ -2221,6 +2879,104 @@ const NewSale = () => {
       </Card>
     </Container>
 
+
+    {/* Toastify */}
+
+    <ToastContainer />
+
+
+    {/* Feedback error visit */}
+    <Dialog
+      open={isErrorRows}
+      TransitionComponent={Transition}
+      keepMounted
+      onClose={() => {
+        setIsErrorRows(false);
+      }}
+      aria-describedby="alert-dialog-slide-description"
+      fullWidth
+      maxWidth='sm'
+    >
+      <DialogContent dividers>
+
+        <Stack
+          direction="column"
+          sx={{
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+          }}
+        >
+          <Box sx={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            {/* Error X */}
+            <Iconify icon="mdi:close-circle" color="#FF4842" width="130px" height="130px" />
+          </Box>
+
+          <Typography variant="h4" sx={{
+            fontWeight: '600',
+            marginTop: 2,
+          }}>
+            Error al finalizar la venta
+          </Typography>
+
+          <Typography variant="subtitle1" sx={{
+            fontWeight: '400',
+            marginTop: 2,
+            textAlign: 'justify',
+          }}>
+            Tuvimos un problema al finalizar la venta, todos los servicios agregados deben estar con su información completa. Por favor, revisa los siguientes servicios:
+          </Typography>
+
+          {/* Errors Excel */}
+          <Stack
+            direction="column"
+            sx={{
+              marginTop: 1,
+              marginLeft: 6,
+              width: '100%',
+              lineHeight: '1.7',
+            }}
+          >
+            {
+              rowsEmpty.map((row, index) => {
+                return (
+                  <ul key={index}>
+                    <li>
+                      {row.uuid}
+                    </li>
+                  </ul>
+                )
+              })
+            }
+          </Stack>
+
+        </Stack>
+
+      </DialogContent>
+      <DialogActions
+        sx={{
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <Button
+          variant="contained"
+          size='large'
+          sx={{
+            margin: 2,
+          }}
+          onClick={() => {
+            setIsErrorRows(false);
+          }}
+        >Cerrar</Button>
+      </DialogActions>
+    </Dialog>
+
     {/* Dialog sale */}
 
     <BootstrapDialog
@@ -2284,6 +3040,7 @@ const NewSale = () => {
         () => {
           deleteItem(serviceSelectedId);
           handleCloseMenu();
+          showToastMessageStatus('error', 'El servicio se ha eliminado correctamente.');
         }
       }>
         <Iconify icon={'eva:trash-2-outline'} sx={{ mr: 2 }} />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { filter } from 'lodash';
-import PropTypes from 'prop-types';
+import { filter, set } from 'lodash';
+import PropTypes, { func } from 'prop-types';
 import axios from 'axios';
 // @mui
 import {
@@ -63,10 +63,14 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import { TimePicker } from '@mui/x-date-pickers';
 import { es } from 'date-fns/locale';
+import Slide from '@mui/material/Slide';
 
 import Iconify from '../components/iconify';
 
 import { getCalendarEvents } from '../sections/@dashboard/schedule/getCalendarEvents';
+
+
+const Transition = React.forwardRef((props, ref) => <Slide direction="up" ref={ref} {...props} />);
 
 const Android12Switch = styled(Switch)(({ theme }) => ({
     padding: 8,
@@ -211,6 +215,10 @@ const Schedule = () => {
     const [showCreate, setShowCreate] = useState(false);
     const [showEditEvent, setShowEditEvent] = useState(false);
     const [disabled, setDisabled] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isErrorExcel, setIsErrorExcel] = useState(false);
+    const [errorsExcel, setErrorsExcel] = useState([]);
+    const [isFormatExcel, setIsFormatExcel] = useState(false);
 
     /* Datos eventos */
     const [title, setTitle] = useState(''); // Título del evento
@@ -230,6 +238,7 @@ const Schedule = () => {
     const [documentNumber, setDocumentNumber] = useState(null);
     const [name, setName] = useState(null);
     const [date, setDate] = useState(null);
+    const [errors, setErrors] = useState({});
 
     /* Datos visita */
     const [areasSelected, setAreasSelected] = useState([]); // [{id: '', checked: false}
@@ -248,6 +257,10 @@ const Schedule = () => {
     };
 
     const handleChangeReasonSelected = (event) => {
+        setErrors({
+            ...errors,
+            areas: ''
+        });
         setReasonSelected(event.target.value);
         flexibleHandleChangeReason(event.target.value);
     };
@@ -259,7 +272,7 @@ const Schedule = () => {
                 {
                     id: '',
                     visible: false,
-                    timeIn: new Date(),
+                    timeIn: null,
                     timeOut: null
                 }
             )
@@ -267,7 +280,7 @@ const Schedule = () => {
         setCheckAll(
             {
                 visible: false,
-                timeIn: new Date(),
+                timeIn: null,
                 timeOut: null
             }
         );
@@ -392,14 +405,14 @@ const Schedule = () => {
         setDocumentNumber(null);
         setName(null);
         setDate(null);
+        setReasonSelected(1);
         flexibleHandleChangeReason(1);
-
         setAreasSelected(
             areas.map((area) => {
                 return {
                     id: '',
                     visible: false,
-                    timeIn: new Date(),
+                    timeIn: null,
                     timeOut: null
                 }
             }
@@ -407,75 +420,148 @@ const Schedule = () => {
         );
         setCheckAll({
             visible: false,
-            timeIn: new Date(),
+            timeIn: null,
             timeOut: null
         });
         setSelectedFile(null);
         setValue(0);
-        if(!open)setShowEditEvent(false);
+        if (!open) setShowEditEvent(false);
     };
 
     const handleSubmitDialog = async (event) => {
         event.preventDefault();
-        handleCloseDialog();
-        if (id) {
-            await axios.post(`/api/bookings/put`, {
-                id,
-                'type': containerTypeVisit,
-                'document_type': documentType,
-                'document_number': documentNumber,
-                name,
-                date: format(date, 'yyyy-MM-dd'),
-                'reason_visit_id': reasonSelected,
-                areas: areasSelected.filter((area) => area.id !== '').map((area) => {
-                    return {
-                        area_id: area.id,
-                        start_time: format(area.timeIn, 'HH:mm:ss'),
-                        end_time: format(area.timeOut, 'HH:mm:ss')
-                    }
-                }),
-                file: containerTypeVisit === 'G' ? selectedFile : null,
-                'status': status ? 'S'  : 'P'
-            },
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        'Accept': 'application/json'
-                    }
-                }
-            );
-        } else {
-            await axios.post('/api/bookings', {
-                'type': containerTypeVisit,
-                'document_type': documentType,
-                'document_number': documentNumber,
-                name,
-                date: format(date, 'yyyy-MM-dd'),
-                'reason_visit_id': reasonSelected,
-                areas: areasSelected.filter((area) => area.id !== '').map((area) => {
-                    return {
-                        area_id: area.id,
-                        start_time: format(area.timeIn, 'HH:mm:ss'),
-                        end_time: format(area.timeOut, 'HH:mm:ss')
-                    }
-                }),
-                file: containerTypeVisit === 'G' ? selectedFile : null
-            },
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    }
-                }
-            );
+        setIsLoading(true);
+
+        const errorsDisplay = {};
+        let flag = false;
+
+        if (containerTypeVisit === 'G' && id === null) {
+            if (selectedFile === null) {
+                errorsDisplay.file = 'Debe seleccionar un archivo';
+                flag = true;
+            }
         }
-        showToastMessage();
-        setShowEditEvent(false);
-        getCalendarEvents();
+
+        if (documentNumber === null || documentNumber === '') {
+            errorsDisplay.document = 'Debe ingresar un número de documento';
+            flag = true;
+        }
+
+        if (name === null || name === '') {
+            errorsDisplay.name = 'Debe ingresar un nombre';
+            flag = true;
+        }
+
+        const areasChecked = areasSelected.filter((area) => area.id !== '').map((area) => {
+            return {
+                area_id: area.id,
+            }
+        });
+
+        if (areasChecked.length === 0 && containerCheckAll === false) {
+            errorsDisplay.areas = 'Por favor, seleccione al menos un área';
+            flag = true;
+        }
+        else if (areasChecked.length === 0 && containerCheckAll === true) {
+            errorsDisplay.checkall = 'Por favor, complete el formulario';
+            flag = true;
+        }
+
+        if (!flag) {
+            setOpen(false);
+            if (id) {
+                await axios.post(`/api/bookings/put`, {
+                    id,
+                    'type': containerTypeVisit,
+                    'document_type': documentType,
+                    'document_number': documentNumber,
+                    name,
+                    date: format(date, 'yyyy-MM-dd'),
+                    'reason_visit_id': reasonSelected,
+                    areas: areasSelected.filter((area) => area.id !== '').map((area) => {
+                        return {
+                            area_id: area.id,
+                            start_time: format(area.timeIn, 'HH:mm:ss'),
+                            end_time: format(area.timeOut, 'HH:mm:ss')
+                        }
+                    }),
+                    file: containerTypeVisit === 'G' ? selectedFile : null,
+                    'status': status ? 'S' : 'P'
+                },
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                            'Accept': 'application/json'
+                        }
+                    }
+                )
+                    .then((response) => {
+                        setIsLoading(false);
+                    })
+            } else {
+                await axios.post('/api/bookings', {
+                    'type': containerTypeVisit,
+                    'document_type': documentType,
+                    'document_number': documentNumber,
+                    name,
+                    date: format(date, 'yyyy-MM-dd'),
+                    'reason_visit_id': reasonSelected,
+                    areas: areasSelected.filter((area) => area.id !== '').map((area) => {
+                        return {
+                            area_id: area.id,
+                            start_time: format(area.timeIn, 'HH:mm:ss'),
+                            end_time: format(area.timeOut, 'HH:mm:ss')
+                        }
+                    }),
+                    file: containerTypeVisit === 'G' ? selectedFile : null
+                },
+                    {
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        }
+                    }
+                )
+                    .then((response) => {
+                        setIsLoading(false);
+                        showToastMessage();
+                        setShowEditEvent(false);
+                        getCalendarEvents();
+                        handleCloseDialog();
+                    })
+                    .catch((error) => {
+                        if (error.response.data.type) {
+                            setIsFormatExcel(true);
+                        }
+                        else {
+                            setIsErrorExcel(true);
+                            setErrorsExcel(error.response.data.errors);
+                        }
+                        setIsLoading(false);
+                    }
+                    )
+            }
+
+        } else {
+            setErrors(errorsDisplay);
+            
+            if(errorsDisplay.document || errorsDisplay.name) {
+                setValue(0);
+            }
+            else if (errorsDisplay.checkall || errorsDisplay.areas) {
+                setValue(1);
+            }
+            else if (errorsDisplay.file) {
+                setValue(2);
+            }
+            setIsLoading(false);
+        }
+
     };
 
     /* Get api */
     const getAreas = async () => {
-        const response = await axios.get('/api/areas');
+        const response = await axios.get('/api/areas')
+        setIsLoading(false);
         setAreas(response.data);
         setAreasSelected(
             new Array(response.data.length).fill(
@@ -498,10 +584,12 @@ const Schedule = () => {
 
     const getReasonVisits = async () => {
         const response = await axios.get('/api/reason-visits/bookings');
+        setIsLoading(false);
         setReasonVisits(response.data);
     }
 
     useEffect(() => {
+        setIsLoading(true);
         getAreas();
         getReasonVisits();
     }, []);
@@ -616,7 +704,7 @@ const Schedule = () => {
                                 } else {
                                     setStatus(false);
                                     setDisabled(false);
-                                    if(info.event.start < new Date()){
+                                    if (info.event.start < new Date()) {
                                         setDisabled(true);
                                     }
                                 }
@@ -663,6 +751,186 @@ const Schedule = () => {
 
             <ToastContainer />
 
+            {/* Feedback error visit format */}
+            <Dialog
+                open={isFormatExcel}
+                TransitionComponent={Transition}
+                keepMounted
+                onClose={() => {
+                    setIsFormatExcel(false);
+                    setOpen(true);
+                }}
+                aria-describedby="alert-dialog-slide-description"
+                fullWidth
+                maxWidth='sm'
+            >
+                <DialogContent dividers>
+
+                    <Stack
+                        direction="column"
+                        sx={{
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: '100%',
+                        }}
+                    >
+                        <Box sx={{
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}>
+                            {/* Error X */}
+                            <Iconify icon="mdi:close-circle" color="#FF4842" width="130px" height="130px" />
+                        </Box>
+
+                        <Typography variant="h4" sx={{
+                            fontWeight: '600',
+                            marginTop: 2,
+                        }}>
+                            Error al cargar el excel
+                        </Typography>
+
+                        <Typography variant="subtitle1" sx={{
+                            fontWeight: '400',
+                            marginTop: 2,
+                            textAlign: 'justify',
+                        }}>
+                            No pudimos procesar su archivo debido a que no cumple con el formato correcto. Por favor, verifique los datos e intente nuevamente.
+                        </Typography>
+
+
+                    </Stack>
+
+                </DialogContent>
+                <DialogActions
+                    sx={{
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}
+                >
+                    <Button
+                        variant="contained"
+                        size='large'
+                        sx={{
+                            margin: 2,
+                        }}
+                        onClick={() => {
+                            setIsFormatExcel(false);
+                            setOpen(true);
+                        }}
+                    >Cerrar</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Feedback error visit */}
+            <Dialog
+                open={isErrorExcel}
+                TransitionComponent={Transition}
+                keepMounted
+                onClose={() => {
+                    setErrorsExcel([]);
+                    setIsErrorExcel(false);
+                    setOpen(true);
+                }}
+                aria-describedby="alert-dialog-slide-description"
+                fullWidth
+                maxWidth='sm'
+            >
+                <DialogContent dividers>
+
+                    <Stack
+                        direction="column"
+                        sx={{
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: '100%',
+                        }}
+                    >
+                        <Box sx={{
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}>
+                            {/* Error X */}
+                            <Iconify icon="mdi:close-circle" color="#FF4842" width="130px" height="130px" />
+                        </Box>
+
+                        <Typography variant="h4" sx={{
+                            fontWeight: '600',
+                            marginTop: 2,
+                        }}>
+                            Error al cargar el excel
+                        </Typography>
+
+                        <Typography variant="subtitle1" sx={{
+                            fontWeight: '400',
+                            marginTop: 2,
+                            textAlign: 'justify',
+                        }}>
+                            No pudimos procesar su archivo debido a uno o más errores. No se han creado clientes a partir de este archivo. Corrija los errores a continuación y vuelva a cargar el archivo para crear los clientes.
+                            Para obtener más información sobre los <Box fontWeight='fontWeightMedium' display='inline'>requisitos de carga</Box>, consulte el <Box fontWeight='fontWeightMedium' display='inline'>manual de usuario</Box>.
+                        </Typography>
+
+                        {/* Errors Excel */}
+
+                        <Stack
+                            direction="column"
+                            sx={{
+                                marginTop: 1,
+                                marginLeft: 6,
+                                width: '100%',
+                                lineHeight: '1.7',
+                            }}
+                        >
+                            {
+                                Object.keys(errorsExcel).map((key, index) => (
+                                    <ul key={index}>
+                                        <li>                                              {/* Name keys */}
+                                            {`${key} es invalido en la fila: `}
+                                            {/* Errors */}
+                                            {errorsExcel[key].join(', ')}
+                                        </li>
+                                    </ul>
+                                ))
+                            }
+                        </Stack>
+
+                    </Stack>
+
+                </DialogContent>
+                <DialogActions
+                    sx={{
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}
+                >
+                    <Button
+                        variant="contained"
+                        size='large'
+                        sx={{
+                            margin: 2,
+                        }}
+                        onClick={() => {
+                            setIsErrorExcel(false);
+                            setErrorsExcel([]);
+                            setOpen(true);
+                        }}
+                    >Cerrar</Button>
+                </DialogActions>
+            </Dialog>
+
+
+            {/* Loading */}
+            <Backdrop
+                sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                open={isLoading}
+            >
+                <CircularProgress color="inherit" />
+            </Backdrop>
+
+
             {/* Dialog */}
 
             <BootstrapDialog
@@ -688,7 +956,12 @@ const Schedule = () => {
                                 >
 
                                     <FormControl sx={{ width: '48%' }}>
-                                        <TextField id="outlined-basic" variant="outlined" value={title} size="small" disabled />
+                                        <TextField id="outlined-basic"
+                                            variant="outlined"
+                                            value={title}
+                                            size="small"
+                                            disabled
+                                        />
                                     </FormControl>
 
                                     <FormControl sx={{ width: '48%' }}>
@@ -701,7 +974,12 @@ const Schedule = () => {
                                             value={initialDate}
                                             disabled
                                             inputFormat="dd/MM/yyyy"
-                                            renderInput={(params) => <TextField size='small' sx={{ width: '48%' }} {...params} />}
+                                            renderInput={(params) =>
+                                                <TextField
+                                                    size='small'
+                                                    sx={{ width: '48%' }}
+                                                    {...params}
+                                                />}
                                         />
                                     </LocalizationProvider>
 
@@ -828,15 +1106,22 @@ const Schedule = () => {
                                             <FormControl sx={{ width: '100%' }}>
                                                 <TextField id="outlined-basic" label="Número de documento" variant="outlined" value={documentNumber} size="small" onChange={(event) => {
                                                     setDocumentNumber(event.target.value)
+                                                    setErrors({ ...errors, document: '' })
                                                 }}
                                                     disabled={disabled}
+                                                    error={!!errors.document}
+                                                    helperText={errors.document}
                                                 />
                                             </FormControl>
 
                                             <FormControl sx={{ width: '100%' }}>
                                                 <TextField id="outlined-basic" label="Nombre" variant="outlined" value={name} size="small" onChange={(event) => {
                                                     setName(event.target.value)
-                                                }} disabled={disabled} />
+                                                    setErrors({ ...errors, name: '' })
+                                                }} disabled={disabled}
+                                                    error={!!errors.name}
+                                                    helperText={errors.name}
+                                                />
                                             </FormControl>
 
                                             <FormControl size="small">
@@ -905,7 +1190,10 @@ const Schedule = () => {
                                                                 value={area.id}
                                                                 color="primary"
                                                                 checked={areasSelected[index].id !== ''}
-                                                                onChange={() => handleSelectedAreas(index)}
+                                                                onChange={() => {
+                                                                    handleSelectedAreas(index)
+                                                                    setErrors({ ...errors, areas: '' })
+                                                                }}
                                                                 disabled={containerCheckAll || disabled}
 
                                                             />
@@ -938,6 +1226,8 @@ const Schedule = () => {
                                                                 sx={{
                                                                     bgcolor: 'primary.main',
                                                                     color: 'primary.contrastText',
+                                                                    width: 32,
+                                                                    height: 32,
                                                                 }}
                                                             >
                                                                 <Iconify icon="bi:arrow-right" />
@@ -970,6 +1260,13 @@ const Schedule = () => {
                                                 </Stack>
                                             ))}
 
+                                            <FormHelperText
+                                                sx={{
+                                                    color: '#FF4842',
+                                                    marginTop: '10px',
+                                                }}
+                                            >{errors.areas ? errors.areas : null}</FormHelperText>
+
                                             {
                                                 containerCheckAll ?
                                                     <Stack direction="row" alignItems="center" sx={{ marginTop: '3px' }}>
@@ -980,7 +1277,12 @@ const Schedule = () => {
                                                             control={
                                                                 <Checkbox name="Marcar todas"
                                                                     checked={checkAll.visible}
-                                                                    onChange={handleChangeCheckAll} />}
+                                                                    onChange={
+                                                                        (e) => {
+                                                                            handleChangeCheckAll(e)
+                                                                            setErrors({ ...errors, checkall: '' })
+                                                                        }
+                                                                    } />}
                                                             sx={{ marginLeft: '3px' }}
                                                             label="Marcar todas"
                                                             disabled={disabled} />
@@ -1010,6 +1312,8 @@ const Schedule = () => {
                                                                     sx={{
                                                                         bgcolor: 'primary.main',
                                                                         color: 'primary.contrastText',
+                                                                        width: 32,
+                                                                        height: 32,
                                                                     }}
                                                                 >
                                                                     <Iconify icon="bi:arrow-right" />
@@ -1037,9 +1341,17 @@ const Schedule = () => {
                                                                 </LocalizationProvider>
                                                             </Stack>
                                                         ) : null}
+
                                                     </Stack>
+
                                                     : null
                                             }
+                                            <FormHelperText
+                                                sx={{
+                                                    color: '#FF4842',
+                                                    marginTop: '10px',
+                                                }}
+                                            >{errors.checkall ? errors.checkall : null}</FormHelperText>
                                         </Stack>
                                     </TabPanel>
                                     {
@@ -1100,23 +1412,30 @@ const Schedule = () => {
                                                             <Iconify icon="bi:arrow-right" />
                                                         </Avatar>
                                                         {/* Input file blue */}
-                                                        <Input
-                                                            accept=".xlsx"
-                                                            type="file"
-                                                            onChange={(e) => {
-                                                                if (e.target.files[0].type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-                                                                    setSelectedFile(e.target.files[0]);
-                                                                }
-                                                                else {
-                                                                    alert('Formato no válido');
-                                                                    setSelectedFile(null);
-                                                                }
-                                                            }}
-                                                            sx={{
-                                                                width: '35%',
-                                                            }}
-                                                            disabled={disabled}
-                                                        />
+                                                        <FormControl sx={{ width: '35%' }}>
+                                                            <Input
+                                                                accept=".xlsx"
+                                                                type="file"
+                                                                onChange={(e) => {
+                                                                    if (e.target.files[0].type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                                                                        setSelectedFile(e.target.files[0]);
+                                                                        setErrors({ ...errors, file: '' });
+                                                                    }
+                                                                    else {
+                                                                        alert('Formato no válido');
+                                                                        setSelectedFile(null);
+                                                                    }
+                                                                }}
+                                                                disabled={disabled}
+                                                            />
+                                                            <FormHelperText
+                                                                sx={{
+                                                                    color: '#FF4842',
+                                                                }}
+                                                            >{
+                                                                    errors.file ? errors.file : ''
+                                                                }</FormHelperText>
+                                                        </FormControl>
                                                     </Stack>
 
                                                     {id ? (
@@ -1126,7 +1445,7 @@ const Schedule = () => {
                                                                 direction="row"
                                                                 spacing={2}
                                                                 alignItems="center"
-                                                                justifyContent="space-evenly"
+                                                                justifyContent="center"
                                                             >
                                                                 <a
                                                                     href={`http://localhost:8000/api/bookings/${id}/customers/pdf/`}
@@ -1144,29 +1463,6 @@ const Schedule = () => {
                                                                         startIcon={<Iconify icon="mdi:file-pdf" />}
                                                                     >
                                                                         Descargar PDF
-                                                                    </Button>
-                                                                </a>
-
-                                                                <a
-                                                                    href={`http://localhost:8000/api/bookings/${id}/customers/pdf/`}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    download
-                                                                    style={{ textDecoration: 'none' }}
-                                                                >
-                                                                    <Button variant="contained"
-                                                                        size='medium'
-                                                                        sx={{
-                                                                            width: '180px',
-                                                                            backgroundColor: 'gray',
-                                                                            boxShadow: 'none',
-                                                                            '&:hover': {
-                                                                                backgroundColor: '#9e9e9e'    
-                                                                            }
-                                                                        }}
-                                                                        startIcon={<Iconify icon="mdi:file-excel" />}
-                                                                    >
-                                                                        Descargar Excel
                                                                     </Button>
                                                                 </a>
                                                             </Stack>
