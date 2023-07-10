@@ -4,8 +4,35 @@ import { useState, useEffect, useRef } from 'react';
 // @mui
 import { Button, Card, Container, Typography, FormControlLabel, Select, MenuItem, InputLabel, FormControl, Radio, FormLabel, RadioGroup, Divider, Input, Box, TextField, FormHelperText } from '@mui/material';
 import { Stack } from '@mui/system';
+import config from '../../../config.json';
 
-const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSelected, typeSexSelected, setTypeSexSelected, provinceSelected, setProvinceSelected, districtSelected, setDistrictSelected, townshipSelected, setTownshipSelected, ageRanges, typeSexes, disabledAddCustomer, handleChangeAgeRange, handleChangeTypeSex, handleChangeName, handleOnBlurName, handleChangeEmail, handleOnBlurEmail, handleChangeTelephone, setIsLoading, errors }) => {
+const AddCustomer = ({
+    name,
+    email,
+    telephone,
+    ageRangeSelected,
+    setAgeRangeSelected,
+    typeSexSelected,
+    setTypeSexSelected,
+    provinceSelected,
+    setProvinceSelected,
+    districtSelected,
+    setDistrictSelected,
+    townshipSelected,
+    setTownshipSelected,
+    ageRanges,
+    typeSexes,
+    disabledAddCustomer,
+    handleChangeAgeRange,
+    handleChangeTypeSex,
+    handleChangeName,
+    handleOnBlurName,
+    handleChangeEmail,
+    handleOnBlurEmail,
+    handleChangeTelephone,
+    setIsLoading,
+    errors
+}) => {
 
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
@@ -13,7 +40,7 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
 
     const getProvinces = () => {
         setIsLoading(true);
-        axios.get('http://127.0.0.1:8001/api/provinces')
+        axios.get(`${config.GEOPTYAPI_URL}/api/provinces`)
             .then((response) => {
                 setProvinces(response.data);
                 setIsLoading(false);
@@ -25,7 +52,7 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
 
     const getDistricts = (id) => {
         setIsLoading(true);
-        axios.get(`http://127.0.0.1:8001/api/province/${id}/districts`)
+        axios.get(`${config.GEOPTYAPI_URL}/api/province/${id}/districts`)
             .then((response) => {
                 setIsLoading(false);
                 setDistricts(response.data);
@@ -37,7 +64,7 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
 
     const getTownships = (id) => {
         setIsLoading(true);
-        axios.get(`http://127.0.0.1:8001/api/district/${id}/townships`)
+        axios.get(`${config.GEOPTYAPI_URL}/api/district/${id}/townships`)
             .then((response) => {
                 setIsLoading(false);
                 setTownships(response.data);
@@ -146,11 +173,11 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
                     onChange={(e) => {
                         setIsLoading(true);
                         setProvinceSelected(e.target.value);
-                        axios.get(`http://127.0.0.1:8001/api/province/${e.target.value}/districts`)
+                        axios.get(`${config.GEOPTYAPI_URL}/api/province/${e.target.value}/districts`)
                             .then((response) => {
                                 setDistricts(response.data);
                                 setDistrictSelected(response.data[0].id);
-                                axios.get(`http://127.0.0.1:8001/api/district/${response.data[0].id}/townships`)
+                                axios.get(`${config.GEOPTYAPI_URL}/api/district/${response.data[0].id}/townships`)
                                     .then((response) => {
                                         setTownships(response.data);
                                         setTownshipSelected(response.data[0].id);
@@ -183,7 +210,7 @@ const AddCustomer = ({ name, email, telephone, ageRangeSelected, setAgeRangeSele
                     onChange={(e) => {
                         setIsLoading(true);
                         setDistrictSelected(e.target.value);
-                        axios.get(`http://127.0.0.1:8001/api/district/${e.target.value}/townships`)
+                        axios.get(`${config.GEOPTYAPI_URL}/api/district/${e.target.value}/townships`)
                             .then((response) => {
                                 setIsLoading(false);
                                 setTownships(response.data);

@@ -4,20 +4,14 @@ import { filter } from 'lodash';
 import PropTypes from 'prop-types';
 import { sentenceCase } from 'change-case';
 import axios from 'axios';
-import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
   Stack,
   Paper,
-  Avatar,
-  Popover,
-  Checkbox,
   TableRow,
-  MenuItem,
   TableBody,
   TableCell,
   Container,
@@ -26,23 +20,10 @@ import {
   TableContainer,
   TablePagination,
   Dialog,
-  DialogContent,
-  DialogActions,
-  Box,
-  Backdrop,
-  CircularProgress,
-  TextField,
   Button,
   DialogTitle,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
   styled,
   Switch,
-  FormControl,
-  FormLabel,
-  Select,
-  InputLabel,
 } from '@mui/material';
 
 // components

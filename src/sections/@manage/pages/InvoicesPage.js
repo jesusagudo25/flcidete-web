@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
@@ -56,6 +54,7 @@ import Scrollbar from '../../../components/scrollbar';
 
 // Sections - Se debe reempazar el nombre del componente por uno mas general
 import { SuppliesListHead, SuppliesListToolbar } from '../areas';
+import config from '../../../config.json';
 
 const TABLE_HEAD = [
   { id: 'id', label: '#', alignRight: false },
@@ -311,7 +310,7 @@ const InvoicesPage = () => {
                           <TableCell align="right">
                             <a
                               style={{ textDecoration: 'none', color: 'inherit' }}
-                              href={`http://localhost:8000/api/invoices/${uuid}/pdf/`}
+                              href={`${config.APPBACK_URL}/api/invoices/${uuid}/pdf/`}
                               target="_blank"
                               rel="noreferrer"
                             >

@@ -51,10 +51,9 @@ import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
 // date-fns
 
-
 // sections
 import { ReportListHead, ReportListToolbar } from '../sections/@dashboard/report';
-
+import config from '../config.json';
 
 // ----------------------------------------------------------------------
 
@@ -481,7 +480,7 @@ const ReportsPage = () => {
                         {
                             report ?
                                 <a
-                                    href={`http://localhost:8000/api/reports/${report.id}/pdf/`}
+                                    href={`${config.APPBACK_URL}/api/reports/${report.id}/pdf/`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     download
@@ -606,7 +605,7 @@ const ReportsPage = () => {
             >
                 <MenuItem
                     component={"a"}
-                    href={`http://localhost:8000/api/reports/${itemSelected}/pdf/`}
+                    href={`${config.APPBACK_URL}/api/reports/${itemSelected}/pdf/`}
                     target="_blank"
                 >
                     <Iconify icon={'mdi:file-pdf'} sx={{ mr: 2 }} />
@@ -618,7 +617,7 @@ const ReportsPage = () => {
                         showToastMessage();
                         setOpen(null);
                         setReports(reports.filter((report) => report.id !== itemSelected));
-                        axios.delete(`http://localhost:8000/api/reports/${itemSelected}/`);
+                        axios.delete(`${config.APPBACK_URL}/api/reports/${itemSelected}/`);
                     }
                 }>
                     <Iconify icon={'eva:trash-2-outline'} sx={{ mr: 2 }} />

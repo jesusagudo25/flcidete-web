@@ -4,10 +4,8 @@ import { filter } from 'lodash';
 import PropTypes from 'prop-types';
 import { sentenceCase } from 'change-case';
 import axios from 'axios';
-import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
 // @mui
-import { LoadingButton } from '@mui/lab';
 import {
   Card,
   Table,
@@ -63,6 +61,7 @@ import Scrollbar from '../components/scrollbar';
 
 // Sections - Se debe reempazar el nombre del componente por uno mas general
 import { SuppliesListHead, SuppliesListToolbar } from '../sections/@manage/areas';
+import config from '../config.json';
 
 const TABLE_HEAD = [
   { id: 'id', label: 'Factura', alignRight: false },
@@ -344,7 +343,7 @@ function PaymentPage() {
                           <TableCell align="right">
                             <a
                               style={{ textDecoration: 'none', color: 'inherit' }}
-                              href={`http://localhost:8000/api/invoices/${uuid}/pdf/`}
+                              href={`${config.APPBACK_URL}/api/invoices/${uuid}/pdf/`}
                               target="_blank"
                               rel="noreferrer"
                             >

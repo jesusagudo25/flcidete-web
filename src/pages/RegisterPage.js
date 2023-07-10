@@ -119,7 +119,7 @@ const RegisterPage = () => {
                                         ¿Ya tienes una cuenta? {''}
                                         <Link variant="subtitle2"
                                             underline="none"
-                                            component="a" href="/register"
+                                            component="a" href="/login"
                                         >Iniciar sesión</Link>
                                     </Typography>
 

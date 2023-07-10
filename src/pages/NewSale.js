@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Helmet } from 'react-helmet-async';
 import PropTypes from 'prop-types';
-import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
 import {
   Card, Container, Stack, Typography, FormControl, InputLabel,
@@ -38,7 +37,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
-import { Link } from 'react-router-dom';
 
 // date-fns
 import { format } from 'date-fns';
@@ -50,7 +48,6 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
-import { LoadingButton } from '@mui/lab';
 import Slide from '@mui/material/Slide';
 
 import { SearchCustomer } from '../sections/@manage/customers';
@@ -76,8 +73,8 @@ import {
   Events,
 } from '../sections/@dashboard/sales';
 
-import { AppTrafficBySite } from '../sections/@dashboard/app';
-import { AddCustomer } from '../sections/@dashboard/visits';
+import { AddCustomer, AddRUC } from '../sections/@dashboard/visits';
+import config from '../config.json';
 
 const steps = ['Datos del cliente', 'Datos de la orden', 'Resumen'];
 
@@ -113,7 +110,6 @@ function BootstrapDialogTitle(props) {
     </DialogTitle>
   );
 }
-
 
 BootstrapDialogTitle.propTypes = {
   children: PropTypes.node,
@@ -158,7 +154,6 @@ const NewSale = () => {
   const [open, setOpen] = React.useState(false);
   const [openMenu, setOpenMenu] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
   const [flagCustomer, setFlagCustomer] = useState(true);
   const [flagItems, setFlagItems] = useState(false);
   const [isErrorRows, setIsErrorRows] = useState(false);
@@ -182,6 +177,14 @@ const NewSale = () => {
   const [options, setOptions] = useState([]);
   const previousController = useRef();
 
+  /* RUC */
+
+  const [containerRUC, setContainerRUC] = useState(false);
+  const [subsidiary, setSubsidiary] = useState('');
+  const [subsidiaryId, setSubsidiaryId] = useState(null);
+  const [containerSubsidiary, setContainerSubsidiary] = useState(false);
+
+
   /* Data sales - variables */
 
   const [services, setServices] = useState([]);
@@ -198,7 +201,7 @@ const NewSale = () => {
   const [dateDelivery, setDateDelivery] = useState(null);
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
-  const [description, setDescription] = useState('');
+  const [comments, setComments] = useState('');
   const [servicesCategories, setServicesCategories] = useState([
     { id: 'a', name: 'Áreas' },
     { id: 'ec', name: 'Eventos' }
@@ -217,23 +220,13 @@ const NewSale = () => {
 
   const handleClickSubmit = () => {
     setIsLoading(true);
-    let flag = false;
 
-    if (description === '') {
-      setErrors({
-        description: 'Por favor, ingrese una descripción.'
-      });
-      flag = true;
-      setIsLoading(false);
-    }
-
-    if (!flag) {
       const laborTime = parseInt(hours, 10) + parseFloat((minutes / 60));
       const data = {
         items,
         total,
         id: localStorage.getItem('id'),
-        description,
+        comments,
         typeInvoice,
         payment,
         balance,
@@ -249,13 +242,13 @@ const NewSale = () => {
       }
 
       /* User */
-      if (idCustomer) {
+      if (idCustomer && containerCustomer) {
         data.customer_id = idCustomer;
       }
-      else {
+      else if (idCustomer === null && containerCustomer) {
         data.document_type = documentType;
         data.document_number = document;
-        data.name = name;
+        data.name = subsidiary;
         data.email = email;
         data.telephone = telephone;
         data.age_range_id = parseInt(ageRangeSelected, 10);
@@ -264,8 +257,33 @@ const NewSale = () => {
         data.district_id = districtSelected;
         data.township_id = townshipSelected;
       }
+      else if (idCustomer && subsidiaryId) {
+        data.customer_id = idCustomer;
+        data.subsidiary_id = subsidiaryId;
+      }
+      else if (idCustomer && subsidiaryId === null) {
+        data.customer_id = idCustomer;
+        data.name = subsidiary;
+        data.email = email;
+        data.telephone = telephone;
+        data.province_id = provinceSelected;
+        data.district_id = districtSelected;
+        data.township_id = townshipSelected;
+      }
+      else if (idCustomer === null && subsidiaryId === null) {
+        data.document_type = documentType;
+        data.document_number = document;
+        data.name = subsidiary;
+        data.email = email;
+        data.telephone = telephone;
+        data.province_id = provinceSelected;
+        data.district_id = districtSelected;
+        data.township_id = townshipSelected;
+      }
 
-      axios.post('api/invoices', data)
+      console.log(data);
+
+/*       axios.post('api/invoices', data)
         .then((response) => {
           if (response.data.success) {
             setIsLoading(false);
@@ -296,12 +314,7 @@ const NewSale = () => {
             setActiveStep((prevActiveStep) => prevActiveStep + 1);
 
           }
-        }
-        );
-
-    }
-
-
+        }); */
 
   };
 
@@ -312,7 +325,7 @@ const NewSale = () => {
       const data = {
         total,
         id: localStorage.getItem('id'),
-        description,
+        comments,
       }
 
       /* User */
@@ -388,18 +401,24 @@ const NewSale = () => {
     const errorsDisplay = {};
     let flag = false;
     if (activeStep === 0) {
-      if (idCustomer === null && containerCustomer === false) {
+      if (idCustomer === null && (containerCustomer === false && containerRUC === false)) {
         errorsDisplay.document = 'Por favor, ingrese el documento del cliente';
         flag = true;
       }
-      else if (containerCustomer) {
+      else if (containerCustomer || containerSubsidiary) {
         if (errors.email) {
           errorsDisplay.email = errors.email;
         }
       }
 
+      /* Container customer */
+
       if (name === '' && containerCustomer === true) {
         errorsDisplay.name = 'Por favor, ingrese el nombre del cliente';
+        flag = true;
+      }
+      else if (subsidiary === '' && containerRUC === true) {
+        errorsDisplay.subsidiary = 'Por favor, ingrese el nombre de la division';
         flag = true;
       }
 
@@ -427,11 +446,26 @@ const NewSale = () => {
         setRowsEmpty(itemsDetailsEmpty);
         flag = true;
       }
+
+      /* Get items description empty */
+      const itemsDescriptionEmpty = items.filter((item) => item.description === '');
+      if (itemsDescriptionEmpty.length > 0) {
+        errorsDisplay.items = 'Por favor, ingrese la descripcion de los productos';
+        setRowsEmpty(itemsDescriptionEmpty);
+        flag = true;
+      }
+
+      /* Get items quantity empty */
+      const itemsQuantityEmpty = items.filter((item) => item.quantity === 0);
+      if (itemsQuantityEmpty.length > 0) {
+        errorsDisplay.items = 'Por favor, ingrese la cantidad de los productos';
+        setRowsEmpty(itemsQuantityEmpty);
+        flag = true;
+      }
     }
 
 
     if (flag) {
-      console.log(errorsDisplay);
       if (errorsDisplay.items) {
         setIsErrorRows(true);
       }
@@ -477,10 +511,6 @@ const NewSale = () => {
         break;
       default:
     }
-  };
-
-  const handleReset = () => {
-    setActiveStep(0);
   };
 
   /* ------------ Sales - Methods */
@@ -564,8 +594,8 @@ const NewSale = () => {
     let total = Number.isNaN(minutesArea) ? 0.00 : minutesArea !== 0 ? ((minutesArea / 60) * 3.00) : 0.00;
 
     items.forEach(item => {
-      if (item.details.base_cost) {
-        total += parseFloat(item.details.base_cost);
+      if (item.total) {
+        total += parseFloat(item.total);
       }
     });
 
@@ -577,6 +607,21 @@ const NewSale = () => {
     setTotal(Number.isNaN(total) ? parseFloat(0).toFixed(2) : parseFloat(total).toFixed(2));
 
   }
+
+  const changeQuantity = (item, items, setItems, quantity) => {
+    if (quantity > 0 && quantity <= 1000) item.quantity = quantity;
+    else if (quantity > 1000) item.quantity = 1000;
+    else item.quantity = ''
+
+    if(item.quantity > 0 ){
+        if(item.details?.base_cost) item.total = quantity * item.details.base_cost;
+        else item.total = quantity * 0;
+    }
+    else item.total = 0;
+
+    setItems([...items]);
+    calculateTotal(hours, minutes, typeInvoice);
+}
 
   /* Customers - methods */
 
@@ -640,7 +685,21 @@ const NewSale = () => {
   /* Autocomplete */
 
   const handleChangeDocumentType = (event) => {
+    setOptions([]);
     setDocumentType(event.target.value);
+    setDocument('');
+    setSubsidiary('');
+    setSubsidiaryId(null)
+    setName('');
+    setEmail('');
+    setTelephone('');
+    setAgeRangeSelected('');
+    setTypeSexSelected('');
+    setProvinceSelected(90);
+    setDistrictSelected(60);
+    setTownshipSelected(492);
+    setContainerCustomer(false);
+    setContainerRUC(false);
 
   };
 
@@ -650,6 +709,16 @@ const NewSale = () => {
     }
     if (event) {
       setContainerCustomer(false);
+      setContainerRUC(false);
+
+      setSubsidiaryId(null);
+      setErrors(
+        {
+          ...errors,
+          subsidiary: '',
+          name: '',
+        }
+      )
       if (event.target.value) {
         if (event.target.value.length > 3) {
           getDataAutoComplete(event.target.value);
@@ -664,14 +733,19 @@ const NewSale = () => {
         setFlagCustomer(true);
       }
     }
+    setSubsidiary('');
+    setSubsidiaryId(null)
   };
 
   const handleChangeIdCustomer = (event, newValue) => {
     setContainerCustomer(false);
+    setContainerRUC(false);
     setIdCustomer(null);
     setDisabledAddCustomer(false);
     setName('');
     setEmail('');
+    setSubsidiary('');
+    setSubsidiaryId(null)
     setTelephone('');
     setAgeRangeSelected(null);
     setTypeSexSelected(null);
@@ -683,8 +757,13 @@ const NewSale = () => {
       setDocument(newValue);
     } else if (newValue && newValue.inputValue) {
       // Crear un nuevo valor a partir de la entrada del usuario
+      if (documentType !== 'R') {
+        setContainerCustomer(true);
+      }
+      else {
+        setContainerRUC(true);
+      }
       setDocument(newValue.inputValue);
-      setContainerCustomer(true);
       setFlagCustomer(false);
       showToastMessageStatus('info', 'Por favor, Ingrese los datos del nuevo cliente');
       setErrors({
@@ -699,8 +778,14 @@ const NewSale = () => {
       })
       setFlagCustomer(false);
       setIdCustomer(newValue.value);
-      setContainerCustomer(true);
-      setDisabledAddCustomer(true);
+      if (documentType !== 'R') {
+        setContainerCustomer(true);
+        setDisabledAddCustomer(true);
+      }
+      else {
+        setContainerRUC(true);
+        setDisabledAddCustomer(false);
+      }
       setName(newValue.name);
       setEmail(newValue.email);
       setTelephone(newValue.telephone);
@@ -835,7 +920,6 @@ const NewSale = () => {
   };
 
   const handleSave = () => {
-    console.log(items);
     /* Validate */
     const resul = ValidateForDialog[serviceSelected](typeSale)
     if (!resul) {
@@ -1129,13 +1213,6 @@ const NewSale = () => {
     else {
       setItems(newItems);
     }
-
-    /*     if (id === 0) {
-          setItems([]);
-          setCount(0);
-        } else {
-          setItems(items.filter((item) => item.id !== id));
-        } */
   };
 
   const handleOnBlurHoursArea = (event) => {
@@ -1311,12 +1388,15 @@ const NewSale = () => {
 
     if (Number.isNaN(total) && Number.isNaN(componentsTotal)) {
       itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
     }
     else if (Number.isNaN(total)) {
       itemSelected.details.base_cost = parseFloat(componentsTotal).toFixed(2);
+      itemSelected.total = parseFloat(componentsTotal * itemSelected.quantity).toFixed(2);
     }
     else {
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
 
   }
@@ -1412,13 +1492,15 @@ const NewSale = () => {
 
     if (Number.isNaN(total) && Number.isNaN(materialsTotal)) {
       itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
     }
     else if (Number.isNaN(total)) {
       itemSelected.details.base_cost = parseFloat(materialsTotal).toFixed(2);
+      itemSelected.total = parseFloat(materialsTotal * itemSelected.quantity).toFixed(2);
     }
     else {
-      console.log(total, 'total');
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
   };
 
@@ -1526,12 +1608,15 @@ const NewSale = () => {
 
     if (Number.isNaN(total) && Number.isNaN(materialsTotal)) {
       itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
     }
     else if (Number.isNaN(total)) {
       itemSelected.details.base_cost = parseFloat(materialsTotal).toFixed(2);
+      itemSelected.total = parseFloat(materialsTotal * itemSelected.quantity).toFixed(2);
     }
     else {
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
   };
 
@@ -1642,12 +1727,15 @@ const NewSale = () => {
 
     if (Number.isNaN(total) && Number.isNaN(vinylsTotal)) {
       itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
     }
     else if (Number.isNaN(total)) {
       itemSelected.details.base_cost = parseFloat(vinylsTotal).toFixed(2);
+      itemSelected.total = parseFloat(vinylsTotal * itemSelected.quantity).toFixed(2);
     }
     else {
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
   };
 
@@ -1686,7 +1774,6 @@ const NewSale = () => {
 
     /* 
     Verificar si la cantidad ingresada no es mayor al stock 
-    Si el valor ingresado por el usuario es cercano a la tabla completa, entonces que se le cobre toda....
     */
 
     let filamentsTotal = 0;
@@ -1755,12 +1842,15 @@ const NewSale = () => {
 
     if (Number.isNaN(total) && Number.isNaN(filamentsTotal)) {
       itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
     }
     else if (Number.isNaN(total)) {
       itemSelected.details.base_cost = parseFloat(filamentsTotal).toFixed(2);
+      itemSelected.total = parseFloat(filamentsTotal * itemSelected.quantity).toFixed(2);
     }
     else {
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
   };
 
@@ -1867,12 +1957,15 @@ const NewSale = () => {
 
     if (Number.isNaN(total) && Number.isNaN(resinsTotal)) {
       itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
     }
     else if (Number.isNaN(total)) {
       itemSelected.details.base_cost = parseFloat(resinsTotal).toFixed(2);
+      itemSelected.total = parseFloat(resinsTotal * itemSelected.quantity).toFixed(2);
     }
     else {
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
   };
 
@@ -1922,9 +2015,11 @@ const NewSale = () => {
 
     if (Number.isNaN(total)) {
       itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
     }
     else {
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
   };
 
@@ -1976,29 +2071,28 @@ const NewSale = () => {
     let materialCost = 0;
     let totalHours = 0;
 
-    console.log(typeSale);
-    if(typeSale === 'S'){
+    if (typeSale === 'S') {
       if (quantity > 7) {
         itemSelected.details.quantity = 7;
       }
-  
+
       if (width > 5) {
         itemSelected.details.width = 5;
       }
-  
+
       if (height > 7) {
         itemSelected.details.height = 7;
       }
     }
-    else{
-      if(width > 50) {
+    else {
+      if (width > 50) {
         itemSelected.details.width = 30;
       }
-      if(height > 100) {
+      if (height > 100) {
         itemSelected.details.height = 100;
       }
       const area = width * height;
-      if(area > itemSelected.details.stabilizer?.area){
+      if (area > itemSelected.details.stabilizer?.area) {
         itemSelected.details.width = 0;
         itemSelected.details.height = 0;
       }
@@ -2045,9 +2139,11 @@ const NewSale = () => {
 
     if (Number.isNaN(total)) {
       itemSelected.details.base_cost = 0.00;
+      itemSelected.total = 0.00;
     }
     else {
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
   };
 
@@ -2078,9 +2174,11 @@ const NewSale = () => {
 
     if (Number.isNaN(total)) {
       itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
     }
     else {
       itemSelected.details.base_cost = parseFloat(total).toFixed(2);
+      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
 
   }
@@ -2125,6 +2223,37 @@ const NewSale = () => {
               errors={errors}
             /> : null
 
+        }
+
+        {
+          containerRUC ?
+            <AddRUC
+              subsidiary={subsidiary}
+              setSubsidiary={setSubsidiary}
+              subsidiaryId={subsidiaryId}
+              setSubsidiaryId={setSubsidiaryId}
+              email={email}
+              setEmail={setEmail}
+              telephone={telephone}
+              setTelephone={setTelephone}
+              provinceSelected={provinceSelected}
+              districtSelected={districtSelected}
+              townshipSelected={townshipSelected}
+              errors={errors}
+              disabledAddCustomer={disabledAddCustomer}
+              handleChangeEmail={handleChangeEmail}
+              handleOnBlurEmail={handleOnBlurEmail}
+              handleChangeTelephone={handleChangeTelephone}
+              setProvinceSelected={setProvinceSelected}
+              setDistrictSelected={setDistrictSelected}
+              setTownshipSelected={setTownshipSelected}
+              idCustomer={idCustomer}
+              setIsLoading={setIsLoading}
+              toast={toast}
+              containerSubsidiary={containerSubsidiary}
+              setContainerSubsidiary={setContainerSubsidiary}
+              setDisabledAddCustomer={setDisabledAddCustomer}
+            /> : null
         }
       </>
     )
@@ -2372,9 +2501,13 @@ const NewSale = () => {
                     id: count,
                     uuid: `${services[serviceCategory].find((s) => s.id === service).name} (${services[serviceCategory].find((s) => s.id === service).name.substring(0, 2).toUpperCase()}${Math.floor((Math.random() * 100) + 1)})`,
                     name: services[serviceCategory].find((s) => s.id === service).name,
+                    description: '',
+                    quantity: 1,
+                    unit: 'u',
                     id_service: services[serviceCategory].find((s) => s.id === service).id,
                     category_service: serviceCategory,
-                    details: {}
+                    details: {},
+                    total: 0
                   });
                   setFlagItems(false);
                   calculateTotal(hours, minutes);
@@ -2393,13 +2526,15 @@ const NewSale = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Descripción</TableCell>
-                  <TableCell align="left">Precio</TableCell>
+                  <TableCell align="left">Cantidad</TableCell>
+                  <TableCell align="left">U. Medida</TableCell>
+                  <TableCell align="left">Precio U.</TableCell>
                   <TableCell align="left">Total</TableCell>
                   <TableCell align="left"> </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                <CartList items={items} setServiceSelected={setServiceSelected} setServiceSelectedId={setServiceSelectedId} setOpenMenu={setOpenMenu} />
+                <CartList items={items} setItems={setItems} setServiceSelected={setServiceSelected} setServiceSelectedId={setServiceSelectedId} setOpenMenu={setOpenMenu}  changeQuantity={changeQuantity}/>
               </TableBody>
               {
                 items.length > 0 ?
@@ -2410,6 +2545,8 @@ const NewSale = () => {
                         <TableRow sx={{
                           backgroundColor: '#F4F6F8',
                         }}>
+                          <TableCell align="left"> </TableCell>
+                          <TableCell align="left"> </TableCell>
                           <TableCell align="left"> </TableCell>
                           <TableCell sx={{
                             fontSize: '0.875rem',
@@ -2427,6 +2564,8 @@ const NewSale = () => {
                           backgroundColor: '#F4F6F8',
                         }}>
                           <TableCell align="left" > </TableCell>
+                          <TableCell align="left"> </TableCell>
+                          <TableCell align="left"> </TableCell>
                           <TableCell sx={{
                             fontSize: '0.875rem',
                             fontWeight: '600',
@@ -2442,6 +2581,16 @@ const NewSale = () => {
                         <TableRow sx={{
                           backgroundColor: '#F4F6F8',
                         }}>
+                          <TableCell align="left" sx={
+                            {
+                              borderBottom: '1px solid #e6e6e6',
+                            }
+                          }> </TableCell>
+                          <TableCell align="left" sx={
+                            {
+                              borderBottom: '1px solid #e6e6e6',
+                            }
+                          }> </TableCell>
                           <TableCell align="left" sx={
                             {
                               borderBottom: '1px solid #e6e6e6',
@@ -2469,6 +2618,8 @@ const NewSale = () => {
                           backgroundColor: '#F4F6F8',
                         }}>
                           <TableCell align="left"> </TableCell>
+                          <TableCell align="left"> </TableCell>
+                          <TableCell align="left"> </TableCell>
                           <TableCell sx={{
                             fontSize: '0.875rem',
                             fontWeight: '600',
@@ -2493,6 +2644,8 @@ const NewSale = () => {
                           backgroundColor: '#F4F6F8',
                         }}
                       >
+                        <TableCell align="left"> </TableCell>
+                        <TableCell align="left"> </TableCell>
                         <TableCell align="left"> </TableCell>
                         <TableCell sx={{
                           fontSize: '0.875rem',
@@ -2533,7 +2686,9 @@ const NewSale = () => {
               Nombre
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {name}
+              {
+                documentType !== 'R' ? `${name}` : `${subsidiary}`
+              }
             </Typography>
           </Grid>
           <Grid item xs={12} md={6} lg={4}>
@@ -2554,26 +2709,26 @@ const NewSale = () => {
           </Grid>
         </Grid>
         <Typography variant="h6" sx={{ marginY: 2 }}>
-          Descripción de la orden
+          Comentario adicional (opcional)
         </Typography>
         <FormControl fullWidth sx={{ mt: 2 }}>
           <TextField
             id="outlined-multiline-static"
-            label="Descripción"
+            label="Comentario"
             InputLabelProps={{
               shrink: true,
             }}
-            placeholder="Ingrese una descripción de la orden"
+            placeholder="Ingrese un comentario a la orden"
             multiline
             rows={4}
             variant="outlined"
-            value={description}
+            value={comments}
             onChange={(e) => {
-              setDescription(e.target.value);
-              setErrors({ ...errors, description: '' });
+              setComments(e.target.value);
+              setErrors({ ...errors, comments: '' });
             }}
-            error={errors.description}
-            helperText={errors.description ? errors.description : ''}
+            error={errors.comments}
+            helperText={errors.comments ? errors.comments : ''}
           />
         </FormControl>
         <Typography variant="subtitle1" sx={{ marginY: 2, textAlign: 'center' }}>
@@ -2720,7 +2875,7 @@ const NewSale = () => {
 
                           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
                             <a
-                              href={`http://localhost:8000/api/invoices/${invoice.id}/pdf/`}
+                              href={`${config.APPBACK_URL}/api/invoices/${invoice.id}/pdf/`}
                               target="_blank"
                               rel="noopener noreferrer"
                               download
@@ -2774,7 +2929,7 @@ const NewSale = () => {
 
                           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3 }}>
                             <a
-                              href={`http://localhost:8000/api/quotations/${quotation.id}/pdf/`}
+                              href={`${config.APPBACK_URL}/api/quotations/${quotation.id}/pdf/`}
                               target="_blank"
                               rel="noopener noreferrer"
                               download

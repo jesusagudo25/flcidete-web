@@ -1,7 +1,6 @@
 import React from 'react'
 
-// material
-import { styled } from '@mui/material/styles';
+// materialWW
 import { Select, MenuItem, InputLabel, FormControl, Autocomplete, TextField, createFilterOptions } from '@mui/material';
 import { Stack } from '@mui/system';
 
@@ -47,6 +46,8 @@ const SearchCustomer = ({
         id="combo-box-customer"
         options={options}
         onChange={handleChangeIdCustomer}
+        inputValue={document}
+        onInputChange={handleChangeDocument}
         filterOptions={(options, params) => {
           const filtered = filter(options, params);
 
@@ -65,11 +66,6 @@ const SearchCustomer = ({
 
           return filtered;
         }}
-        selectOnFocus
-        clearOnBlur
-        handleHomeEndKeys
-        inputValue={document}
-        onInputChange={handleChangeDocument}
         getOptionLabel={(option) => {
           // Valor seleccionado con enter, directamente desde la entrada
           if (typeof option === 'string') {
@@ -82,11 +78,14 @@ const SearchCustomer = ({
           // Opción normal
           return option.label;
         }}
+        selectOnFocus
+        clearOnBlur
+        handleHomeEndKeys
         sx={{ width: '45%' }}
-        renderOption={(props, option) => <li {...props}>{option.label}</li>}
         freeSolo
         loading
         loadingText="Cargando..."
+        renderOption={(props, option) => <li {...props}>{option.label}</li>}
         renderInput={(params) => <TextField 
           {...params} 
           label="Número de documento"

@@ -3,7 +3,6 @@ import { useState } from 'react';
 // @mui
 import { Container, Stack, Typography, Grid } from '@mui/material';
 // mock
-import PRODUCTS from '../_mock/products';
 import {
   AppTrafficBySite,
 } from '../sections/@dashboard/app';
@@ -11,16 +10,6 @@ import Iconify from '../components/iconify';
 // ----------------------------------------------------------------------
 
 export default function ProductsPage() {
-  const [openFilter, setOpenFilter] = useState(false);
-
-  const handleOpenFilter = () => {
-    setOpenFilter(true);
-  };
-
-  const handleCloseFilter = () => {
-    setOpenFilter(false);
-  };
-
   return (
     <>
       <Helmet>

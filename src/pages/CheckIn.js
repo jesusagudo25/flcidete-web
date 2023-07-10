@@ -2,7 +2,6 @@ import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
 // @mui
 import {
@@ -16,9 +15,6 @@ import {
   styled,
   IconButton,
   FormHelperText,
-  List,
-  ListItem,
-  ListItemText,
 } from '@mui/material';
 import { Stack } from '@mui/system';
 import { LoadingButton } from '@mui/lab';
@@ -26,7 +22,6 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CloseIcon from '@mui/icons-material/Close';
 // date-fns
 import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
@@ -35,9 +30,10 @@ import Slide from '@mui/material/Slide';
 
 // components
 import { SearchBooking } from '../sections/@dashboard/booking';
-import { AddCustomer, AreasList } from '../sections/@dashboard/visits';
+import { AddCustomer, AreasList, AddRUC } from '../sections/@dashboard/visits';
 import { SearchCustomer } from '../sections/@manage/customers';
 import Iconify from '../components/iconify';
+import config from '../config.json';
 
 const Transition = React.forwardRef((props, ref) => <Slide direction="up" ref={ref} {...props} />);
 
@@ -115,7 +111,10 @@ export default function CheckIn() {
   /* Container True or False */
   const [containerBookingGroup, setContainerBookingGroup] = useState(false);
   const [containerTypeVisit, setContainerTypeVisit] = useState('I');
-  const [containerAreas, setContainerAreas] = useState(true);
+
+  const [containerRUC, setContainerRUC] = useState(false);
+  const [containerSubsidiary, setContainerSubsidiary] = useState(false);
+
   const [containerCheckAll, setContainerCheckAll] = useState(false);
   const [containerCustomer, setContainerCustomer] = useState(false);
   const [disabledAddCustomer, setDisabledAddCustomer] = useState(false);
@@ -138,8 +137,8 @@ export default function CheckIn() {
   const [typeSexSelected, setTypeSexSelected] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const [documentTypeBooking, setDocumentTypeBooking] = useState('C');
-  const [documentBooking, setDocumentBooking] = useState('');
+  const [subsidiary, setSubsidiary] = useState('');
+  const [subsidiaryId, setSubsidiaryId] = useState(null);
 
   const [idCustomer, setIdCustomer] = useState(null);
   const [reasonSelected, setReasonSelected] = useState(1);
@@ -155,8 +154,13 @@ export default function CheckIn() {
   const [reasonVisits, setReasonVisits] = useState([]);
   const [ageRanges, setAgeRanges] = useState([]);
   const [typeSexes, setTypeSexes] = useState([]);
-  const [options, setOptions] = useState([]);
+
+  const [documentTypeBooking, setDocumentTypeBooking] = useState('C');
+  const [documentBooking, setDocumentBooking] = useState('');
   const [optionsBooking, setOptionsBooking] = useState([]);
+
+
+  const [options, setOptions] = useState([]);
   const previousController = useRef();
 
   const getDataAutoComplete = (searchTerm) => {
@@ -229,7 +233,7 @@ export default function CheckIn() {
     axios.get('/api/areas')
       .then(res => {
         setIsLoading(false);
-        setAreas(res.data);
+        setAreas(res.data.filter(item => item.id !== 9));
         setAreasSelected(
           new Array(res.data.length).fill(
             {
@@ -279,7 +283,7 @@ export default function CheckIn() {
 
   const getTypeSexes = () => {
     setIsLoading(true);
-    axios.get('/api/type-sexes')
+    axios.get(`/api/type-sexes`)
       .then(res => {
         setIsLoading(false);
         setTypeSexes(res.data);
@@ -299,9 +303,8 @@ export default function CheckIn() {
   const handleChangeTypeVisit = (event) => {
     setContainerTypeVisit(event.target.value);
     setContainerCustomer(false);
+    setContainerRUC(false);
   };
-
-  /* Al enviar el form el tipo de visita cambia pero no se recargan los componentes - bugs */
 
   const handleCloseDialog = () => {
     setOpen(false);
@@ -371,13 +374,56 @@ export default function CheckIn() {
   /* Autocomplete - Booking vs Visit */
 
   const handleChangeDocumentType = (event) => {
+    setOptions([]);
     setDocumentType(event.target.value);
+    setDocument('');
+    setSubsidiary('');
+    setSubsidiaryId(null)
+    setName('');
+    setEmail('');
+    setTelephone('');
+    setAgeRangeSelected('');
+    setTypeSexSelected('');
+    setProvinceSelected(90);
+    setDistrictSelected(60);
+    setTownshipSelected(492);
+    setReasonSelected(1);
+    flexibleHandleChangeReason(1);
+    setAreasSelected(
+      areas.map((area) => {
+        return {
+          id: '',
+          visible: false,
+          timeIn: new Date(),
+          timeOut: null
+        }
+      })
+    );
+    setCheckAll(
+      {
+        visible: false,
+        timeIn: new Date(),
+        timeOut: null
+      }
+    );
+    setContainerCustomer(false);
+    setContainerRUC(false);
+    setContainerSubsidiary(false);
   };
 
   const handleChangeDocument = (event, newInputValue) => {
     setDocument(newInputValue);
     if (event) {
       setContainerCustomer(false);
+      setContainerRUC(false);
+      setContainerSubsidiary(false);
+      setErrors(
+        {
+          ...errors,
+          subsidiary: '',
+          name: '',
+        }
+      )
       if (bookingSelected) {
         showToastMessageStatus('error', 'Se ha cancelado la reserva seleccionada')
         setIsSelectBooking(false);
@@ -431,6 +477,8 @@ export default function CheckIn() {
         setIdCustomer(null);
       }
     }
+    setSubsidiary('');
+    setSubsidiaryId(null)
   };
 
   const handleChangeDocumentBooking = (event, newInputValue) => {
@@ -453,10 +501,14 @@ export default function CheckIn() {
 
   const handleChangeIdCustomer = (event, newValue) => {
     setContainerCustomer(false);
+    setContainerRUC(false);
+    setContainerSubsidiary(false);
     setIdCustomer(null);
     setDisabledAddCustomer(false);
     setName('');
     setEmail('');
+    setSubsidiary('');
+    setSubsidiaryId(null)
     setTelephone('');
     setAgeRangeSelected(null);
     setTypeSexSelected(null);
@@ -469,7 +521,12 @@ export default function CheckIn() {
     } else if (newValue && newValue.inputValue) {
       // Crear un nuevo valor a partir de la entrada del usuario
       setDocument(newValue.inputValue);
-      setContainerCustomer(true);
+      if (documentType !== 'R') {
+        setContainerCustomer(true);
+      }
+      else {
+        setContainerRUC(true);
+      }
       showToastMessageStatus('info', 'Por favor, Ingrese los datos del nuevo cliente');
       setErrors({
         ...errors,
@@ -484,8 +541,14 @@ export default function CheckIn() {
         name: '',
       })
       setIdCustomer(newValue.value);
-      setContainerCustomer(true);
-      setDisabledAddCustomer(true);
+      if (documentType !== 'R') {
+        setContainerCustomer(true);
+        setDisabledAddCustomer(true);
+      }
+      else {
+        setContainerRUC(true);
+        setDisabledAddCustomer(false);
+      }
       setName(newValue.name);
       setEmail(newValue.email);
       setTelephone(newValue.telephone);
@@ -515,7 +578,8 @@ export default function CheckIn() {
   };
 
   const handleOnBlurDocument = (event) => {
-    if (idCustomer === null && containerCustomer === false) {
+
+    if (idCustomer === null && (containerCustomer === false && containerRUC === false)) {
       setErrors({
         ...errors,
         document: 'Por favor, seleccione o agregue un cliente'
@@ -527,6 +591,7 @@ export default function CheckIn() {
         document: ''
       });
     }
+
 
     if (document !== '') {
       axios.post('api/customers/check-document', {
@@ -747,120 +812,129 @@ export default function CheckIn() {
 
   /* Botones de submit */
 
-  const LoadBooking = () => {
-
-    if (bookingSelected === null) {
-      setErrors({
-        ...errors,
-        documentBooking: 'Por favor, seleccione una reserva'
-      });
-    }
-    else {
-      setIsLoading(true);
-      setContainerTypeVisit(bookingSelected.type);
-      setReasonSelected(bookingSelected.reasonVisitId);
-      flexibleHandleChangeReason(bookingSelected.reasonVisitId);
-      if (bookingSelected.type === 'I') {
-        axios.get(`api/customers/v/${bookingSelected.documentType}/${bookingSelected.documentNumber}`)
-          .then((response) => {
-            setIsLoading(false);
-            if (response.data) {
-              setIdCustomer(response.data.id);
-              setDocument(response.data.document_number);
-              setDocumentType(response.data.document_type);
-              setContainerCustomer(true);
-              setDisabledAddCustomer(true);
-              setName(response.data.name);
-              setEmail(response.data.email);
-              setTelephone(response.data.telephone);
-              setAgeRangeSelected(response.data.age_range_id);
-              setTypeSexSelected(response.data.type_sex_id);
-              setProvinceSelected(response.data.province_id);
-              setDistrictSelected(response.data.district_id);
-              setTownshipSelected(response.data.township_id);
-            }
-            else {
-              setMessageAlertBooking('El cliente no se encuentra registrado, debes proceder a registrarlo.');
-              setIdCustomer(null);
-              setDisabledAddCustomer(false);
-              setAgeRangeSelected(null);
-              setTypeSexSelected(null);
-              setProvinceSelected(9);
-              setDistrictSelected(60);
-              setTownshipSelected(492);
-              setDocumentType(bookingSelected.documentType);
-              setDocument(bookingSelected.documentNumber);
-              setName(bookingSelected.name);
-              setContainerCustomer(true);
-            }
-            setIsCompleteBooking(true);
-          }
-          )
-          .catch((error) => {
-            console.log(error);
-          });
+  /*   const LoadBooking = () => {
+  
+      if (bookingSelected === null) {
+        setErrors({
+          ...errors,
+          documentBooking: 'Por favor, seleccione una reserva'
+        });
       }
       else {
-        setIsLoading(false);
-        setIsCompleteBooking(true);
-        setContainerBookingGroup(true);
-      }
-
-      /* bookingSelected.areas */
-      const updatedCheckedState = [];
-
-      if (bookingSelected.areas.length < areas.length) {
-
-        areasSelected.forEach((area, index) => {
-          const resul = bookingSelected.areas.find((item) => item.id === index + 1)
-          if (resul) {
-            updatedCheckedState.push({
-              id: resul.id,
-              visible: true,
-              timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
-              timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`))
+        setIsLoading(true);
+        setContainerTypeVisit(bookingSelected.type);
+        setReasonSelected(bookingSelected.reasonVisitId);
+        flexibleHandleChangeReason(bookingSelected.reasonVisitId);
+        if (bookingSelected.type === 'I') {
+          axios.get(`api/customers/v/${bookingSelected.documentType}/${bookingSelected.documentNumber}`)
+            .then((response) => {
+              setIsLoading(false);
+              if (response.data) {
+                setIdCustomer(response.data.id);
+                setDocument(response.data.document_number);
+                setDocumentType(response.data.document_type);
+                if (response.data.document_type !== 'R') {
+                  setContainerCustomer(true);
+                }
+                else {
+                  setContainerRUC(true);
+                }
+                setDisabledAddCustomer(true);
+                setName(response.data.name);
+                setEmail(response.data.email);
+                setTelephone(response.data.telephone);
+                setAgeRangeSelected(response.data.age_range_id);
+                setTypeSexSelected(response.data.type_sex_id);
+                setProvinceSelected(response.data.province_id);
+                setDistrictSelected(response.data.district_id);
+                setTownshipSelected(response.data.township_id);
+              }
+              else {
+                setMessageAlertBooking('El cliente no se encuentra registrado, debes proceder a registrarlo.');
+                setIdCustomer(null);
+                setDisabledAddCustomer(false);
+                setAgeRangeSelected(null);
+                setTypeSexSelected(null);
+                setProvinceSelected(9);
+                setDistrictSelected(60);
+                setTownshipSelected(492);
+                setDocumentType(bookingSelected.documentType);
+                setDocument(bookingSelected.documentNumber);
+                setName(bookingSelected.name);
+                if (bookingSelected.documentType !== 'R') {
+                  setContainerCustomer(true);
+                }
+                else {
+                  setContainerRUC(true);
+                }
+              }
+              setIsCompleteBooking(true);
+            }
+            )
+            .catch((error) => {
+              console.log(error);
             });
-          } else {
-            updatedCheckedState.push({
-              id: '',
-              visible: false,
-              timeIn: new Date(),
-              timeOut: new Date()
-            });
-          }
-        });
-        setAreasSelected(updatedCheckedState);
-
-      } else {
-
-        const resul = bookingSelected.areas.find((item) => item.id === 1)
-
-        setCheckAll({
-          timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
-          timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`)),
-          visible: !checkAll.visible
-        });
-
-        if (!checkAll.visible) {
-          setAreasSelected(
-            areas.map((area) => {
-              return {
-                id: area.id,
-                visible: false,
+        }
+        else {
+          setIsLoading(false);
+          setIsCompleteBooking(true);
+          setContainerBookingGroup(true);
+        }
+  
+        const updatedCheckedState = [];
+  
+        if (bookingSelected.areas.length < areas.length) {
+  
+          areasSelected.forEach((area, index) => {
+            const resul = bookingSelected.areas.find((item) => item.id === index + 1)
+            if (resul) {
+              updatedCheckedState.push({
+                id: resul.id,
+                visible: true,
                 timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
                 timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`))
-              }
-            })
-          );
-
+              });
+            } else {
+              updatedCheckedState.push({
+                id: '',
+                visible: false,
+                timeIn: new Date(),
+                timeOut: new Date()
+              });
+            }
+          });
+          setAreasSelected(updatedCheckedState);
+  
+        } else {
+  
+          const resul = bookingSelected.areas.find((item) => item.id === 1)
+  
+          setCheckAll({
+            timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
+            timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`)),
+            visible: !checkAll.visible
+          });
+  
+          if (!checkAll.visible) {
+            setAreasSelected(
+              areas.map((area) => {
+                return {
+                  id: area.id,
+                  visible: false,
+                  timeIn: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.start_time}`)),
+                  timeOut: (parseISO(`${bookingSelected.date.split('T')[0]} ${resul.pivot.end_time}`))
+                }
+              })
+            );
+  
+          }
+  
         }
-
+  
+        setIsSelectBooking(true);
+        setOpen(false);
       }
-
-      setIsSelectBooking(true);
-      setOpen(false);
-    }
-  };
+    }; */
 
   const handleClickSubmit = () => {
     setIsLoading(true);
@@ -869,12 +943,12 @@ export default function CheckIn() {
 
 
     if (containerTypeVisit === 'I') {
-      if (idCustomer === null && containerCustomer === false) {
+      if (idCustomer === null && (containerCustomer === false && containerRUC === false)) {
         errorsDisplay.document = 'Por favor, ingrese el documento del cliente';
         flag = true;
       }
-      else if(containerCustomer){
-        if(errors.email){
+      else if (containerCustomer || containerSubsidiary) {
+        if (errors.email) {
           errorsDisplay.email = errors.email;
         }
       }
@@ -886,6 +960,10 @@ export default function CheckIn() {
 
     if (name === '' && containerCustomer === true) {
       errorsDisplay.name = 'Por favor, ingrese el nombre del cliente';
+      flag = true;
+    }
+    else if (subsidiary === '' && containerRUC === true) {
+      errorsDisplay.subsidiary = 'Por favor, ingrese el nombre de la division';
       flag = true;
     }
 
@@ -911,7 +989,6 @@ export default function CheckIn() {
     }
 
     if (flag) {
-      console.log(errorsDisplay);
       setErrors(errorsDisplay);
       setIsLoading(false);
     }
@@ -926,17 +1003,40 @@ export default function CheckIn() {
       }
 
       if (containerTypeVisit === 'I') {
-        if (idCustomer) {
+        if (idCustomer && containerCustomer) {
           data.customer_id = idCustomer;
         }
-        else {
+        else if (idCustomer === null && containerCustomer) {
           data.document_type = documentType;
           data.document_number = document;
-          data.name = name;
+          data.name = subsidiary;
           data.email = email;
           data.telephone = telephone;
           data.age_range_id = parseInt(ageRangeSelected, 10);
           data.type_sex_id = parseInt(typeSexSelected, 10);
+          data.province_id = provinceSelected;
+          data.district_id = districtSelected;
+          data.township_id = townshipSelected;
+        }
+        else if (idCustomer && subsidiaryId) {
+          data.customer_id = idCustomer;
+          data.subsidiary_id = subsidiaryId;
+        }
+        else if (idCustomer && subsidiaryId === null) {
+          data.customer_id = idCustomer;
+          data.name = subsidiary;
+          data.email = email;
+          data.telephone = telephone;
+          data.province_id = provinceSelected;
+          data.district_id = districtSelected;
+          data.township_id = townshipSelected;
+        }
+        else if (idCustomer === null && subsidiaryId === null) {
+          data.document_type = documentType;
+          data.document_number = document;
+          data.name = subsidiary;
+          data.email = email;
+          data.telephone = telephone;
           data.province_id = provinceSelected;
           data.district_id = districtSelected;
           data.township_id = townshipSelected;
@@ -954,22 +1054,24 @@ export default function CheckIn() {
         }
       });
 
-
       console.log(data);
-      axios.post('/api/visits', data, {
+       axios.post('/api/visits', data, {
         headers: {
           "Content-Type": "multipart/form-data",
         }
       })
         .then((response) => {
-          console.log(response);
           setIsLoading(false);
           setIsComplete(true);
           setIsSelectBooking(false);
 
-          /* Reset */
           setContainerTypeVisit('I');
           setContainerCustomer(false);
+          setContainerSubsidiary(false);
+          setContainerRUC(false);
+          setContainerSubsidiary(false);
+          setSubsidiary('');
+          setSubsidiaryId(null);
           setDisabledAddCustomer(false);
           setDocumentType('C');
           setDocument('');
@@ -1004,10 +1106,10 @@ export default function CheckIn() {
 
         })
         .catch((error) => {
-          if(error.response.data.type){
+          if (error.response.data.type) {
             setIsFormatExcel(true);
           }
-          else{
+          else {
             setIsErrorExcel(true);
             setErrorsExcel(error.response.data.errors);
             setIsComplete(false);
@@ -1026,7 +1128,7 @@ export default function CheckIn() {
 
       <Container>
         <Typography variant="h4" sx={{ mb: 5 }}>
-          Datos del o los Visitantes
+          Datos del/los Visitantes
         </Typography>
 
         <Card>
@@ -1041,7 +1143,7 @@ export default function CheckIn() {
             >
               <FormLabel id="demo-radio-buttons-group-label"
               >Selecciona el tipo de visita</FormLabel>
-              {/* Selecciona si es visita individual o grupal */}
+              
               <RadioGroup
                 aria-labelledby="buttons-group-label-type-visit"
                 defaultValue="female"
@@ -1058,6 +1160,7 @@ export default function CheckIn() {
                   />
                 </Stack>
               </RadioGroup>
+              
             </FormControl>
 
             {containerTypeVisit === 'I' ? (
@@ -1101,7 +1204,7 @@ export default function CheckIn() {
                           color: 'inherit',
                           width: '35%'
                         }}
-                        href="http://localhost:8000/api/customers/download"
+                        href={`${config.APPBACK_URL}/api/customers/download`}
                         target="_blank"
                         rel="noopener noreferrer"
                         download
@@ -1182,6 +1285,37 @@ export default function CheckIn() {
                   handleChangeTelephone={handleChangeTelephone}
                   setIsLoading={setIsLoading}
                   errors={errors}
+                /> : null
+            }
+
+            {
+              containerRUC ?
+                <AddRUC
+                  subsidiary={subsidiary}
+                  setSubsidiary={setSubsidiary}
+                  subsidiaryId={subsidiaryId}
+                  setSubsidiaryId={setSubsidiaryId}
+                  email={email}
+                  setEmail={setEmail}
+                  telephone={telephone}
+                  setTelephone={setTelephone}
+                  provinceSelected={provinceSelected}
+                  districtSelected={districtSelected}
+                  townshipSelected={townshipSelected}
+                  errors={errors}
+                  disabledAddCustomer={disabledAddCustomer}
+                  handleChangeEmail={handleChangeEmail}
+                  handleOnBlurEmail={handleOnBlurEmail}
+                  handleChangeTelephone={handleChangeTelephone}
+                  setProvinceSelected={setProvinceSelected}
+                  setDistrictSelected={setDistrictSelected}
+                  setTownshipSelected={setTownshipSelected}
+                  idCustomer={idCustomer}
+                  setIsLoading={setIsLoading}
+                  toast={toast}
+                  containerSubsidiary={containerSubsidiary}
+                  setContainerSubsidiary={setContainerSubsidiary}
+                  setDisabledAddCustomer={setDisabledAddCustomer}
                 /> : null
             }
 
@@ -1557,7 +1691,7 @@ export default function CheckIn() {
       </Dialog>
 
       {/* Modal reservation */}
-      <BootstrapDialog
+      {/*       <BootstrapDialog
         onClose={handleCloseDialog}
         aria-labelledby="customized-dialog-title"
         open={open}
@@ -1586,7 +1720,7 @@ export default function CheckIn() {
             Seleccionar
           </Button>
         </DialogActions>
-      </BootstrapDialog>
+      </BootstrapDialog> */}
 
       <Backdrop
         sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
@@ -1595,7 +1729,7 @@ export default function CheckIn() {
         <CircularProgress color="inherit" />
       </Backdrop>
 
-      <SpeedDial
+      {/*       <SpeedDial
         ariaLabel="Herramientas"
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
         icon={
@@ -1615,9 +1749,10 @@ export default function CheckIn() {
             setIsSelectBooking(false);
             setBookingSelected(null);
             setIsLoading(false);
-            /* Reset */
+
             setContainerTypeVisit('I');
             setContainerCustomer(false);
+            setContainerRUC(false);
             setDisabledAddCustomer(false);
             setDocumentType('C');
             setDocument('');
@@ -1653,7 +1788,6 @@ export default function CheckIn() {
         }
         )}
       >
-
         {
           !isSelectBooking ? (
             actions.map((action) => (
@@ -1666,7 +1800,7 @@ export default function CheckIn() {
             ))
           ) : null
         }
-      </SpeedDial>
+      </SpeedDial> */}
     </>
   );
 }

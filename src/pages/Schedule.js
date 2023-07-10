@@ -68,6 +68,7 @@ import Slide from '@mui/material/Slide';
 import Iconify from '../components/iconify';
 
 import { getCalendarEvents } from '../sections/@dashboard/schedule/getCalendarEvents';
+import config from '../config.json';
 
 
 const Transition = React.forwardRef((props, ref) => <Slide direction="up" ref={ref} {...props} />);
@@ -731,12 +732,6 @@ const Schedule = () => {
                         dateClick={(info) => {
                             setShowEditEvent(false);
                             if (info.dateStr >= new Date().toISOString().split('T')[0]) {
-                                /*                                 setOpen(true);
-                                                                setShowEditEvent(false);
-                                                                setInitialDate(info.dateStr);
-                                                                setFinalDate(info.dateStr);
-                                                                setInitialTime(parseISO(`${info.dateStr} 08:00`));
-                                                                setFinalTime(parseISO(`${info.dateStr} 18:00`)); */
                                 setOpen(true);
                                 setDate(info.dateStr);
                                 setDate(new Date(`${info.dateStr.toString()}T00:00:00`));
@@ -1375,13 +1370,8 @@ const Schedule = () => {
                                                         justifyContent="space-between"
                                                         alignItems="center"
                                                     >
-                                                        <Link
-                                                            sx={{
-                                                                textDecoration: 'none',
-                                                                color: 'inherit',
-                                                                width: '100%',
-                                                            }}
-                                                            href="http://localhost:8000/api/customers/download"
+                                                        <a
+                                                            href={`${config.APPBACK_URL}/api/customers/download`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             download
@@ -1401,7 +1391,7 @@ const Schedule = () => {
                                                                 disabled={disabled}
                                                             >
                                                                 Descargar</Button>
-                                                        </Link>
+                                                        </a>
 
                                                         <Avatar
                                                             sx={{
@@ -1448,7 +1438,7 @@ const Schedule = () => {
                                                                 justifyContent="center"
                                                             >
                                                                 <a
-                                                                    href={`http://localhost:8000/api/bookings/${id}/customers/pdf/`}
+                                                                    href={`${config.APPBACK_URL}/api/bookings/${id}/customers/pdf/`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     download

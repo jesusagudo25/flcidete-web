@@ -56,6 +56,7 @@ import Scrollbar from '../../../components/scrollbar';
 
 // Sections - Se debe reempazar el nombre del componente por uno mas general
 import { SuppliesListHead, SuppliesListToolbar } from '../areas';
+import config from '../../../config.json';
 
 const TABLE_HEAD = [
   { id: 'name', label: 'Nombre', alignRight: false },
@@ -585,7 +586,7 @@ const EventsPage = () => {
                           <TableCell align="right">
                             <a
                               style={{ textDecoration: 'none', color: 'inherit' }}
-                              href={`http://localhost:8000/api/events/${id}/participants/`}
+                              href={`${config.APPBACK_URL}/api/events/${id}/participants/`}
                               target="_blank"
                               rel="noreferrer"
                             >

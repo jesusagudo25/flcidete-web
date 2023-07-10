@@ -3,9 +3,7 @@ import { Navigate, useRoutes } from 'react-router-dom';
 import DashboardLayout from './layouts/dashboard';
 import SimpleLayout from './layouts/simple';
 //
-import BlogPage from './pages/BlogPage';
 import CheckIn from './pages/CheckIn';
-import UserPage from './pages/UserPage';
 import LoginPage from './pages/LoginPage';
 import Page404 from './pages/Page404';
 import ManagePage from './pages/ManagePage';
@@ -48,7 +46,6 @@ import SettingsPage from './pages/SettingsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import { UserActivationPage } from './pages/UserActivationPage';
 import { CheckOut } from './pages/CheckOut';
-import AttentionPage from './pages/AttendPage';
 import SoftwareUpdate from './sections/@manage/pages/SoftwareUpdate';
 import PaymentPage from './pages/PaymentPage';
 
@@ -66,12 +63,9 @@ export default function Router() {
         { path: 'check-in', element: <CheckIn /> },
         { path: 'check-out', element: <CheckOut /> },
         { path: 'new-sale', element: <NewSale /> },
-        { path: 'attend', element: <AttentionPage /> },
         { path: 'reports', element: <ReportsPage /> },
         { path: 'schedule', element: <Schedule /> },
         { path: 'payments', element: <PaymentPage /> },
-        
-        { path: 'tasks', element: <UserPage /> },
 
         { path: 'management', element: <ManagePage /> },
         { path: 'management/visits', element: <VisitsPage /> },
@@ -133,6 +127,10 @@ export default function Router() {
       element: <ResetPasswordPage />,
     },
     {
+      path: '/user-activation/:token',
+      element: <UserActivationPage />,
+    },
+    {
       element: <SimpleLayout />,
       children: [
         { element: <Navigate to="/login" />, index: true },
@@ -144,10 +142,6 @@ export default function Router() {
       path: '*',
       element: <Navigate to="/404" replace />,
     },
-    {
-      path: '/user-activation/:token',
-      element: <UserActivationPage />,
-    }
   ]);
 
   return routes;

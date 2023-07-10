@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async';
-import { Breadcrumbs, Link, Typography, Container, Stack, Card, Box, Tab, Tabs, FormControl, TextField, IconButton, InputAdornment , Backdrop,
-  CircularProgress } from '@mui/material';
+import {
+  Breadcrumbs, Link, Typography, Container, Stack, Card, Box, Tab, Tabs, FormControl, TextField, IconButton, InputAdornment, Backdrop,
+  CircularProgress
+} from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import axios from 'axios';
 import PropTypes from 'prop-types';
@@ -45,29 +47,30 @@ function a11yProps(index) {
 const SettingsPage = () => {
 
   const id = localStorage.getItem('id');
-        /* Toastify */
-        const showNotification = (type, message) => {
-          if (type === 'success') {
-            toast.success(message, {
-              position: toast.POSITION.TOP_RIGHT
-            });
-          }
-          else if (type === 'error') {
-            toast.error(message, {
-              position: toast.POSITION.TOP_RIGHT
-            });
-          }
-          else if (type === 'warning') {
-            toast.warn(message, {
-              position: toast.POSITION.TOP_RIGHT
-            });
-          }
-          else {
-            toast.info(message, {
-              position: toast.POSITION.TOP_RIGHT
-            });
-          }
-        };
+  /* Toastify */
+  const showNotification = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else if (type === 'error') {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else if (type === 'warning') {
+      toast.warn(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.info(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+  
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -202,7 +205,7 @@ const SettingsPage = () => {
                         console.log(error);
                       });
                   }
-                }loading={isLoading}>
+                } loading={isLoading}>
                   Guardar cambios
                 </LoadingButton>
               </Stack>
@@ -286,44 +289,44 @@ const SettingsPage = () => {
                   />
                 </FormControl>
               </Stack>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={
-                  {
-                    mt: '30px',
-                  }
-                }>
-                  <LoadingButton variant="contained" color="primary" onClick={
-                    () => {
-                      setIsLoading(true);
-                      axios.put(`/api/users/${id}/password`, {
-                        currentPassword,
-                        password: newPassword,
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={
+                {
+                  mt: '30px',
+                }
+              }>
+                <LoadingButton variant="contained" color="primary" onClick={
+                  () => {
+                    setIsLoading(true);
+                    axios.put(`/api/users/${id}/password`, {
+                      currentPassword,
+                      password: newPassword,
+                    })
+                      .then((response) => {
+                        setCurrentPassword('');
+                        setNewPassword('');
+                        console.log(response);
+                        setIsLoading(false);
+                        showNotification('success', 'Cambios guardados correctamente');
                       })
-                        .then((response) => {
-                          setCurrentPassword('');
-                          setNewPassword('');
-                          console.log(response);
-                          setIsLoading(false);
-                          showNotification('success', 'Cambios guardados correctamente');
-                        })
-                        .catch((error) => {
-                          console.log(error);
-                        });
-                    }
+                      .catch((error) => {
+                        console.log(error);
+                      });
                   }
+                }
                   loading={isLoading}
-                  >
-                    Guardar cambios
-                  </LoadingButton>
-                </Stack>
+                >
+                  Guardar cambios
+                </LoadingButton>
+              </Stack>
             </Container>
           </TabPanel>
         </Card>
 
       </Container>
 
-            {/* Toastify */}
+      {/* Toastify */}
 
-            <ToastContainer />
+      <ToastContainer />
 
       <Backdrop
         sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}

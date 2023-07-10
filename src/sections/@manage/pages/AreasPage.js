@@ -185,7 +185,6 @@ const AreasPage = () => {
     }
   };
 
-
   /* useForm */
 
   const { control, handleSubmit, reset, setValue } = useForm({

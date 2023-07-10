@@ -23,9 +23,9 @@ const Events = ({ itemSelected, handleAddEvent, deleteEvent, errors, setErrors})
                     <TableHead>
                         <TableRow>
                             <TableCell>Nombre</TableCell>
-                            <TableCell >Precio </TableCell>
+                            <TableCell>Precio </TableCell>
                             <TableCell>Fecha</TableCell>
-                            <TableCell >Acción</TableCell>
+                            <TableCell>Acción</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
