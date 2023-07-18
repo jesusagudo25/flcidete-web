@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import axios from 'axios';
 import { Controller, useForm } from "react-hook-form";
-import { Link } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
+import axios from 'axios';
 // @mui
 import {
   Card,
@@ -34,15 +33,12 @@ import {
 } from '@mui/material';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
+import { Link } from 'react-router-dom';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
 // date-fns
-import { format } from 'date-fns';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -51,8 +47,10 @@ import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 
 const TABLE_HEAD = [
   { id: 'name', label: 'Nombre', alignRight: false },
-  { id: 'purchase_price', label: 'Costo de software', alignRight: false },
-  { id: 'sale_price', label: 'Precio por hora', alignRight: false },
+  { id: 'dimensions', label: 'Dimensiones', alignRight: false },
+  { id: 'area', label: 'Área en stock', alignRight: false },
+  { id: 'cost', label: 'Costo de material', alignRight: false },
+  { id: 'sale_price', label: 'Precio de venta', alignRight: false },
   { id: 'active', label: 'Estado', alignRight: false },
   { id: '' },
 ];
@@ -170,15 +168,15 @@ function applySortFilter(array, comparator, query) {
   return stabilizedThis.map((el) => el[0]);
 }
 
-const Softwares = () => {
+const MaterialsPrinterPage = () => {
 
   /* Toastify */
 
   const showToastMessage = () => {
-    if (!id) toast.success('Software agregado con éxito!', {
+    if (!id) toast.success('Material agregado con éxito!', {
       position: toast.POSITION.TOP_RIGHT
     });
-    else toast.success('Software actualizado con éxito!', {
+    else toast.success('Material actualizado con éxito!', {
       position: toast.POSITION.TOP_RIGHT
     });
   };
@@ -202,25 +200,14 @@ const Softwares = () => {
     reValidateMode: 'onBlur'
   });
 
-  /* Create - edit */
+  /* Dialog */
 
   const [id, setId] = useState('');
-
-  const [name, setName] = useState('');
-
-  const [estimatedValue, setEstimatedValue] = useState('');
-
-  const [purchasePrice, setPurchasePrice] = useState('');
-
-  const [salePrice, setSalePrice] = useState('');
-
-  const [percentage, setPercentage] = useState('');
-
   const [containerEstimatedValue, setContainerEstimatedValue] = useState(false);
 
   /* Datatable */
 
-  const [softwares, setSoftwares] = useState([]);
+  const [materials, setMaterials] = useState([]);
 
   const [open, setOpen] = useState(false);
 
@@ -235,46 +222,59 @@ const Softwares = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const handleCreateDialog = (event) => {
-    setId('');
-    /*     setName('');
-        setEstimatedValue('');
-        setPurchasePrice('');
-        setPurchaseDate(new Date());
-        setExpirationDate(new Date());
-        setSalePrice(''); */
     reset();
-    setContainerEstimatedValue(false);
     setOpen(true);
+    setId('');
+    setContainerEstimatedValue(false);
+    /*     setName('');
+        setPurchasePrice('');
+        setEstimatedValue('');
+        setWidth('');
+        setHeight('');
+        setCost('');
+        setPercentage('');
+        setSalePrice('');
+        setQuantity(1); */
   };
 
   const handleCloseDialog = () => {
-    setOpen(false);
     reset();
+    setOpen(false);
   };
 
-  /* Bug - date picker */
   const handleSubmitDialog = async (event) => {
-    handleCloseDialog();
     if (id) {
-      await axios.put(`/api/softwares/${id}`, {
+      await axios.put(`/api/printer-materials/${id}`, {
         name: event.name,
-        'purchase_price': event.purchasePrice,
-        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+        cost: event.cost,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
+        'percentage': event.percentage,
         'sale_price': event.salePrice,
+        'width': event.width / 12, 
+        'width_in_inches': event.width,
+        'height': event.height * 3.28084, 
+        'height_in_meters': event.height,
+        'area': (event.width / 12) * (event.height * 3.28084),
       });
-
     } else {
-      await axios.post('/api/softwares', {
-        name: event.name,
-        'purchase_price': event.purchasePrice,
-        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
+      await axios.post('/api/printer-materials', {
+        'name': event.name.concat(' (', event.width, ' in x', event.height, ' M)'),
+        'cost': event.cost,
+        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
+        'percentage': event.percentage,
         'sale_price': event.salePrice,
+        'width': event.width / 12, 
+        'width_in_inches': event.width,
+        'height': event.height * 3.28084, 
+        'height_in_meters': event.height,
+        'area': (event.width / 12) * (event.height * 3.28084),
         'quantity': event.quantity,
       });
     }
     showToastMessage();
+    handleCloseDialog();
+    getPrinterMaterials();
     reset();
-    getSoftwares();
   };
 
   const handleRequestSort = (event, property) => {
@@ -297,39 +297,40 @@ const Softwares = () => {
     setFilterName(event.target.value);
   };
 
-  const getSoftwares = async () => {
-    const response = await axios.get('/api/softwares');
-    setSoftwares(response.data);
+  const getPrinterMaterials = async () => {
+    const response = await axios.get('/api/printer-materials');
+    setMaterials(response.data);
   }
 
   useEffect(() => {
-    getSoftwares();
+    getPrinterMaterials();
   }, []);
 
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - softwares.length) : 0;
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - materials.length) : 0;
 
-  const filteredSoftwares = applySortFilter(softwares, getComparator(order, orderBy), filterName);
+  const filteredMaterials = applySortFilter(materials, getComparator(order, orderBy), filterName);
 
-  const isNotFound = !filteredSoftwares.length && !!filterName;
+  const isNotFound = !filteredMaterials.length && !!filterName;
 
   return (
     <>
       <Helmet>
-        <title> Gestión: Softwares | Fab Lab System </title>
+        <title> Gestión: Impresora de gran formato | Fab Lab System </title>
       </Helmet>
 
       <Container>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4" gutterBottom>
-            Softwares
+            Impresora de gran formato
           </Typography>
+
           <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} onClick={handleCreateDialog}>
-            Agregar software
+            Agregar Material
           </Button>
         </Stack>
 
         <Card>
-          <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar software..."} />
+          <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar material..."} />
 
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
@@ -338,14 +339,28 @@ const Softwares = () => {
                   order={order}
                   orderBy={orderBy}
                   headLabel={TABLE_HEAD}
-                  rowCount={softwares.length}
+                  rowCount={materials.length}
                   onRequestSort={handleRequestSort}
                 />
-                {/* Tiene que cargar primero... */}
-                {softwares.length > 0 ? (
+
+                {materials.length > 0 ? (
                   <TableBody>
-                    {filteredSoftwares.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, name, purchase_price: purchasePrice, sale_price: salePrice, purchased_date: purchasedDate, active } = row;
+                    {filteredMaterials.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                      const {
+                        id,
+                        name,
+                        cost,
+                        purchase_price: purchasePrice,
+                        estimated_value: estimatedValue,
+                        percentage,
+                        sale_price: salePrice,
+                        width,
+                        width_in_inches: widthInches,
+                        height,
+                        height_in_meters: heightMeters,
+                        area,
+                        active
+                      } = row;
 
                       return (
                         <TableRow hover key={id} tabIndex={-1} role="checkbox">
@@ -359,29 +374,37 @@ const Softwares = () => {
                           </TableCell>
 
                           <TableCell align="left">
-                            $ {purchasePrice}
+                            W: {widthInches} in x L: {heightMeters} M
                           </TableCell>
 
                           <TableCell align="left">
-                            $ {salePrice}
+                            {area} ft²
+                          </TableCell>
+
+                          <TableCell align="left">
+                            $ {cost}
+                          </TableCell>
+
+                          <TableCell align="left">
+                            $ {salePrice} ft²
                           </TableCell>
 
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
                                 if (active) (
-                                  showToastMessageStatus('error', 'Software desactivado')
+                                  showToastMessageStatus('error', 'Material desactivado')
                                 )
                                 else (
-                                  showToastMessageStatus('success', 'Software activado')
+                                  showToastMessageStatus('success', 'Material activado')
                                 )
-                                setSoftwares(softwares.map((software) => {
-                                  if (software.id === id) {
-                                    return { ...software, active: !active };
+                                setMaterials(materials.map((material) => {
+                                  if (material.id === id) {
+                                    return { ...material, active: !active };
                                   }
-                                  return software;
+                                  return material;
                                 }));
-                                await axios.put(`/api/softwares/${id}`, {
+                                await axios.put(`/api/printer-materials/${id}`, {
                                   active: !active
                                 });
                               }
@@ -389,27 +412,27 @@ const Softwares = () => {
                           </TableCell>
 
                           <TableCell align="right">
-                          <Link
+                            <Link
                               style={{ textDecoration: 'none', color: 'inherit' }}
-                              to={`./update/${id}`}>
+                              to={`./update/${id}`}
+                            >
                               <IconButton size="large" color="inherit">
                                 <Iconify icon={'mdi:archive-arrow-up-outline'} />
                               </IconButton>
                             </Link>
-                            
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-                              /*                               
-                                setName(name);
-                                setPurchasePrice(purchasePrice);
-                                setSalePrice(salePrice);
-                                setPurchaseDate(purchaseDate);
-                                setExpirationDate(expirationDate); 
-                              */
                               setValue('name', name);
+                              setValue('width', widthInches);
+                              setValue('height', heightMeters);
+                              setValue('cost', cost);
                               setValue('purchasePrice', purchasePrice);
+                              setValue('estimatedValue', estimatedValue);
+                              setValue('percentage', percentage);
                               setValue('salePrice', salePrice);
-                              if (parseFloat(purchasePrice) === 0)
+
+
+                              if (parseFloat(cost) === 0)
                                 setContainerEstimatedValue(true)
                               else
                                 setContainerEstimatedValue(false)
@@ -486,7 +509,7 @@ const Softwares = () => {
             component="div"
             labelRowsPerPage="Filas por página:"
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`}
-            count={softwares.length}
+            count={materials.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
@@ -508,11 +531,10 @@ const Softwares = () => {
         maxWidth='sm'
       >
         <BootstrapDialogTitle id="customized-dialog-title" onClose={handleCloseDialog}>
-          Gestión de Softwares
+          Gestión de Materiales
         </BootstrapDialogTitle>
         <DialogContent dividers>
           <Stack spacing={3} sx={{ minWidth: 550 }}>
-
             <FormControl sx={{ width: '100%' }}>
               <Controller
                 name="name"
@@ -532,7 +554,7 @@ const Softwares = () => {
                 render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
                   <TextField
                     id="outlined-basic"
-                    label="Descripción del software"
+                    label="Descripción del material"
                     variant="outlined"
                     size="small"
                     value={value}
@@ -546,28 +568,108 @@ const Softwares = () => {
               />
             </FormControl>
 
-            <FormControl sx={{ width: '100%' }} error={!!errors?.purchasePrice}>
-              <InputLabel htmlFor="outlined-adornment-amount">Costo del software</InputLabel>
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <FormControl sx={{ width: '50%' }} error={!!errors?.width}>
+                <InputLabel htmlFor="outlined-adornment-amount">Ancho</InputLabel>
+                <Controller
+                  name="width"
+                  control={control}
+                  defaultValue=""
+                  rules={{
+                    required: 'El ancho es requerido',
+                    min: {
+                      value: 1,
+                      message: 'El ancho debe ser mayor o igual a 1'
+                    },
+                    max: {
+                      value: 64,
+                      message: 'El ancho debe ser menor o igual a 64'
+                    }
+                  }}
+                  render={({ field: { onChange, onBlur, value, } }) => (
+                    <OutlinedInput
+                      id="outlined-adornment-amount"
+                      startAdornment={<InputAdornment position="start">in</InputAdornment>}
+                      label="Ancho"
+                      placeholder='0'
+                      size="small"
+                      type="number"
+                      value={value}
+                      onChange={
+                        (e) => {
+                          onChange(e.target.value);
+                        }
+                      }
+                      onBlur={onBlur}
+                      required
+                    />
+                  )}
+                />
+                <FormHelperText>{errors.width && errors.width.message}</FormHelperText>
+              </FormControl>
+
+              <FormControl sx={{ width: '50%' }} error={!!errors?.height}>
+                <InputLabel htmlFor="outlined-adornment-amount">Largo</InputLabel>
+                <Controller
+                  name="height"
+                  control={control}
+                  defaultValue=""
+                  rules={{
+                    required: 'El largo es requerido',
+                    min: {
+                      value: 1,
+                      message: 'El largo debe ser mayor o igual a 1'
+                    },
+                    max: {
+                      value: 1000,
+                      message: 'El largo debe ser menor o igual a 1000'
+                    }
+                  }}
+                  render={({ field: { onChange, onBlur, value, } }) => (
+                    <OutlinedInput
+                      id="outlined-adornment-amount"
+                      startAdornment={<InputAdornment position="start">M</InputAdornment>}
+                      label="Largo"
+                      placeholder='0'
+                      size="small"
+                      type="number"
+                      value={value}
+                      onChange={
+                        (e) => {
+                          onChange(e.target.value);
+                        }
+                      }
+                      onBlur={onBlur}
+                      required
+                    />
+                  )}
+                />
+                <FormHelperText>{errors.height && errors.height.message}</FormHelperText>
+              </FormControl>
+            </Stack>
+
+            <FormControl sx={{ width: '100%' }} error={!!errors?.cost}>
+              <InputLabel htmlFor="outlined-adornment-amount">Costo del material</InputLabel>
               <Controller
-                name="purchasePrice"
+                name="cost"
                 control={control}
                 defaultValue=""
                 rules={{
-                  required: 'El costo del software es requerido',
+                  required: 'El costo del material es requerido',
                   min: {
                     value: 0,
-                    message: 'El costo del software debe ser mayor o igual a 0'
+                    message: 'El costo del material debe ser mayor o igual a 0'
                   },
                   max: {
-                    value: 999999999,
-                    message: 'El costo del software debe ser menor o igual a 999999999'
+                    value: 100000,
+                    message: 'El costo del material debe ser menor o igual a 100000'
                   }
                 }}
                 render={({ field: { onChange, onBlur, value, } }) => (
                   <OutlinedInput
                     id="outlined-adornment-amount"
                     startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                    label="Costo del software"
+                    label="Costo del material"
                     placeholder='0.00'
                     size="small"
                     value={value}
@@ -586,7 +688,7 @@ const Softwares = () => {
                   />
                 )}
               />
-              <FormHelperText>{errors.purchasePrice && errors.purchasePrice.message}</FormHelperText>
+              <FormHelperText>{errors.cost && errors.cost.message}</FormHelperText>
             </FormControl>
 
             {
@@ -599,14 +701,14 @@ const Softwares = () => {
                       control={control}
                       defaultValue=""
                       rules={{
-                        required: 'El costo estimado es requerido',
+                        required: 'El costo estimado del material es requerido',
                         min: {
                           value: 1,
-                          message: 'El costo estimado debe ser mayor o igual a 1'
+                          message: 'El costo estimado del material debe ser mayor o igual a 1'
                         },
                         max: {
                           value: 100000,
-                          message: 'El costo estimado debe ser menor o igual a 100000'
+                          message: 'El costo estimado del material debe ser menor o igual a 100000'
                         }
                       }}
                       render={({ field: { onChange, onBlur, value, } }) => (
@@ -617,7 +719,9 @@ const Softwares = () => {
                           placeholder='0.00'
                           size="small"
                           value={value}
-                          onChange={onChange}
+                          onChange={(e) => {
+                            onChange(e.target.value);
+                          }}
                           onBlur={onBlur}
                           type="number"
                           required
@@ -631,39 +735,27 @@ const Softwares = () => {
                 null
             }
 
-            <FormControl sx={{ width: '100%' }} error={!!errors?.salePrice}>
-              <InputLabel htmlFor="outlined-adornment-amount">Precio por hora</InputLabel>
+            <FormControl sx={{ width: '100%' }}>
+              <InputLabel htmlFor="outlined-adornment-amount">Precio de venta ft²</InputLabel>
               <Controller
                 name="salePrice"
                 control={control}
                 defaultValue=""
-                rules={{
-                  required: 'El precio por hora es requerido',
-                  min: {
-                    value: 1,
-                    message: 'El precio por hora debe ser mayor o igual a 1'
-                  },
-                  max: {
-                    value: 100000,
-                    message: 'El precio por hora debe ser menor o igual a 100000'
-                  }
-                }}
-                render={({ field: { onChange, onBlur, value, } }) => (
+                render={({ field: { onChange, onBlur, value } }) => (
                   <OutlinedInput
                     id="outlined-adornment-amount"
                     startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                    label="Precio por hora"
+                    label="Costo del material"
                     placeholder='0.00'
                     size="small"
                     value={value}
-                    onChange={onChange}
-                    onBlur={onBlur}
                     type="number"
-                    required
+                    onChange={(e) => {
+                      onChange(e.target.value);
+                    }}
                   />
                 )}
               />
-              <FormHelperText>{errors.salePrice && errors.salePrice.message}</FormHelperText>
             </FormControl>
 
             {
@@ -704,6 +796,7 @@ const Softwares = () => {
                 )
                 : null
             }
+
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -719,4 +812,4 @@ const Softwares = () => {
   )
 }
 
-export default Softwares
+export default MaterialsPrinterPage

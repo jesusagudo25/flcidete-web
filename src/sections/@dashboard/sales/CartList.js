@@ -29,7 +29,7 @@ const CartList = ({ items, setItems, setServiceSelected, setServiceSelectedId, s
                             <TextField  size="small" label={item.uuid} InputLabelProps={{ shrink: true, }} placeholder="Ingrese la descripción" variant="outlined" value={item.description} multiline sx={{ width: '100%' }} onChange={(event) => { 
                                 item.description = event.target.value;
                                 setItems([...items]);
-                            }} />
+                            }} disabled={item.disabled} />
                         </Typography>
                     </TableCell>
 
@@ -37,7 +37,7 @@ const CartList = ({ items, setItems, setServiceSelected, setServiceSelectedId, s
                         <Typography variant="subtitle2" sx={{  padding: '3px' }}>
                             <TextField  size="small" label='Cantidad' InputLabelProps={{ shrink: true, }} placeholder="Cantidad" variant="outlined" value={item.quantity} sx={{ width: '80%' }} onChange={(event) => { 
                                 changeQuantity(item, items, setItems, event.target.value);
-                            }} />
+                            }} disabled={item.disabled} />
                         </Typography>
                     </TableCell>
 
@@ -55,9 +55,8 @@ const CartList = ({ items, setItems, setServiceSelected, setServiceSelectedId, s
                                 }}
                             >
                                 <MenuItem value={'u'}>Unidad</MenuItem>
-                                <MenuItem value={'m'}>Metros</MenuItem>
-                                <MenuItem value={'kg'}>Kilogramos</MenuItem>
-                                <MenuItem value={'n/a'}>N/A</MenuItem>
+                                <MenuItem value={'p'}>Paquete</MenuItem>
+                                <MenuItem value={'doc'}>Docena</MenuItem>
                             </Select>
                         </Typography>
                     </TableCell>

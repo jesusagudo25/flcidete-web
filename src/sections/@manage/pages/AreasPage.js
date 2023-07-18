@@ -343,7 +343,10 @@ const AreasPage = () => {
                             } />
                           </TableCell>
 
-                          <TableCell align="right">
+
+                              <TableCell align="right">
+                                {
+                                id !== 7 && (
                             <a
                               style={{ textDecoration: 'none', color: 'inherit' }}
                               href={`./areas/${id}`}
@@ -353,10 +356,11 @@ const AreasPage = () => {
                                 <Iconify icon={'mdi:package-variant-closed'} />
                               </IconButton>
                             </a>
+                              )
+                            }
                             <IconButton size="large" color="inherit" onClick={
                               () => {
                                 setId(id);
-                                /*                                 setName(name); */
                                 setValue('name', name);
                                 setOpen(true);
                               }

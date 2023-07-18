@@ -32,15 +32,8 @@ import {
   Box,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
-
-// date-fns
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -56,21 +49,15 @@ import Scrollbar from '../components/scrollbar';
 import {
   CartList,
   ElectronicServices,
-  ElectronicMaker,
   MiniCNCServices,
-  MiniCNCMaker,
   LaserCNCServices,
-  LaserCNCMaker,
   VinylServices,
-  VinylMaker,
   FilamentServices,
-  FilamentMaker,
   ResinServices,
-  ResinMaker,
   EmbroideryServices,
-  EmbroideryMaker,
-  SoftwareServices,
   Events,
+  LargePrinterServices,
+  DesignServices
 } from '../sections/@dashboard/sales';
 
 import { AddCustomer, AddRUC } from '../sections/@dashboard/visits';
@@ -184,7 +171,6 @@ const NewSale = () => {
   const [subsidiaryId, setSubsidiaryId] = useState(null);
   const [containerSubsidiary, setContainerSubsidiary] = useState(false);
 
-
   /* Data sales - variables */
 
   const [services, setServices] = useState([]);
@@ -197,16 +183,11 @@ const NewSale = () => {
   const [payment, setPayment] = useState(0); /* Abono */
   const [balance, setBalance] = useState(0); /* Saldo */
   const [typeInvoice, setTypeInvoice] = useState('T');
-  const [typeSale, setTypeSale] = useState('S');
-  const [dateDelivery, setDateDelivery] = useState(null);
-  const [hours, setHours] = useState(0);
-  const [minutes, setMinutes] = useState(0);
-  const [comments, setComments] = useState('');
+  const [observations, setObtservations] = useState('');
   const [servicesCategories, setServicesCategories] = useState([
     { id: 'a', name: 'Áreas' },
     { id: 'ec', name: 'Eventos' }
   ]);
-
 
   /* Data invoices */
 
@@ -221,100 +202,86 @@ const NewSale = () => {
   const handleClickSubmit = () => {
     setIsLoading(true);
 
-      const laborTime = parseInt(hours, 10) + parseFloat((minutes / 60));
-      const data = {
-        items,
-        total,
-        id: localStorage.getItem('id'),
-        comments,
-        typeInvoice,
-        payment,
-        balance,
-      };
+    const data = {
+      items,
+      total,
+      id: localStorage.getItem('id'),
+      observations,
+      typeInvoice,
+      payment,
+      balance,
+    };
 
-      if (typeSale === 'S') {
-        data.typeSale = typeSale;
-        data.dateDelivery = dateDelivery ? format(dateDelivery, 'yyyy-MM-dd', { locale: es }) : null;
-        data.laborTime = laborTime !== 0.00 ? laborTime : null;
-      }
-      else {
-        data.typeSale = typeSale;
-      }
+    /* User */
+    if (idCustomer && containerCustomer) {
+      data.customer_id = idCustomer;
+    }
+    else if (idCustomer === null && containerCustomer) {
+      data.document_type = documentType;
+      data.document_number = document;
+      data.name = name;
+      data.email = email;
+      data.telephone = telephone;
+      data.age_range_id = parseInt(ageRangeSelected, 10);
+      data.type_sex_id = parseInt(typeSexSelected, 10);
+      data.province_id = provinceSelected;
+      data.district_id = districtSelected;
+      data.township_id = townshipSelected;
+    }
+    else if (idCustomer && subsidiaryId) {
+      data.customer_id = idCustomer;
+      data.subsidiary_id = subsidiaryId;
+    }
+    else if (idCustomer && subsidiaryId === null) {
+      data.customer_id = idCustomer;
+      data.name = subsidiary;
+      data.email = email;
+      data.telephone = telephone;
+      data.province_id = provinceSelected;
+      data.district_id = districtSelected;
+      data.township_id = townshipSelected;
+    }
+    else if (idCustomer === null && subsidiaryId === null) {
+      data.document_type = documentType;
+      data.document_number = document;
+      data.name = subsidiary;
+      data.email = email;
+      data.telephone = telephone;
+      data.province_id = provinceSelected;
+      data.district_id = districtSelected;
+      data.township_id = townshipSelected;
+    }
 
-      /* User */
-      if (idCustomer && containerCustomer) {
-        data.customer_id = idCustomer;
-      }
-      else if (idCustomer === null && containerCustomer) {
-        data.document_type = documentType;
-        data.document_number = document;
-        data.name = subsidiary;
-        data.email = email;
-        data.telephone = telephone;
-        data.age_range_id = parseInt(ageRangeSelected, 10);
-        data.type_sex_id = parseInt(typeSexSelected, 10);
-        data.province_id = provinceSelected;
-        data.district_id = districtSelected;
-        data.township_id = townshipSelected;
-      }
-      else if (idCustomer && subsidiaryId) {
-        data.customer_id = idCustomer;
-        data.subsidiary_id = subsidiaryId;
-      }
-      else if (idCustomer && subsidiaryId === null) {
-        data.customer_id = idCustomer;
-        data.name = subsidiary;
-        data.email = email;
-        data.telephone = telephone;
-        data.province_id = provinceSelected;
-        data.district_id = districtSelected;
-        data.township_id = townshipSelected;
-      }
-      else if (idCustomer === null && subsidiaryId === null) {
-        data.document_type = documentType;
-        data.document_number = document;
-        data.name = subsidiary;
-        data.email = email;
-        data.telephone = telephone;
-        data.province_id = provinceSelected;
-        data.district_id = districtSelected;
-        data.township_id = townshipSelected;
-      }
+    console.log(data);
 
-      console.log(data);
+    axios.post('api/invoices', data)
+      .then((response) => {
+        if (response.data.success) {
+          setIsLoading(false);
+          setInvoice(response.data.invoice);
 
-/*       axios.post('api/invoices', data)
-        .then((response) => {
-          if (response.data.success) {
-            setIsLoading(false);
-            setInvoice(response.data.invoice);
+          setContainerCustomer(false);
+          setDisabledAddCustomer(false);
+          setDocumentType('C');
+          setDocument('');
+          setName('');
+          setEmail('');
+          setTelephone('');
+          setAgeRangeSelected('');
+          setTypeSexSelected('');
+          setIdCustomer(null);
+          setProvinceSelected(9);
+          setDistrictSelected(60);
+          setTownshipSelected(492);
+          setServiceCategory('a');
+          setService(1);
+          setItems([]);
+          setCount(1);
+          setTotal(0);
+          setActiveStep((prevActiveStep) => prevActiveStep + 1);
 
-            setContainerCustomer(false);
-            setDisabledAddCustomer(false);
-            setDocumentType('C');
-            setDocument('');
-            setName('');
-            setEmail('');
-            setTelephone('');
-            setAgeRangeSelected('');
-            setTypeSexSelected('');
-            setIdCustomer(null);
-            setProvinceSelected(9);
-            setDistrictSelected(60);
-            setTownshipSelected(492);
-            setServiceCategory('a');
-            setService(1);
-            setItems([]);
-            setCount(1);
-            setTotal(0);
-            setTypeSale('S');
-            setDateDelivery(new Date());
-            setHours(0);
-            setMinutes(0);
-            setActiveStep((prevActiveStep) => prevActiveStep + 1);
-
-          }
-        }); */
+        }
+      });
 
   };
 
@@ -325,7 +292,7 @@ const NewSale = () => {
       const data = {
         total,
         id: localStorage.getItem('id'),
-        comments,
+        observations,
       }
 
       /* User */
@@ -369,10 +336,6 @@ const NewSale = () => {
             setItems([]);
             setCount(1);
             setTotal(0);
-            setTypeSale('S');
-            setDateDelivery(new Date());
-            setHours(0);
-            setMinutes(0);
             setActiveStep((prevActiveStep) => prevActiveStep + 1);
 
           }
@@ -434,10 +397,6 @@ const NewSale = () => {
 
     }
     else if (activeStep === 1) {
-      if (dateDelivery === null && serviceCategory !== 'ec' && typeSale === 'S') {
-        errorsDisplay.date_delivery = 'Seleccione la fecha de entrega';
-        flag = true;
-      }
 
       /* Get items details lenght === 0  */
       const itemsDetailsEmpty = items.filter((item) => Object.keys(item.details).length === 0);
@@ -515,55 +474,9 @@ const NewSale = () => {
 
   /* ------------ Sales - Methods */
 
-  const handleChangeMinutes = (event) => {
-    if (event.target.value.length > 2 || event.target.value < 0) {
-      setMinutes(0);
-      calculateTotal(hours, 0, typeInvoice);
-    }
-    else {
-      setMinutes(event.target.value);
-      calculateTotal(hours, event.target.value);
-    }
-  };
-
-  const handleChangeHours = (event) => {
-    if (event.target.value.length > 2 || event.target.value < 0) {
-      setHours(0);
-      calculateTotal(0, minutes, typeInvoice);
-    }
-    else {
-      setHours(event.target.value);
-      calculateTotal(event.target.value, minutes, typeInvoice);
-    }
-  };
-
-  const handleChangeTypeSale = (event) => {
-    setTypeSale(event.target.value);
-    setTypeInvoice('T');
-    setHours(0);
-    setMinutes(0);
-    setTotal(0);
-    setItems([]);
-    setService(1);
-    setServiceCategory('a');
-    if (event.target.value === 'S') {
-      setServicesCategories([
-        { id: 'a', name: 'Áreas' },
-        { id: 'ec', name: 'Eventos' }
-      ])
-
-    }
-    else {
-      setServicesCategories([
-        { id: 'a', name: 'Áreas' },
-      ])
-    }
-    setContainerServices(services.a);
-  };
-
   const handleChangeTypeInvoice = (event) => {
     setTypeInvoice(event.target.value);
-    calculateTotal(hours, minutes, event.target.value);
+    calculateTotal(event.target.value);
   };
 
   /* ---------------------- */
@@ -573,8 +486,17 @@ const NewSale = () => {
     axios.get('/api/services')
       .then(res => {
         setIsLoading(false);
+
         setServices(res.data);
-        setContainerServices(res.data.a);
+        const services = res.data.a.sort((a, b) => {
+          if (a.name < b.name) {
+            return -1;
+          }
+          return 1;
+        }
+        );
+
+        setContainerServices(services);
       }).catch(err => {
         console.log(err);
       }
@@ -587,11 +509,9 @@ const NewSale = () => {
     getTypeSexes();
   }, []);
 
-  const calculateTotal = (hours = 0, minutes = 0, typeInvoice = null) => {
+  const calculateTotal = (typeInvoice = null) => {
 
-    const minutesArea = (parseInt(hours, 10) * 60) + parseInt(minutes, 10);
-
-    let total = Number.isNaN(minutesArea) ? 0.00 : minutesArea !== 0 ? ((minutesArea / 60) * 3.00) : 0.00;
+    let total = 0;
 
     items.forEach(item => {
       if (item.total) {
@@ -613,15 +533,15 @@ const NewSale = () => {
     else if (quantity > 1000) item.quantity = 1000;
     else item.quantity = ''
 
-    if(item.quantity > 0 ){
-        if(item.details?.base_cost) item.total = quantity * item.details.base_cost;
-        else item.total = quantity * 0;
+    if (item.quantity > 0) {
+      if (item.details?.base_cost) item.total = quantity * item.details.base_cost;
+      else item.total = quantity * 0;
     }
     else item.total = 0;
 
     setItems([...items]);
-    calculateTotal(hours, minutes, typeInvoice);
-}
+    calculateTotal(typeInvoice);
+  }
 
   /* Customers - methods */
 
@@ -710,13 +630,17 @@ const NewSale = () => {
     if (event) {
       setContainerCustomer(false);
       setContainerRUC(false);
-
+      setIdCustomer(null);
       setSubsidiaryId(null);
       setErrors(
         {
           ...errors,
           subsidiary: '',
           name: '',
+          correo: '',
+          telephone: '',
+          age_range: '',
+          type_sex: '',
         }
       )
       if (event.target.value) {
@@ -798,7 +722,7 @@ const NewSale = () => {
   };
 
   const handleOnBlurDocument = (event) => {
-    if (idCustomer === null && containerCustomer === false) {
+    if (idCustomer === null && (containerCustomer === false && containerRUC === false)) {
       setErrors({
         ...errors,
         document: 'Por favor, seleccione o agregue un cliente'
@@ -809,6 +733,16 @@ const NewSale = () => {
         ...errors,
         document: ''
       });
+    }
+
+    if (document !== '') {
+      axios.post('api/customers/check-document', {
+        document
+      }).then(response => {
+        console.log(response.data.message);
+      }).catch(error => {
+        console.log(error.response.data.message);
+      })
     }
   };
 
@@ -902,7 +836,6 @@ const NewSale = () => {
   /* Modal - methods */
   const handleClose = () => {
     const cancelItem = items.find(item => item.id === serviceSelectedId);
-    console.log(cancelItem);
 
     setErrors({
       ...errors,
@@ -913,236 +846,51 @@ const NewSale = () => {
       time: '',
       software: '',
       event: '',
+      materials: '',
     });
     setOpen(false);
-    calculateTotal(hours, minutes, typeInvoice);
+    calculateTotal(typeInvoice);
 
   };
 
   const handleSave = () => {
     /* Validate */
-    const resul = ValidateForDialog[serviceSelected](typeSale)
+    const resul = ValidateForDialog[serviceSelected]()
     if (!resul) {
-      calculateTotal(hours, minutes, typeInvoice);
+      calculateTotal(typeInvoice);
       setOpen(false);
       showToastMessageStatus('success', 'Servicio actualizado correctamente');
     }
   };
 
   const ValidateForDialog = {
-    'Electrónica': (type) => {
-      if (type === 'S') {
-        if (itemSelected.details.base_cost === undefined || itemSelected.details.base_cost === '' || itemSelected.details.base_cost === null || itemSelected.details.base_cost === "0.00") {
-          setErrors({
-            ...errors,
-            base_cost: 'Por favor, ingrese componentes y/o extras'
-          });
-          return true;
-        }
+    'Electrónica': () => {
+
+      if (itemSelected.details.base_cost === undefined || itemSelected.details.base_cost === '' || itemSelected.details.base_cost === null || itemSelected.details.base_cost === "0.00") {
         setErrors({
           ...errors,
-          base_cost: ''
-        });
-        return false;
-      }
-      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
-        setErrors({
-          ...errors,
-          hours_area: 'Por favor, ingrese la cantidad de horas'
+          base_cost: 'Por favor, ingrese componentes y/o extras'
         });
         return true;
       }
       setErrors({
         ...errors,
-        hours_area: ''
+        base_cost: ''
       });
       return false;
     },
-    'Mini Fresadora CNC': (type) => {
-      if (type === 'S') {
-        const flag = {};
-        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
-          flag.hours = 'Por favor, ingrese la cantidad de horas'
-        }
+    'Mini Fresadora CNC': () => {
 
-        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
-          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
-        }
-
-        if (Object.keys(flag).length > 0) {
-          setErrors({
-            ...flag
-          });
-          return true;
-        }
-        return false;
-      }
-
-      /* Maker */
-      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
-        setErrors({
-          ...errors,
-          hours_area: 'Por favor, ingrese la cantidad de horas'
-        });
-        return true;
-      }
-      setErrors({
-        ...errors,
-        hours_area: ''
-      });
-
-      return false;
-
-    },
-    'Láser CNC': (type) => {
-      if (type === 'S') {
-        const flag = {};
-        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
-          flag.hours = 'Por favor, ingrese la cantidad de horas'
-        }
-
-        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
-          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
-        }
-
-        if (Object.keys(flag).length > 0) {
-          setErrors({
-            ...flag
-          });
-          return true;
-        }
-        return false;
-      }
-      /* Maker */
-      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
-        setErrors({
-          ...errors,
-          hours_area: 'Por favor, ingrese la cantidad de horas'
-        });
-        return true;
-      }
-      setErrors({
-        ...errors,
-        hours_area: ''
-      });
-
-      return false;
-    },
-    'Cortadora de Vinilo': (type) => {
-      if (type === 'S') {
-        const flag = {};
-        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
-          flag.hours = 'Por favor, ingrese la cantidad de horas'
-        }
-
-        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
-          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
-        }
-
-        if (Object.keys(flag).length > 0) {
-          setErrors({
-            ...flag
-          });
-          return true;
-        }
-        return false;
-      }
-      /* Maker */
-      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
-        setErrors({
-          ...errors,
-          hours_area: 'Por favor, ingrese la cantidad de horas'
-        });
-        return true;
-      }
-      setErrors({
-        ...errors,
-        hours_area: ''
-      });
-
-      return false;
-    },
-    'Impresión 3D en filamento': (type) => {
-      if (type === 'S') {
-        const flag = {};
-        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
-          flag.hours = 'Por favor, ingrese la cantidad de horas'
-        }
-
-        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
-          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
-        }
-
-        if (Object.keys(flag).length > 0) {
-          setErrors({
-            ...flag
-          });
-          return true;
-        }
-        return false;
-      }
-      /* Maker */
-      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
-        setErrors({
-          ...errors,
-          hours_area: 'Por favor, ingrese la cantidad de horas'
-        });
-        return true;
-      }
-      setErrors({
-        ...errors,
-        hours_area: ''
-      });
-
-      return false;
-    },
-    'Impresión 3D en resina': (type) => {
-      if (type === 'S') {
-        const flag = {};
-        if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
-          flag.hours = 'Por favor, ingrese la cantidad de horas'
-        }
-
-        if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
-          flag.minutes = 'Por favor, ingrese la cantidad de minutos'
-        }
-
-        if (Object.keys(flag).length > 0) {
-          setErrors({
-            ...flag
-          });
-          return true;
-        }
-        return false;
-      }
-      /* Maker */
-      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
-        setErrors({
-          ...errors,
-          hours_area: 'Por favor, ingrese la cantidad de horas'
-        });
-        return true;
-      }
-      setErrors({
-        ...errors,
-        hours_area: ''
-      });
-
-      return false;
-    },
-    'Softwares': (type = null) => {
       const flag = {};
-      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === 0) {
-        flag.hours_area = 'Por favor, ingrese la cantidad de horas'
+      if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+        flag.hours = 'Por favor, ingrese la cantidad de horas'
       }
 
-      console.log(itemSelected.details.software);
-      if (itemSelected.details.software === undefined || itemSelected.details.software === '' || itemSelected.details.software === null) {
-        flag.software = 'Por favor, seleccione un software'
+      if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+        flag.minutes = 'Por favor, ingrese la cantidad de minutos'
       }
 
       if (Object.keys(flag).length > 0) {
-        console.log(flag);
         setErrors({
           ...flag
         });
@@ -1150,35 +898,126 @@ const NewSale = () => {
       }
       return false;
     },
-    'Bordadora CNC': (type) => {
-      if (type === 'S') {
-        if (itemSelected.details.base_cost === undefined || itemSelected.details.base_cost === '' || itemSelected.details.base_cost === null || itemSelected.details.base_cost === "0.00") {
-          setErrors({
-            ...errors,
-            base_cost: 'Por favor, ingrese materiales y/o extras'
-          });
-          return true;
-        }
-        setErrors({
-          ...errors,
-          base_cost: ''
-        });
-        return false;
+    'Láser CNC': () => {
+      const flag = {};
+      if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+        flag.hours = 'Por favor, ingrese la cantidad de horas'
       }
-      if (itemSelected.details.hours_area === undefined || itemSelected.details.hours_area === '' || itemSelected.details.hours_area === null || itemSelected.details.hours_area === "0.00") {
+
+      if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+        flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+      }
+
+      if (Object.keys(flag).length > 0) {
+        setErrors({
+          ...flag
+        });
+        return true;
+      }
+      return false;
+    },
+    'Cortadora de Vinilo': () => {
+      const flag = {};
+      if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+        flag.hours = 'Por favor, ingrese la cantidad de horas'
+      }
+
+      if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+        flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+      }
+
+      if (Object.keys(flag).length > 0) {
+        setErrors({
+          ...flag
+        });
+        return true;
+      }
+      return false;
+    },
+    'Impresora de gran formato': () => {
+      const flag = {};
+      if (!itemSelected.details.materials) {
+        flag.materials = 'Por favor, ingrese los materiales'
+      }
+      else if (itemSelected.details.materials.width === undefined || itemSelected.details.materials.width === '' || itemSelected.details.materials.height === undefined || itemSelected.details.materials.height === '') {
+        flag.materials = 'Por favor, ingrese las medidas'
+      }
+
+      if (Object.keys(flag).length > 0) {
+        setErrors({
+          ...flag
+        });
+        return true;
+      }
+      return false;
+    },
+    'Diseño': () => {
+      const flag = {};
+      if (!itemSelected.details.base_cost) {
+        flag.base_cost = 'Por favor, ingrese el costo base'
+      }
+
+      if (Object.keys(flag).length > 0) {
+        setErrors({
+          ...flag
+        });
+        return true;
+      }
+      return false;
+    },
+    'Impresión 3D en filamento': () => {
+      const flag = {};
+      if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+        flag.hours = 'Por favor, ingrese la cantidad de horas'
+      }
+
+      if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+        flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+      }
+
+      if (Object.keys(flag).length > 0) {
+        setErrors({
+          ...flag
+        });
+        return true;
+      }
+      return false;
+    },
+    'Impresión 3D en resina': () => {
+
+      const flag = {};
+      if (itemSelected.details.hours === undefined || itemSelected.details.hours === '' || itemSelected.details.hours === null || itemSelected.details.hours === "0") {
+        flag.hours = 'Por favor, ingrese la cantidad de horas'
+      }
+
+      if (itemSelected.details.minutes === undefined || itemSelected.details.minutes === '' || itemSelected.details.minutes === null || itemSelected.details.minutes === "0") {
+        flag.minutes = 'Por favor, ingrese la cantidad de minutos'
+      }
+
+      if (Object.keys(flag).length > 0) {
+        setErrors({
+          ...flag
+        });
+        return true;
+      }
+      return false;
+    },
+    'Bordadora CNC': () => {
+
+      if (itemSelected.details.base_cost === undefined || itemSelected.details.base_cost === '' || itemSelected.details.base_cost === null || itemSelected.details.base_cost === "0.00") {
         setErrors({
           ...errors,
-          hours_area: 'Por favor, ingrese la cantidad de horas'
+          base_cost: 'Por favor, ingrese materiales y/o extras'
         });
         return true;
       }
       setErrors({
         ...errors,
-        hours_area: ''
+        base_cost: ''
       });
       return false;
     },
-    'Capacitaciones': (type = null) => {
+    'Capacitaciones': () => {
       if (itemSelected.details.event === undefined || itemSelected.details.event === '' || itemSelected.details.event === null) {
         setErrors({
           ...errors,
@@ -1192,13 +1031,13 @@ const NewSale = () => {
       });
       return false;
     },
-    'Workshop': (type = null) => {
+    'Workshop': () => {
       console.log('Workshop');
     },
-    'Fab Lab Kids': (type = null) => {
+    'Fab Lab Kids': () => {
       console.log('Fab Lab Kids');
     },
-    'Otros': (type = null) => {
+    'Otros': () => {
       return <></>
     }
   }
@@ -1213,73 +1052,46 @@ const NewSale = () => {
     else {
       setItems(newItems);
     }
-  };
-
-  const handleOnBlurHoursArea = (event) => {
-    const value = event.target.value;
-    if (value === '' || value === undefined || value === null) {
-      setErrors({
-        ...errors,
-        hours_area: 'Por favor, ingrese la cantidad de horas'
-      });
-    }
-    else {
-      setErrors({
-        ...errors,
-        hours_area: ''
-      });
-    }
-  };
+  }
 
   const componentsForDialog = {
-    'Electrónica': (type) => {
-      if (type === 'S') return <ElectronicServices itemSelected={itemSelected} updateItemElectronic={updateItemElectronic} handleAddComponent={handleAddComponent} deleteComponent={deleteComponent} errors={errors} setErrors={setErrors} />
-
-      return <ElectronicMaker itemSelected={itemSelected} updateItemElectronic={updateItemElectronic} handleAddComponent={handleAddComponent} deleteComponent={deleteComponent} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
+    'Electrónica': () => {
+      return <ElectronicServices itemSelected={itemSelected} updateItemElectronic={updateItemElectronic} handleAddComponent={handleAddComponent} deleteComponent={deleteComponent} errors={errors} setErrors={setErrors} />
     },
-    'Mini Fresadora CNC': (type) => {
-      if (type === 'S') return <MiniCNCServices itemSelected={itemSelected} handleAddMaterialMilling={handleAddMaterialMilling} updateItemMilling={updateItemMilling} deleteMaterialMilling={deleteMaterialMilling} errors={errors} setErrors={setErrors} />
-
-      return <MiniCNCMaker itemSelected={itemSelected} handleAddMaterialMilling={handleAddMaterialMilling} updateItemMilling={updateItemMilling} deleteMaterialMilling={deleteMaterialMilling} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
+    'Mini Fresadora CNC': () => {
+      return <MiniCNCServices itemSelected={itemSelected} handleAddMaterialMilling={handleAddMaterialMilling} updateItemMilling={updateItemMilling} deleteMaterialMilling={deleteMaterialMilling} errors={errors} setErrors={setErrors} />
     },
-    'Láser CNC': (type) => {
-      if (type === 'S') return <LaserCNCServices itemSelected={itemSelected} handleAddMaterialLaser={handleAddMaterialLaser} updateItemLaser={updateItemLaser} deleteMaterialLaser={deleteMaterialLaser} errors={errors} setErrors={setErrors} />
-
-      return <LaserCNCMaker itemSelected={itemSelected} handleAddMaterialLaser={handleAddMaterialLaser} updateItemLaser={updateItemLaser} deleteMaterialLaser={deleteMaterialLaser} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
+    'Láser CNC': () => {
+      return <LaserCNCServices itemSelected={itemSelected} handleAddMaterialLaser={handleAddMaterialLaser} updateItemLaser={updateItemLaser} deleteMaterialLaser={deleteMaterialLaser} errors={errors} setErrors={setErrors} />
     },
     'Cortadora de Vinilo': (type) => {
-      if (type === 'S') return <VinylServices itemSelected={itemSelected} handleAddVinyl={handleAddVinyl} updateItemVinyl={updateItemVinyl} deleteVinyl={deleteVinyl} errors={errors} setErrors={setErrors} />
-
-      return <VinylMaker itemSelected={itemSelected} handleAddVinyl={handleAddVinyl} updateItemVinyl={updateItemVinyl} deleteVinyl={deleteVinyl} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
+      return <VinylServices itemSelected={itemSelected} handleAddVinyl={handleAddVinyl} updateItemVinyl={updateItemVinyl} deleteVinyl={deleteVinyl} errors={errors} setErrors={setErrors} />
     },
-    'Impresión 3D en filamento': (type) => {
-      if (type === 'S') return <FilamentServices itemSelected={itemSelected} handleAddFilament={handleAddFilament} updateItemFilament={updateItemFilament} deleteFilament={deleteFilament} errors={errors} setErrors={setErrors} />
-
-      return <FilamentMaker itemSelected={itemSelected} handleAddFilament={handleAddFilament} updateItemFilament={updateItemFilament} deleteFilament={deleteFilament} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
+    'Impresora de gran formato': () => {
+      return <LargePrinterServices itemSelected={itemSelected} handleAddMaterialPrinter={handleAddMaterialPrinter} updateItemMaterialPrinter={updateItemMaterialPrinter} deleteMaterialPrinter={deleteMaterialPrinter} errors={errors} setErrors={setErrors} />
     },
-    'Impresión 3D en resina': (type) => {
-      if (type === 'S') return <ResinServices itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} errors={errors} setErrors={setErrors} />
-
-      return <ResinMaker itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
+    'Diseño': () => {
+      return <DesignServices itemSelected={itemSelected} updateItemDesign={updateItemDesign} errors={errors} setErrors={setErrors} />
     },
-    'Softwares': (type = null) => {
-      return <SoftwareServices itemSelected={itemSelected} handleAddSoftware={handleAddSoftware} updateItemSoftware={updateItemSoftware} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
+    'Impresión 3D en filamento': () => {
+      return <FilamentServices itemSelected={itemSelected} handleAddFilament={handleAddFilament} updateItemFilament={updateItemFilament} deleteFilament={deleteFilament} errors={errors} setErrors={setErrors} />
     },
-    'Bordadora CNC': (type) => {
-      if (type === 'S') return <EmbroideryServices itemSelected={itemSelected} handleAddThread={handleAddThread} handleAddStabilizer={handleAddStabilizer} deleteThread={deleteThread} updateItemEmbroidery={updateItemEmbroidery} errors={errors} setErrors={setErrors} />
-
-      return <EmbroideryMaker itemSelected={itemSelected} handleAddThread={handleAddThread} handleAddStabilizer={handleAddStabilizer} deleteThread={deleteThread} updateItemEmbroidery={updateItemEmbroidery} errors={errors} setErrors={setErrors} handleOnBlurHoursArea={handleOnBlurHoursArea} />
+    'Impresión 3D en resina': () => {
+      return <ResinServices itemSelected={itemSelected} handleAddResin={handleAddResin} updateItemResin={updateItemResin} deleteResin={deleteResin} errors={errors} setErrors={setErrors} />
     },
-    'Capacitaciones': (type = null) => {
+    'Bordadora CNC': () => {
+      return <EmbroideryServices itemSelected={itemSelected} updateItemEmbroidery={updateItemEmbroidery} errors={errors} setErrors={setErrors} />
+    },
+    'Capacitaciones': () => {
       return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} errors={errors} setErrors={setErrors} />
     },
-    'Workshop': (type = null) => {
+    'Workshop': () => {
       return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} errors={errors} setErrors={setErrors} />
     },
-    'Fab Lab Kids': (type = null) => {
+    'Fab Lab Kids': () => {
       return <Events itemSelected={itemSelected} handleAddEvent={handleAddEvent} updateItemEvent={updateItemEvent} deleteEvent={deleteEvent} errors={errors} setErrors={setErrors} />
     },
-    'Otros': (type = null) => {
+    'Otros': () => {
       return <></>
     }
   }
@@ -1545,9 +1357,8 @@ const NewSale = () => {
     let materialsTotal = 0;
     if (itemSelected.details.materials) {
       itemSelected.details.materials.forEach((material) => {
-        if (material.quantity && material.width && material.height) {
-          if (material.quantity * material.width * material.height > material.area) {
-            material.quantity = material.area;
+        if (material.width && material.height) {
+          if ((material.width * material.height) > material.area) {
             material.width = 1;
             material.height = 1;
             materialsTotal += (material.sale_price * material.quantity);
@@ -1556,7 +1367,7 @@ const NewSale = () => {
             materialsTotal += material.sale_price * material.area;
           }
           else {
-            materialsTotal += (material.sale_price * (material.width * material.height) * material.quantity);
+            materialsTotal += (material.sale_price * (material.width * material.height));
           }
           material.total = materialsTotal;
         }
@@ -1738,6 +1549,102 @@ const NewSale = () => {
       itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
     }
   };
+
+  /* Large format printer */
+
+  const handleAddMaterialPrinter = (material) => {
+    itemSelected.details.materials = material;
+    setErrors({ ...errors, materials: '' });
+
+    updateItemMaterialPrinter();
+  };
+
+  const deleteMaterialPrinter = () => {
+    itemSelected.details.materials = null;
+
+    updateItemMaterialPrinter();
+  };
+
+  const updateItemMaterialPrinter = () => {
+    setItems(items.map((item) => {
+      if (item.id === itemSelected.id) {
+        return itemSelected;
+      }
+      return item;
+    }));
+
+    /* 
+    Verificar si la cantidad ingresada no es mayor al stock 
+    Si el valor ingresado por el usuario es cercano a la tabla completa, entonces que se le cobre toda....
+    */
+
+    let materialsTotal = 0;
+    if (itemSelected.details.materials) {
+      if (itemSelected.details.materials.width && itemSelected.details.materials.height) {
+        setErrors({ ...errors, materials: '' });
+        if (itemSelected.details.materials.width >= 1 && itemSelected.details.materials.height >= 1) {
+          if ((itemSelected.details.materials.width * itemSelected.details.materials.height) > itemSelected.details.materials.area) {
+            itemSelected.details.materials.width = 1;
+            itemSelected.details.materials.height = 1;
+            materialsTotal += itemSelected.details.materials.sale_price * itemSelected.details.materials.area;
+          }
+          else if ((itemSelected.details.materials.width * itemSelected.details.materials.height) > (itemSelected.details.materials.area - 100)) {
+            materialsTotal += itemSelected.details.materials.sale_price * itemSelected.details.materials.area;
+          }
+          else {
+            materialsTotal += (itemSelected.details.materials.sale_price * (itemSelected.details.materials.width * itemSelected.details.materials.height));
+          }
+          itemSelected.details.materials.total = parseFloat(materialsTotal).toFixed(2);
+        }
+      }
+    };
+
+    let total = 0;
+
+    let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
+
+    /* Extra */
+    if (extra < -materialsTotal) {
+      extra = -materialsTotal;
+      itemSelected.details.extra = extra;
+      total += extra;
+    }
+    else {
+      total += extra;
+    }
+
+    if (Number.isNaN(total) && Number.isNaN(materialsTotal)) {
+      itemSelected.details.base_cost = 0;
+      itemSelected.total = 0;
+    }
+    else if (Number.isNaN(total)) {
+      itemSelected.details.base_cost = parseFloat(materialsTotal).toFixed(2);
+      itemSelected.total = parseFloat(materialsTotal * itemSelected.quantity).toFixed(2);
+    }
+    else {
+      itemSelected.details.base_cost = parseFloat(total + materialsTotal).toFixed(2);
+      itemSelected.total = parseFloat((total + materialsTotal) * itemSelected.quantity).toFixed(2);
+    }
+  };
+
+  /* Design */
+
+  const updateItemDesign = () => {
+    setItems(items.map((item) => {
+      if (item.id === itemSelected.id) {
+        return itemSelected;
+      }
+      return item;
+    }));
+
+    if (itemSelected.details.base_cost && itemSelected.details.base_cost > 0) {
+      itemSelected.total = parseFloat(itemSelected.details.base_cost * itemSelected.quantity).toFixed(2);
+    }
+    else {
+      itemSelected.total = 0;
+    }
+  };
+
 
   /* Filaments - methods */
 
@@ -1969,89 +1876,7 @@ const NewSale = () => {
     }
   };
 
-  /* Sofware - methods */
-
-  const handleAddSoftware = (software) => {
-
-    if (software === null) {
-      itemSelected.details.hours_area = 0;
-      itemSelected.details.base_cost = parseFloat(0).toFixed(2);
-      itemSelected.details.cost_hours = 0;
-    }
-    itemSelected.details.software = software
-
-    updateItemSoftware();
-  };
-
-  const updateItemSoftware = () => {
-    setItems(items.map((item) => {
-      if (item.id === itemSelected.id) {
-        return itemSelected;
-      }
-      return item;
-    }));
-
-    const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
-    const totalHours = itemSelected.details.software.sale_price ? hoursArea * itemSelected.details.software.sale_price : 0;
-
-    itemSelected.details.cost_hours = parseFloat(totalHours).toFixed(2);
-    let total = 0;
-
-    let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
-
-    if (hoursArea > 0 && itemSelected.details.software) {
-      total = totalHours;
-    }
-
-    /* Extra */
-    if (extra < -total) {
-      extra = -total;
-      itemSelected.details.extra = extra;
-      total += extra;
-    }
-    else {
-      total += extra;
-    }
-
-    if (Number.isNaN(total)) {
-      itemSelected.details.base_cost = 0;
-      itemSelected.total = 0;
-    }
-    else {
-      itemSelected.details.base_cost = parseFloat(total).toFixed(2);
-      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
-    }
-  };
-
   /* Embroidery */
-
-  const handleAddThread = (thread) => {
-    if (itemSelected.details.threads) {
-      const search = itemSelected.details.threads.find((item) => item.id === thread.id);
-      if (!search) {
-        itemSelected.details.threads.push(thread);
-      }
-    }
-    else {
-      itemSelected.details.threads = [];
-      itemSelected.details.base_cost = 0;
-      itemSelected.details.threads.push(thread);
-    }
-
-    updateItemEmbroidery();
-  };
-
-  const handleAddStabilizer = (stabilizer) => {
-    itemSelected.details.stabilizer = stabilizer;
-    updateItemEmbroidery();
-  };
-
-  const deleteThread = (thread) => {
-    const threads = itemSelected.details.threads.filter((item) => item.id !== thread);
-    itemSelected.details.threads = threads;
-
-    updateItemEmbroidery();
-  };
 
   const updateItemEmbroidery = () => {
 
@@ -2062,102 +1887,72 @@ const NewSale = () => {
       return item;
     }));
 
-    const width = itemSelected.details.width ? parseInt(itemSelected.details.width, 10) : null;
-    const height = itemSelected.details.height ? parseInt(itemSelected.details.height, 10) : null;
+    let width = itemSelected.details.width ? parseInt(itemSelected.details.width, 10) : null;
+    let height = itemSelected.details.height ? parseInt(itemSelected.details.height, 10) : null;
     const hoopSize = itemSelected.details.hoop_size ? itemSelected.details.hoop_size : null;
-    const hours = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
-    const quantity = itemSelected.details.quantity ? parseInt(itemSelected.details.quantity, 10) : 0;
 
     let materialCost = 0;
-    let totalHours = 0;
 
-    if (typeSale === 'S') {
-      if (quantity > 7) {
-        itemSelected.details.quantity = 7;
-      }
+    if (width && height && hoopSize) {
 
-      if (width > 5) {
-        itemSelected.details.width = 5;
+      if (width > parseInt(hoopSize.split('x')[0], 10)) {
+        width = parseInt(hoopSize.split('x')[0], 10);
+        itemSelected.details.width = width;
       }
-
-      if (height > 7) {
-        itemSelected.details.height = 7;
-      }
-    }
-    else {
-      if (width > 50) {
-        itemSelected.details.width = 30;
-      }
-      if (height > 100) {
-        itemSelected.details.height = 100;
-      }
-      const area = width * height;
-      if (area > itemSelected.details.stabilizer?.area) {
-        itemSelected.details.width = 0;
-        itemSelected.details.height = 0;
-      }
-    }
-
-    if (width && height && hoopSize && quantity) {
-      if (width > hoopSize.split('x')[0]) {
-        itemSelected.details.width = hoopSize.split('x')[0];
-      }
-      if (height > hoopSize.split('x')[1]) {
-        itemSelected.details.height = hoopSize.split('x')[1];
+      if (height > parseInt(hoopSize.split('x')[1], 10)) {
+        height = parseInt(hoopSize.split('x')[1], 10);
+        itemSelected.details.height = height;
       }
 
-      materialCost += width > height ? (width * PRICE_THREAD) * (quantity) : (height * PRICE_THREAD * (quantity));
+      materialCost = width > height ? width * PRICE_THREAD : height * PRICE_THREAD;
+
       itemSelected.details.embroidery_cost = materialCost;
       setErrors({ ...errors, base_cost: '' })
     }
-
-    if (hours > 0) {
-      totalHours += hours * PRICE_HOUR[itemSelected.name];
-      itemSelected.details.cost_hour = totalHours;
+    else if (hoopSize === null) {
+      setErrors({ ...errors, base_cost: 'Seleccione un tamaño de bastidor' })
     }
-
-    let total = 0;
+    else {
+      setErrors({ ...errors, base_cost: 'Ingrese un ancho y alto' })
+    }
 
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
 
-    if (totalHours > 0) {
-      total = totalHours;
-    }
-    else {
-      total = materialCost;
-    }
-
     /* Extra */
-    if (extra < -total) {
-      extra = -total;
+    if (extra < -materialCost) {
+      extra = -materialCost;
       itemSelected.details.extra = extra;
-      total += extra;
+      materialCost += extra;
     }
     else {
-      total += extra;
+      materialCost += extra;
     }
 
-    if (Number.isNaN(total)) {
+    if (Number.isNaN(materialCost)) {
       itemSelected.details.base_cost = 0.00;
       itemSelected.total = 0.00;
     }
     else {
-      itemSelected.details.base_cost = parseFloat(total).toFixed(2);
-      itemSelected.total = parseFloat(total * itemSelected.quantity).toFixed(2);
+      itemSelected.details.base_cost = parseFloat(materialCost).toFixed(2);
+      itemSelected.total = parseFloat(materialCost * itemSelected.quantity).toFixed(2);
     }
   };
 
   /* Events */
 
   const handleAddEvent = (event) => {
+
     itemSelected.details.event = event;
     itemSelected.details.description = event.name;
+
+    itemSelected.description = event.name;
 
     updateItemEvent();
   }
 
   const deleteEvent = () => {
     itemSelected.details.event = null;
+    itemSelected.description = '';
 
     updateItemEvent();
   }
@@ -2274,45 +2069,15 @@ const NewSale = () => {
             justifyContent: 'space-between',
           }
         } >
-          <FormControl
-            sx={{
-              width: '20%',
-            }
-            }
-          >
-            <FormLabel id="demo-radio-buttons-group-label"
-            >Selecciona el tipo de venta</FormLabel>
-            {/* Selecciona si es visita individual o grupal */}
-            <RadioGroup
-              aria-labelledby="buttons-group-label-type-visit"
-              defaultValue="female"
-              name="radio-buttons-group-type-visit"
-            >
-              <Stack direction="row">
-                <FormControlLabel control={<Radio value="M"
-                  onChange={handleChangeTypeSale}
-                  checked={typeSale === 'M'}
-                />}
-                  label="Makers"
-                />
-                <FormControlLabel control={<Radio value="S"
-                  onChange={handleChangeTypeSale}
-                  checked={typeSale === 'S'}
-                />}
-                  label="Servicios"
-                />
-              </Stack>
-            </RadioGroup>
-          </FormControl>
 
           {
-            typeSale === 'S' && serviceCategory !== 'ec' ?
+            serviceCategory !== 'ec' ?
               <Stack
                 direction="row"
                 sx={{
                   flexWrap: 'wrap',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
+                  justifyContent: 'space-start',
                   width: '75%',
                 }}
               >
@@ -2324,7 +2089,7 @@ const NewSale = () => {
                 >
                   <FormLabel id="demo-radio-buttons-group-label"
                   >Selecciona el tipo de pago</FormLabel>
-                  {/* Selecciona si es visita individual o grupal */}
+                  {/* Selecciona si es adelanto o totalidad */}
                   <RadioGroup
                     aria-labelledby="buttons-group-label-type-visit"
                     defaultValue="female"
@@ -2347,74 +2112,6 @@ const NewSale = () => {
                   </RadioGroup>
                 </FormControl>
 
-                <Stack sx={
-                  {
-                    display: 'flex',
-                    width: '30%',
-                  }}>
-                  <FormLabel>Tiempo de trabajo</FormLabel>
-                  <Stack sx={
-                    {
-                      justifyContent: 'space-between',
-                      width: '80%',
-                    }
-                  }
-                    direction="row"
-                  >
-                    <FormControl sx={{ width: '45%' }}>
-                      <OutlinedInput
-                        id="outlined-adornment-amount"
-                        startAdornment={<InputAdornment position="start">H</InputAdornment>}
-                        placeholder='0'
-                        value={hours}
-                        onChange={handleChangeHours}
-                        size="small"
-                        inputProps={{
-                          'minLength': 1,
-                          'maxLength': 2,
-                        }}
-                        type="number"
-                      />
-                    </FormControl>
-
-                    <FormControl sx={{ width: '45%' }}>
-
-                      <OutlinedInput
-                        id="outlined-adornment-amount"
-                        startAdornment={<InputAdornment position="start">M</InputAdornment>}
-                        placeholder='0'
-                        value={minutes}
-                        onChange={handleChangeMinutes}
-                        size="small"
-                        inputProps={{
-                          'minLength': 1,
-                          'maxLength': 2,
-                        }}
-                        type="number"
-                      />
-                    </FormControl>
-                  </Stack>
-                </Stack>
-
-                <FormControl sx={{ width: '30%' }}>
-                  <FormLabel id="demo-radio-buttons-group-label"
-                  >Selecciona la fecha de entrega</FormLabel>
-                  <LocalizationProvider adapterLocale={es} dateAdapter={AdapterDateFns}>
-                    <DatePicker
-                      value={dateDelivery}
-                      onChange={(newValue) => {
-                        setDateDelivery(newValue);
-                        setErrors({ ...errors, date_delivery: '' })
-                      }}
-                      renderInput={(params) => <TextField size='small' {...params}
-                        error={!!errors?.date_delivery}
-                        helperText={errors?.date_delivery}
-                      />}
-                      inputFormat="dd/MM/yyyy"
-                      disablePast
-                    />
-                  </LocalizationProvider>
-                </FormControl>
               </Stack>
               : null
           }
@@ -2442,12 +2139,9 @@ const NewSale = () => {
                   setService(1);
                   setTypeInvoice('T');
                   setItems([]);
-                  setHours(0);
-                  setMinutes(0);
                   setTotal(0);
                   setPayment(0);
                   setBalance(0);
-                  setDateDelivery(null);
                 }}
                 value={serviceCategory}
               >
@@ -2473,17 +2167,10 @@ const NewSale = () => {
                 }}
                 value={service}
               >
-                {typeSale === 'S' ?
-                  containerServices.map((service) => (
-                    service.id !== 7 ?
-                      <MenuItem value={service.id} key={service.id}>{service.name}</MenuItem>
-                      : null
-                  ))
-                  :
+                {
                   containerServices.map((service) => (
                     <MenuItem value={service.id} key={service.id}>{service.name}</MenuItem>
                   ))
-
                 }
               </Select>
             </FormControl>
@@ -2507,10 +2194,12 @@ const NewSale = () => {
                     id_service: services[serviceCategory].find((s) => s.id === service).id,
                     category_service: serviceCategory,
                     details: {},
-                    total: 0
+                    total: 0,
+                    disabled: serviceCategory === 'ec'
                   });
+                  console.log(items);
                   setFlagItems(false);
-                  calculateTotal(hours, minutes);
+                  calculateTotal(typeInvoice);
                   showToastMessageStatus('success', 'Servicio agregado correctamente');
                 }
               }
@@ -2534,7 +2223,7 @@ const NewSale = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                <CartList items={items} setItems={setItems} setServiceSelected={setServiceSelected} setServiceSelectedId={setServiceSelectedId} setOpenMenu={setOpenMenu}  changeQuantity={changeQuantity}/>
+                <CartList items={items} setItems={setItems} setServiceSelected={setServiceSelected} setServiceSelectedId={setServiceSelectedId} setOpenMenu={setOpenMenu} changeQuantity={changeQuantity} />
               </TableBody>
               {
                 items.length > 0 ?
@@ -2709,7 +2398,7 @@ const NewSale = () => {
           </Grid>
         </Grid>
         <Typography variant="h6" sx={{ marginY: 2 }}>
-          Comentario adicional (opcional)
+          Observación (opcional)
         </Typography>
         <FormControl fullWidth sx={{ mt: 2 }}>
           <TextField
@@ -2722,13 +2411,13 @@ const NewSale = () => {
             multiline
             rows={4}
             variant="outlined"
-            value={comments}
+            value={observations}
             onChange={(e) => {
-              setComments(e.target.value);
-              setErrors({ ...errors, comments: '' });
+              setObtservations(e.target.value);
+              setErrors({ ...errors, observations: '' });
             }}
-            error={errors.comments}
-            helperText={errors.comments ? errors.comments : ''}
+            error={errors.observations}
+            helperText={errors.observations ? errors.observations : ''}
           />
         </FormControl>
         <Typography variant="subtitle1" sx={{ marginY: 2, textAlign: 'center' }}>
@@ -2787,7 +2476,7 @@ const NewSale = () => {
             <Button
               style={{ textDecoration: 'none', color: 'inherit' }}
               onClick={handleClickSubmitQuotation}
-              disabled={serviceCategory === 'ec' || typeSale === 'M'}
+              disabled={serviceCategory === 'ec'}
             >
               <Paper variant="outlined" sx={{
                 py: 2, textAlign: 'center',
@@ -2795,7 +2484,7 @@ const NewSale = () => {
                 height: '100%',
               }}>
                 <Box sx={{ mb: 0.5 }}><Iconify icon={'mdi:receipt-text-check-outline'} color={
-                  serviceCategory === 'ec' || typeSale === 'M' ? '#637381' : '#2065D1'
+                  serviceCategory === 'ec' ? '#637381' : '#2065D1'
                 } width={32} /></Box>
 
                 <Typography variant="body1" sx={{ color: 'text.secondary', textDecoration: 'none' }}>
@@ -3144,7 +2833,7 @@ const NewSale = () => {
         Detalles del servicio
       </BootstrapDialogTitle>
       <DialogContent dividers>
-        {componentsForDialog[serviceSelected](typeSale)}
+        {componentsForDialog[serviceSelected]()}
       </DialogContent>
       <DialogActions>
         <Button size="large" onClick={handleClose}  >

@@ -376,7 +376,7 @@ const MaterialsLaserPage = () =>
                   rowCount={materials.length}
                   onRequestSort={handleRequestSort}
                 />
-                {/* Tiene que cargar primero... */}
+
                 {materials.length > 0 ? (
                   <TableBody>
                     {filteredMaterials.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {

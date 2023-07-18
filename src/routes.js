@@ -18,9 +18,6 @@ import MaterialsLaserPage from './sections/@manage/pages/MaterialsLaserPage';
 import VinylsPage from './sections/@manage/pages/VinylsPage';
 import FilamentsPage from './sections/@manage/pages/FilamentsPage';
 import ResinsPage from './sections/@manage/pages/ResinsPage';
-import Softwares from './sections/@manage/pages/Softwares';
-import ThreadsPage from './sections/@manage/pages/ThreadsPage';
-import StabilizersPage from './sections/@manage/pages/StabilizersPage';
 import TechExpensesPage from './sections/@manage/pages/TechExpensesPage';
 import VisitsPage from './sections/@manage/pages/VisitsPage';
 import CustomersPage from './sections/@manage/pages/CustomersPage';
@@ -32,8 +29,6 @@ import EventsPage from './sections/@manage/pages/EventsPage';
 import EventsCategories from './sections/@manage/pages/EventsCategories';
 import VisitsCustomers from './sections/@manage/pages/VisitsCustomers';
 import VisitsAreas from './sections/@manage/pages/VisitsAreas';
-import ThreadUpdate from './sections/@manage/pages/ThreadUpdate';
-import StabilizerUpdate from './sections/@manage/pages/StabilizerUpdate';
 import VinylUpdate from './sections/@manage/pages/VinylUpdate';
 import ComponentUpdate from './sections/@manage/pages/ComponentUpdate';
 import FilamentUpdate from './sections/@manage/pages/FilamentUpdate';
@@ -46,8 +41,9 @@ import SettingsPage from './pages/SettingsPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import { UserActivationPage } from './pages/UserActivationPage';
 import { CheckOut } from './pages/CheckOut';
-import SoftwareUpdate from './sections/@manage/pages/SoftwareUpdate';
 import PaymentPage from './pages/PaymentPage';
+import MaterialsPrinterPage from './sections/@manage/pages/MaterialsPrinterPage';
+import MaterialPrinterUpdate from './sections/@manage/pages/MaterialPrinterUpdate';
 
 // ----------------------------------------------------------------------
 
@@ -97,14 +93,9 @@ export default function Router() {
         
         { path: 'management/areas/6', element: <ResinsPage /> },
         { path: 'management/areas/6/update/:id', element: <ResinUpdate /> },
-        
-        { path: 'management/areas/7', element: <Softwares /> },
-        { path: 'management/areas/7/update/:id', element: <SoftwareUpdate />},
-        
-        { path: 'management/areas/8', element: <ThreadsPage /> },
-        { path: 'management/areas/8/update/:id', element: <ThreadUpdate /> },
-        { path: 'management/areas/8/stabilizers', element: <StabilizersPage /> },
-        { path: 'management/areas/8/stabilizers/:id/update', element: <StabilizerUpdate /> },
+
+        { path: 'management/areas/8', element: <MaterialsPrinterPage /> },
+        { path: 'management/areas/8/update/:id', element: <MaterialPrinterUpdate />},
         
         { path: 'management/techexpenses', element: <TechExpensesPage /> },
         { path: 'management/invoices', element: <InvoicesPage /> },

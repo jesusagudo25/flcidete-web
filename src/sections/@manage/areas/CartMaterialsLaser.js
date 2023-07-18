@@ -41,14 +41,6 @@ const CartMaterialsLaser = ({ materials, deleteMaterialLaser, updateItemLaser })
             <TableRow>
               <TableCell colSpan={5} align="center">
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <FormControl sx={{ width: '30%' }}>
-                    <TextField id="outlined-basic" label="Cantidad" variant="outlined" type="number" size='small' value={material.quantity} onChange={
-                      (e) => {
-                        material.quantity = parseInt(e.target.value, 10);
-                        updateItemLaser();
-                      }
-                    } />
-                  </FormControl>
                   <FormControl sx={{ width: '50%' }}>
                     <InputLabel htmlFor="outlined-adornment-amount">Ancho</InputLabel>
                     <OutlinedInput

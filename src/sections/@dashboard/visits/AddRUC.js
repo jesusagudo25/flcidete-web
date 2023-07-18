@@ -86,8 +86,6 @@ const AddRUC = ({
     };
 
     useEffect(() => {
-        console.log(provinceSelected);
-        console.log(districtSelected);
         getProvinces();
         getDistricts(provinceSelected);
         getTownships(districtSelected);

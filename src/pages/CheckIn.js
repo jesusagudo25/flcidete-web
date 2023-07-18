@@ -233,7 +233,7 @@ export default function CheckIn() {
     axios.get('/api/areas')
       .then(res => {
         setIsLoading(false);
-        setAreas(res.data.filter(item => item.id !== 9));
+        setAreas(res.data.filter(item => item.id < 8));
         setAreasSelected(
           new Array(res.data.length).fill(
             {
@@ -1009,7 +1009,7 @@ export default function CheckIn() {
         else if (idCustomer === null && containerCustomer) {
           data.document_type = documentType;
           data.document_number = document;
-          data.name = subsidiary;
+          data.name = name;
           data.email = email;
           data.telephone = telephone;
           data.age_range_id = parseInt(ageRangeSelected, 10);

@@ -291,6 +291,7 @@ const VinylsPage = () => {
         'area': event.width * (event.height * 12),
       });
     } else {
+      console.log(event);
       await axios.post('/api/vinyls', {
         'name': event.name.concat(' (', event.width, ' in x', event.height, ' ft)'),
         'cost': event.cost,

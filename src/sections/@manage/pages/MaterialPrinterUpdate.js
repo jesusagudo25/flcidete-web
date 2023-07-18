@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
-// @mui
-import { ToastContainer, toast } from 'react-toastify';
 import { Controller, useForm } from "react-hook-form";
-
+import { ToastContainer, toast } from 'react-toastify';
+// @mui
 import {
   Card,
   Table,
@@ -34,11 +34,11 @@ import {
 } from '@mui/material';
 
 // components
-import { Link } from 'react-router-dom';
 import CloseIcon from '@mui/icons-material/Close';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 
+// date-fns
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -46,12 +46,10 @@ import Scrollbar from '../../../components/scrollbar';
 import { SuppliesListHead, SuppliesListToolbar } from '../areas';
 
 const TABLE_HEAD = [
-  { id: 'name', label: 'Nombre', alignRight: false },
-  { id: 'dimensions', label: 'Dimensiones', alignRight: false },
-  { id: 'area', label: 'Área en stock', alignRight: false },
-  { id: 'purchase_price', label: 'Costo actual', alignRight: false },
-  { id: 'active', label: 'Estado', alignRight: false },
-  { id: '' },
+  { id: 'cost', label: 'Costo del material', alignRight: false },
+  { id: 'sale_price', label: 'Precio de venta', alignRight: false },
+  { id: 'created_at', label: 'Fecha', alignRight: false },
+  { id: 'status', label: 'Estado', alignRight: false },
 ];
 
 /* --------------------> */
@@ -162,21 +160,16 @@ function applySortFilter(array, comparator, query) {
     return a[1] - b[1];
   });
   if (query) {
-    return filter(array, (_area) => _area.name.toLowerCase().indexOf(query.toLowerCase()) !== -1);
+    return filter(array, (_thread) => _thread.created_at.split('T')[0].toLowerCase().indexOf(query.toLowerCase()) !== -1);
   }
   return stabilizedThis.map((el) => el[0]);
 }
 
-const StabilizersPage = () => {
-
-
+const MaterialPrinterUpdate = () => {
+  
   /* Toastify */
-
   const showToastMessage = () => {
-    if (!id) toast.success('Estabilizador agregado con éxito!', {
-      position: toast.POSITION.TOP_RIGHT
-    });
-    else toast.success('Estabilizador actualizado con éxito!', {
+    toast.success('Actualización agregada con éxito!', {
       position: toast.POSITION.TOP_RIGHT
     });
   };
@@ -196,24 +189,22 @@ const StabilizersPage = () => {
 
   /* React Form Hook */
 
-  const { control, handleSubmit, reset, setValue, formState: { errors }, } = useForm({
+  const { control, handleSubmit, reset, setValue, getValues, formState: { errors }, } = useForm({
     reValidateMode: 'onBlur'
   });
 
   /* Dialog */
 
-  const [id, setId] = useState('');
-  const [name, setName] = useState('');
-  const [purchasePrice, setPurchasePrice] = useState('');
-  const [estimatedValue, setEstimatedValue] = useState('');
-  const [containerEstimatedValue, setContainerEstimatedValue] = useState(false);
+  const { id } = useParams();
+  const [materialName, setMaterialName] = useState('');
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  
+  const [containerEstimatedValue, setContainerEstimatedValue] = useState(false);
 
   /* Datatable */
 
-  const [stabilizers, setStabilizers] = useState([]);
+  const [materialsUpdate, setMaterialsUpdate] = useState([]);
 
   const [open, setOpen] = useState(false);
 
@@ -221,7 +212,7 @@ const StabilizersPage = () => {
 
   const [order, setOrder] = useState('asc');
 
-  const [orderBy, setOrderBy] = useState('name');
+  const [orderBy, setOrderBy] = useState('created_at');
 
   const [filterName, setFilterName] = useState('');
 
@@ -230,14 +221,7 @@ const StabilizersPage = () => {
   const handleCreateDialog = (event) => {
     reset();
     setOpen(true);
-    setId('');
     setContainerEstimatedValue(false);
-    /*     setName('');
-        setPurchasePrice('');
-        setEstimatedValue('');    
-        setWidth('');
-        setHeight('');
-        setQuantity(1); */
   };
 
   const handleCloseDialog = () => {
@@ -247,32 +231,16 @@ const StabilizersPage = () => {
 
   const handleSubmitDialog = async (event) => {
     handleCloseDialog();
-    if (id) {
-      await axios.put(`/api/stabilizers/${id}`, {
-        'name': event.name,
-        'purchase_price': event.purchasePrice,
-        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
-        'width': event.width,
-        'height_in_yd': event.height,
-        'height': event.height * 36,
-        'area': event.width * (event.height * 36),
-      });
-    } else {
-      await axios.post('/api/stabilizers', {
-        'name': event.name.concat(' (', event.width, ' in x', event.height, ' yd)'),
-        'purchase_price': event.purchasePrice,
-        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.purchasePrice,
-        'width_base': event.width,
-        'width': event.width,
-        'height_in_yd': event.height,
-        'height': event.height * 36,
-        'area': event.width * (event.height * 36),
-        'quantity': event.quantity,
-      });
-    }
+    await axios.post('/api/printer-materials-updates', {
+      'printer_material_id': id,
+      cost: event.cost,
+      'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
+      'sale_price': event.salePrice,
+      'quantity': event.quantity,
+    });
     showToastMessage();
+    getMaterialsUpdate();
     reset();
-    getStabilizers();
   };
 
   const handleRequestSort = (event, property) => {
@@ -295,40 +263,43 @@ const StabilizersPage = () => {
     setFilterName(event.target.value);
   };
 
-  const getStabilizers = async () => {
-    const response = await axios.get('/api/stabilizers');
-    setStabilizers(response.data);
+  const getMaterialsUpdate = async () => {
+    const response = await axios.get(`/api/printer-materials/${id}`);
+    setMaterialsUpdate(response.data.printer_material_updates);
+    setMaterialName(response.data.name);
+    setWidth(response.data.width);
+    setHeight(response.data.height);
   }
 
   useEffect(() => {
-    getStabilizers();
+    getMaterialsUpdate();
   }, []);
 
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - stabilizers.length) : 0;
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - materialsUpdate.length) : 0;
 
-  const filteredStabilizers = applySortFilter(stabilizers, getComparator(order, orderBy), filterName);
+  const filteredMaterialsUpdate = applySortFilter(materialsUpdate, getComparator(order, orderBy), filterName);
 
-  const isNotFound = !filteredStabilizers.length && !!filterName;
+  const isNotFound = !filteredMaterialsUpdate.length && !!filterName;
 
   return (
     <>
       <Helmet>
-        <title> Gestión: Estabilizadores | Fab Lab System </title>
+        <title> Gestión: Materiales | Fab Lab System </title>
       </Helmet>
 
       <Container>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4" gutterBottom>
-            Estabilizadores
+            Actualizaciones de {materialName}
           </Typography>
 
           <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} onClick={handleCreateDialog}>
-            Agregar estabilizador
+            Agregar actualización
           </Button>
         </Stack>
 
         <Card>
-          <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar estabilizador..."} />
+          <SuppliesListToolbar filterName={filterName} onFilterName={handleFilterByName} PlaceHolder={"Buscar actualización..."} />
 
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
@@ -337,87 +308,64 @@ const StabilizersPage = () => {
                   order={order}
                   orderBy={orderBy}
                   headLabel={TABLE_HEAD}
-                  rowCount={stabilizers.length}
+                  rowCount={materialsUpdate.length}
                   onRequestSort={handleRequestSort}
                 />
                 {/* Tiene que cargar primero... */}
-                {stabilizers.length > 0 ? (
+                {materialsUpdate.length > 0 ? (
                   <TableBody>
-                    {filteredStabilizers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, name, purchase_price: purchasePrice, width, estimated_value: estimatedValue, height_in_yd: heightInYd, area, active } = row;
+                    {filteredMaterialsUpdate.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                      const { 
+                        id: uuid, 
+                        cost, 
+                        estimated_value: estimatedValue,
+                        sale_price: salePrice,
+                        created_at: createdAt, 
+                        active } 
+                        = row;
 
                       return (
-                        <TableRow hover key={id} tabIndex={-1} role="checkbox">
+                        <TableRow hover key={uuid} tabIndex={-1} role="checkbox">
 
                           <TableCell component="th" scope="row" padding="normal">
                             <Stack direction="row" alignItems="center" spacing={2}>
-                              <Typography variant="subtitle2" noWrap>
-                                {name}
-                              </Typography>
+                              $ {cost}
                             </Stack>
                           </TableCell>
 
                           <TableCell align="left">
-                            W: {width} in x L: {heightInYd} yd
+                            $ {salePrice} in²
                           </TableCell>
 
                           <TableCell align="left">
-                            {area} in
-                          </TableCell>
-
-                          <TableCell align="left">
-                            $ {purchasePrice}
+                            <Typography variant="subtitle2" noWrap>
+                              {createdAt.split('T')[0]}
+                            </Typography>
                           </TableCell>
 
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
                                 if (active) (
-                                  showToastMessageStatus('error', 'Estabilizador desactivado')
+                                  showToastMessageStatus('error', 'Actualización desactivada')
                                 )
                                 else (
-                                  showToastMessageStatus('success', 'Estabilizador activado')
+                                  showToastMessageStatus('success', 'Actualización activada')
                                 )
-                                setStabilizers(stabilizers.map((stabilizer) => {
-                                  if (stabilizer.id === id) {
-                                    return { ...stabilizer, active: !active };
+                                setMaterialsUpdate(materialsUpdate.map((material) => {
+                                  if (material.id === uuid) {
+                                    return { ...material, active: !active };
                                   }
-                                  return stabilizer;
+                                  return material;
                                 }));
-                                await axios.put(`/api/stabilizers/${id}`, {
+                                await axios.put(`/api/printer-materials-updates/${uuid}`, {
+                                  'printer_material_id': id,
                                   active: !active
                                 });
                               }
                             } />
                           </TableCell>
 
-                          <TableCell align="right">
-                            <Link
-                              style={{ textDecoration: 'none', color: 'inherit' }}
-                              to={`./${id}/update`}
-                            >
-                              <IconButton size="large" color="inherit">
-                                <Iconify icon={'mdi:archive-arrow-up-outline'} />
-                              </IconButton>
-                            </Link>
-                            <IconButton size="large" color="inherit" onClick={() => {
-                              setId(id);
-                              /*                               setName(name);
-                                                            setWidth(width);
-                                                            setHeight(heightInYd);
-                                                            setPurchasePrice(purchasePrice);
-                                                            setEstimatedValue(estimatedValue); */
-                              setValue('name', name);
-                              setValue('width', width);
-                              setValue('height', heightInYd);
-                              setValue('purchasePrice', purchasePrice);
-                              setValue('estimatedValue', estimatedValue);
-                              if (parseFloat(purchasePrice) === 0) setContainerEstimatedValue(true);
-                              setOpen(true);
-                            }}>
-                              <Iconify icon={'mdi:pencil-box'} />
-                            </IconButton>
-                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -486,7 +434,7 @@ const StabilizersPage = () => {
             component="div"
             labelRowsPerPage="Filas por página:"
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `más de ${to}`}`}
-            count={stabilizers.length}
+            count={materialsUpdate.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
@@ -508,120 +456,14 @@ const StabilizersPage = () => {
         maxWidth='sm'
       >
         <BootstrapDialogTitle id="customized-dialog-title" onClose={handleCloseDialog}>
-          Gestión de Estabilizadores
+          Gestión de actualizaciones
         </BootstrapDialogTitle>
         <DialogContent dividers>
-          <Stack spacing={3} sx={{ minWidth: 550 }}>
-            <FormControl sx={{ width: '100%' }}>
+          <Stack spacing={4} sx={{ minWidth: 550 }}>
+            <FormControl sx={{ width: '100%' }} error={!!errors?.cost}>
+              <InputLabel htmlFor="outlined-adornment-amount">Costo del material</InputLabel>
               <Controller
-                name="name"
-                control={control}
-                defaultValue=""
-                rules={{
-                  required: 'La descripción es requerida',
-                  minLength: {
-                    value: 3,
-                    message: 'La descripción debe tener al menos 3 caracteres'
-                  },
-                  maxLength: {
-                    value: 50,
-                    message: 'La descripción debe tener máximo 50 caracteres'
-                  }
-                }}
-                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
-                  <TextField
-                    id="outlined-basic"
-                    label="Descripción del estabilizador"
-                    variant="outlined"
-                    size="small"
-                    value={value}
-                    onChange={onChange}
-                    onBlur={onBlur}
-                    required
-                    error={!!error}
-                    helperText={error ? error.message : null}
-                  />
-                )}
-              />
-            </FormControl>
-
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <FormControl sx={{ width: '50%' }} error={!!errors?.width}>
-                <InputLabel htmlFor="outlined-adornment-amount">Ancho</InputLabel>
-                <Controller
-                  name="width"
-                  control={control}
-                  defaultValue=""
-                  rules={{
-                    required: 'El ancho es requerido',
-                    min: {
-                      value: 1,
-                      message: 'El ancho debe ser mayor o igual a 1'
-                    },
-                    max: {
-                      value: 100,
-                      message: 'El ancho debe ser menor o igual a 100'
-                    }
-                  }}
-                  render={({ field: { onChange, onBlur, value, } }) => (
-                    <OutlinedInput
-                      id="outlined-adornment-amount"
-                      startAdornment={<InputAdornment position="start">in</InputAdornment>}
-                      label="Ancho"
-                      placeholder='0'
-                      size="small"
-                      type="number"
-                      value={value}
-                      onChange={onChange}
-                      onBlur={onBlur}
-                      required
-                    />
-                  )}
-                />
-                <FormHelperText>{errors.width && errors.width.message}</FormHelperText>
-              </FormControl>
-
-              <FormControl sx={{ width: '50%' }} error={!!errors?.height}>
-                <InputLabel htmlFor="outlined-adornment-amount">Largo</InputLabel>
-                <Controller
-                  name="height"
-                  control={control}
-                  defaultValue=""
-                  rules={{
-                    required: 'El largo es requerido',
-                    min: {
-                      value: 1,
-                      message: 'El largo debe ser mayor o igual a 1'
-                    },
-                    max: {
-                      value: 1000,
-                      message: 'El largo debe ser menor o igual a 1000'
-                    }
-                  }}
-                  render={({ field: { onChange, onBlur, value, } }) => (
-
-                    <OutlinedInput
-                      id="outlined-adornment-amount"
-                      startAdornment={<InputAdornment position="start">yd</InputAdornment>}
-                      label="Largo"
-                      placeholder='0'
-                      size="small"
-                      type="number"
-                      value={value}
-                      onChange={onChange}
-                      onBlur={onBlur}
-                      required
-                    />
-                  )}
-                />
-                <FormHelperText>{errors.height && errors.height.message}</FormHelperText>
-              </FormControl>
-            </Stack>
-
-            <FormControl sx={{ width: '100%' }} error={!!errors?.purchasePrice}>
-              <InputLabel htmlFor="outlined-adornment-amount">Costo de material</InputLabel>
-              <Controller
-                name="purchasePrice"
+                name="cost"
                 control={control}
                 defaultValue=""
                 rules={{
@@ -639,7 +481,7 @@ const StabilizersPage = () => {
                   <OutlinedInput
                     id="outlined-adornment-amount"
                     startAdornment={<InputAdornment position="start">$</InputAdornment>}
-                    label="Costo de material"
+                    label="Costo del material"
                     placeholder='0.00'
                     size="small"
                     value={value}
@@ -649,7 +491,7 @@ const StabilizersPage = () => {
                         setContainerEstimatedValue(true)
                       }
                       else {
-                        setContainerEstimatedValue(false)
+                        setContainerEstimatedValue(false);
                       }
                     }}
                     onBlur={onBlur}
@@ -658,7 +500,7 @@ const StabilizersPage = () => {
                   />
                 )}
               />
-              <FormHelperText>{errors.purchasePrice && errors.purchasePrice.message}</FormHelperText>
+              <FormHelperText>{errors.cost && errors.cost.message}</FormHelperText>
             </FormControl>
 
             {
@@ -689,7 +531,9 @@ const StabilizersPage = () => {
                           placeholder='0.00'
                           size="small"
                           value={value}
-                          onChange={onChange}
+                          onChange={(e) => {
+                            onChange(e.target.value);
+                          }}
                           onBlur={onBlur}
                           type="number"
                           required
@@ -703,44 +547,62 @@ const StabilizersPage = () => {
                 null
             }
 
-            {
-              !id ?
-                (
-                  <FormControl sx={{ width: '100%' }}>
-                    <Controller
-                      name="quantity"
-                      control={control}
-                      defaultValue="1"
-                      rules={{
-                        required: 'La cantidad es requerida',
-                        min: {
-                          value: 1,
-                          message: 'La cantidad debe ser mayor o igual a 1'
-                        },
-                        max: {
-                          value: 1000,
-                          message: 'La cantidad debe ser menor o igual a 1000'
-                        }
-                      }}
-                      render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
-                        <TextField
-                          id="outlined-number"
-                          label="Cantidad"
-                          type="number"
-                          size="small"
-                          value={value}
-                          onChange={onChange}
-                          onBlur={onBlur}
-                          required
-                          error={!!error}
-                          helperText={error ? error.message : null}
-                        />
-                      )}
-                    />
-                  </FormControl>
-                )
-                : null
-            }
+            <FormControl sx={{ width: '100%' }}>
+              <InputLabel htmlFor="outlined-adornment-amount">Precio de venta ft²</InputLabel>
+              <Controller
+                name="salePrice"
+                control={control}
+                defaultValue=""
+                render={({ field: { onChange, onBlur, value, } }) => (
+                  <OutlinedInput
+                    id="outlined-adornment-amount"
+                    startAdornment={<InputAdornment position="start">$</InputAdornment>}
+                    label="Precio de venta ft²"
+                    placeholder='0.00'
+                    size="small"
+                    value={value}
+                    type="number"
+                    onChange={(e) => {
+                      onChange(e.target.value);
+                    }}
+                    onBlur={onBlur}
+                  />
+                )}
+              />
+            </FormControl>
+
+            <FormControl sx={{ width: '100%' }}>
+              <Controller
+                name="quantity"
+                control={control}
+                defaultValue="1"
+                rules={{
+                  required: 'La cantidad es requerida',
+                  min: {
+                    value: 1,
+                    message: 'La cantidad debe ser mayor o igual a 1'
+                  },
+                  max: {
+                    value: 1000,
+                    message: 'La cantidad debe ser menor o igual a 1000'
+                  }
+                }}
+                render={({ field: { onChange, onBlur, value, }, fieldState: { error } }) => (
+                  <TextField
+                    id="outlined-number"
+                    label="Cantidad"
+                    type="number"
+                    size="small"
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required
+                    error={!!error}
+                    helperText={error ? error.message : null}
+                  />
+                )}
+              />
+            </FormControl>
 
           </Stack>
         </DialogContent>
@@ -757,4 +619,4 @@ const StabilizersPage = () => {
   )
 }
 
-export default StabilizersPage
+export default MaterialPrinterUpdate
