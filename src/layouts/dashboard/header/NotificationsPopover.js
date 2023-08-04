@@ -36,7 +36,7 @@ const NOTIFICATIONS = [
     type: 'friend_interactive',
     isUnRead: true,
     onClick: () => {
-      window.open('http://localhost:3000/assets/manual.pdf', '_blank');
+      window.open('http://web.flcidete.xyz/assets/manual.pdf', '_blank');
     },
   },
 ];

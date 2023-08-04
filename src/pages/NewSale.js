@@ -969,10 +969,7 @@ const NewSale = () => {
     },
     'Impresora de gran formato': () => {
       const flag = {};
-      if (!itemSelected.details.materials) {
-        flag.materials = 'Por favor, ingrese los materiales'
-      }
-      else if (itemSelected.details.materials.width === undefined || itemSelected.details.materials.width === '' || itemSelected.details.materials.height === undefined || itemSelected.details.materials.height === '') {
+      if (itemSelected.details.materials && itemSelected.details.materials.width === undefined || itemSelected.details.materials.width === '' || itemSelected.details.materials.height === undefined || itemSelected.details.materials.height === '') {
         flag.materials = 'Por favor, ingrese las medidas'
       }
 
