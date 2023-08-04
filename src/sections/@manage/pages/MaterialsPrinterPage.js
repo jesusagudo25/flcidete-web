@@ -30,6 +30,8 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -170,6 +172,8 @@ function applySortFilter(array, comparator, query) {
 
 const MaterialsPrinterPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -243,12 +247,15 @@ const MaterialsPrinterPage = () => {
   };
 
   const handleSubmitDialog = async (event) => {
+    setIsLoading(true);
+    const valor =  containerEstimatedValue ? event.estimatedValue : event.cost;
     if (id) {
       await axios.put(`/api/printer-materials/${id}`, {
         name: event.name,
         cost: event.cost,
-        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
+        'estimated_value': valor,
         'percentage': event.percentage,
+        'purchase_price': (valor / ((event.width / 12) * (event.height * 3.28084))).toFixed(2),
         'sale_price': event.salePrice,
         'width': event.width / 12, 
         'width_in_inches': event.width,
@@ -256,12 +263,14 @@ const MaterialsPrinterPage = () => {
         'height_in_meters': event.height,
         'area': (event.width / 12) * (event.height * 3.28084),
       });
+      setIsLoading(false);
     } else {
       await axios.post('/api/printer-materials', {
         'name': event.name.concat(' (', event.width, ' in x', event.height, ' M)'),
         'cost': event.cost,
-        'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
+        'estimated_value': valor,
         'percentage': event.percentage,
+        'purchase_price': (valor / ((event.width / 12) * (event.height * 3.28084))).toFixed(2),
         'sale_price': event.salePrice,
         'width': event.width / 12, 
         'width_in_inches': event.width,
@@ -270,6 +279,7 @@ const MaterialsPrinterPage = () => {
         'area': (event.width / 12) * (event.height * 3.28084),
         'quantity': event.quantity,
       });
+      setIsLoading(false);
     }
     showToastMessage();
     handleCloseDialog();
@@ -298,8 +308,10 @@ const MaterialsPrinterPage = () => {
   };
 
   const getPrinterMaterials = async () => {
+    setIsLoading(true);
     const response = await axios.get('/api/printer-materials');
     setMaterials(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -392,21 +404,28 @@ const MaterialsPrinterPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
-                                if (active) (
-                                  showToastMessageStatus('error', 'Material desactivado')
-                                )
-                                else (
-                                  showToastMessageStatus('success', 'Material activado')
-                                )
-                                setMaterials(materials.map((material) => {
-                                  if (material.id === id) {
-                                    return { ...material, active: !active };
-                                  }
-                                  return material;
-                                }));
-                                await axios.put(`/api/printer-materials/${id}`, {
-                                  active: !active
-                                });
+                                try {
+                                  setIsLoading(true);
+                                  await axios.put(`/api/printer-materials/${id}`, {
+                                    active: !active
+                                  });
+                                  setIsLoading(false);
+                                  setMaterials(materials.map((material) => {
+                                    if (material.id === id) {
+                                      return { ...material, active: !active };
+                                    }
+                                    return material;
+                                  }));
+                                  if (active) (
+                                    showToastMessageStatus('error', 'Material desactivado')
+                                  )
+                                  else (
+                                    showToastMessageStatus('success', 'Material activado')
+                                  )
+                                } catch (error) {
+                                  showToastMessageStatus('error', 'Error al actualizar el estado del material')
+                                  setIsLoading(false);
+                                }
                               }
                             } />
                           </TableCell>
@@ -808,6 +827,13 @@ const MaterialsPrinterPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

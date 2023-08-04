@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { filter } from 'lodash';
+import { filter, set } from 'lodash';
 import PropTypes from 'prop-types';
 import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
@@ -28,6 +28,8 @@ import {
   Button,
   DialogTitle,
   FormControl,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -163,6 +165,8 @@ function applySortFilter(array, comparator, query) {
 
 const ObservationsPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -231,18 +235,20 @@ const ObservationsPage = () => {
   const handleSubmitDialog = async (event) => {
     /* event.preventDefault(); */
     /* HandleSubmit de useForm */
-
+    setIsLoading(true);
     if (id) {
       await axios.put(`/api/observations/${id}`, {
         title: event.title,
         description: event.description,
       });
+      setIsLoading(false);
     } else {
       await axios.post('/api/observations', {
         title: event.title,
         description: event.description,
         'user_id': localStorage.getItem('id'),
       });
+      setIsLoading(false);
     }
     showToastMessage();
     reset();
@@ -273,9 +279,11 @@ const ObservationsPage = () => {
   const getObservations = async () => {
     const response = await axios.get('/api/observations');
     setObservations(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getObservations();
   }, []);
 
@@ -341,6 +349,7 @@ const ObservationsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                setIsLoading(true);
                                 if (active) (
                                   showToastMessageStatus('error', 'Observación desactivada')
                                 )
@@ -356,6 +365,7 @@ const ObservationsPage = () => {
                                 await axios.put(`/api/observations/${id}`, {
                                   active: !active
                                 });
+                                setIsLoading(false);
                               }
                             } />
                           </TableCell>
@@ -548,6 +558,13 @@ const ObservationsPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

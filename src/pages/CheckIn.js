@@ -112,9 +112,6 @@ export default function CheckIn() {
   const [containerBookingGroup, setContainerBookingGroup] = useState(false);
   const [containerTypeVisit, setContainerTypeVisit] = useState('I');
 
-  const [containerRUC, setContainerRUC] = useState(false);
-  const [containerSubsidiary, setContainerSubsidiary] = useState(false);
-
   const [containerCheckAll, setContainerCheckAll] = useState(false);
   const [containerCustomer, setContainerCustomer] = useState(false);
   const [disabledAddCustomer, setDisabledAddCustomer] = useState(false);
@@ -137,9 +134,6 @@ export default function CheckIn() {
   const [typeSexSelected, setTypeSexSelected] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const [subsidiary, setSubsidiary] = useState('');
-  const [subsidiaryId, setSubsidiaryId] = useState(null);
-
   const [idCustomer, setIdCustomer] = useState(null);
   const [reasonSelected, setReasonSelected] = useState(1);
   const [areasSelected, setAreasSelected] = useState([]);
@@ -158,7 +152,6 @@ export default function CheckIn() {
   const [documentTypeBooking, setDocumentTypeBooking] = useState('C');
   const [documentBooking, setDocumentBooking] = useState('');
   const [optionsBooking, setOptionsBooking] = useState([]);
-
 
   const [options, setOptions] = useState([]);
   const previousController = useRef();
@@ -303,7 +296,6 @@ export default function CheckIn() {
   const handleChangeTypeVisit = (event) => {
     setContainerTypeVisit(event.target.value);
     setContainerCustomer(false);
-    setContainerRUC(false);
   };
 
   const handleCloseDialog = () => {
@@ -377,8 +369,6 @@ export default function CheckIn() {
     setOptions([]);
     setDocumentType(event.target.value);
     setDocument('');
-    setSubsidiary('');
-    setSubsidiaryId(null)
     setName('');
     setEmail('');
     setTelephone('');
@@ -407,16 +397,12 @@ export default function CheckIn() {
       }
     );
     setContainerCustomer(false);
-    setContainerRUC(false);
-    setContainerSubsidiary(false);
   };
 
   const handleChangeDocument = (event, newInputValue) => {
     setDocument(newInputValue);
     if (event) {
       setContainerCustomer(false);
-      setContainerRUC(false);
-      setContainerSubsidiary(false);
       setErrors(
         {
           ...errors,
@@ -477,8 +463,6 @@ export default function CheckIn() {
         setIdCustomer(null);
       }
     }
-    setSubsidiary('');
-    setSubsidiaryId(null)
   };
 
   const handleChangeDocumentBooking = (event, newInputValue) => {
@@ -501,14 +485,10 @@ export default function CheckIn() {
 
   const handleChangeIdCustomer = (event, newValue) => {
     setContainerCustomer(false);
-    setContainerRUC(false);
-    setContainerSubsidiary(false);
     setIdCustomer(null);
     setDisabledAddCustomer(false);
     setName('');
     setEmail('');
-    setSubsidiary('');
-    setSubsidiaryId(null)
     setTelephone('');
     setAgeRangeSelected(null);
     setTypeSexSelected(null);
@@ -521,17 +501,14 @@ export default function CheckIn() {
     } else if (newValue && newValue.inputValue) {
       // Crear un nuevo valor a partir de la entrada del usuario
       setDocument(newValue.inputValue);
-      if (documentType !== 'R') {
-        setContainerCustomer(true);
-      }
-      else {
-        setContainerRUC(true);
-      }
+      setContainerCustomer(true);
       showToastMessageStatus('info', 'Por favor, Ingrese los datos del nuevo cliente');
       setErrors({
         ...errors,
         document: '',
-        name: ''
+        name: '',
+        age_range: '',
+        type_sex: '',
       })
     } else if (newValue) {
       showToastMessageStatus('success', 'Cliente seleccionado, por favor, verifique los datos');
@@ -539,16 +516,12 @@ export default function CheckIn() {
         ...errors,
         document: '',
         name: '',
+        age_range: '',
+        type_sex: '',
       })
       setIdCustomer(newValue.value);
-      if (documentType !== 'R') {
-        setContainerCustomer(true);
-        setDisabledAddCustomer(true);
-      }
-      else {
-        setContainerRUC(true);
-        setDisabledAddCustomer(false);
-      }
+      setContainerCustomer(true);
+      setDisabledAddCustomer(true);
       setName(newValue.name);
       setEmail(newValue.email);
       setTelephone(newValue.telephone);
@@ -579,7 +552,7 @@ export default function CheckIn() {
 
   const handleOnBlurDocument = (event) => {
 
-    if (idCustomer === null && (containerCustomer === false && containerRUC === false)) {
+    if (idCustomer === null && containerCustomer === false) {
       setErrors({
         ...errors,
         document: 'Por favor, seleccione o agregue un cliente'
@@ -812,7 +785,7 @@ export default function CheckIn() {
 
   /* Botones de submit */
 
-  /*   const LoadBooking = () => {
+  const LoadBooking = () => {
   
       if (bookingSelected === null) {
         setErrors({
@@ -833,12 +806,7 @@ export default function CheckIn() {
                 setIdCustomer(response.data.id);
                 setDocument(response.data.document_number);
                 setDocumentType(response.data.document_type);
-                if (response.data.document_type !== 'R') {
-                  setContainerCustomer(true);
-                }
-                else {
-                  setContainerRUC(true);
-                }
+                setContainerCustomer(true);
                 setDisabledAddCustomer(true);
                 setName(response.data.name);
                 setEmail(response.data.email);
@@ -861,12 +829,7 @@ export default function CheckIn() {
                 setDocumentType(bookingSelected.documentType);
                 setDocument(bookingSelected.documentNumber);
                 setName(bookingSelected.name);
-                if (bookingSelected.documentType !== 'R') {
-                  setContainerCustomer(true);
-                }
-                else {
-                  setContainerRUC(true);
-                }
+                setContainerCustomer(true);
               }
               setIsCompleteBooking(true);
             }
@@ -934,7 +897,7 @@ export default function CheckIn() {
         setIsSelectBooking(true);
         setOpen(false);
       }
-    }; */
+  }; 
 
   const handleClickSubmit = () => {
     setIsLoading(true);
@@ -943,11 +906,11 @@ export default function CheckIn() {
 
 
     if (containerTypeVisit === 'I') {
-      if (idCustomer === null && (containerCustomer === false && containerRUC === false)) {
+      if (idCustomer === null && containerCustomer === false) {
         errorsDisplay.document = 'Por favor, ingrese el documento del cliente';
         flag = true;
       }
-      else if (containerCustomer || containerSubsidiary) {
+      else if (containerCustomer) {
         if (errors.email) {
           errorsDisplay.email = errors.email;
         }
@@ -960,10 +923,6 @@ export default function CheckIn() {
 
     if (name === '' && containerCustomer === true) {
       errorsDisplay.name = 'Por favor, ingrese el nombre del cliente';
-      flag = true;
-    }
-    else if (subsidiary === '' && containerRUC === true) {
-      errorsDisplay.subsidiary = 'Por favor, ingrese el nombre de la division';
       flag = true;
     }
 
@@ -1018,29 +977,6 @@ export default function CheckIn() {
           data.district_id = districtSelected;
           data.township_id = townshipSelected;
         }
-        else if (idCustomer && subsidiaryId) {
-          data.customer_id = idCustomer;
-          data.subsidiary_id = subsidiaryId;
-        }
-        else if (idCustomer && subsidiaryId === null) {
-          data.customer_id = idCustomer;
-          data.name = subsidiary;
-          data.email = email;
-          data.telephone = telephone;
-          data.province_id = provinceSelected;
-          data.district_id = districtSelected;
-          data.township_id = townshipSelected;
-        }
-        else if (idCustomer === null && subsidiaryId === null) {
-          data.document_type = documentType;
-          data.document_number = document;
-          data.name = subsidiary;
-          data.email = email;
-          data.telephone = telephone;
-          data.province_id = provinceSelected;
-          data.district_id = districtSelected;
-          data.township_id = townshipSelected;
-        }
       }
       else {
         data.file = selectedFile;
@@ -1049,13 +985,12 @@ export default function CheckIn() {
       data.areas = areasSelected.filter((area) => area.id !== '').map((area) => {
         return {
           area_id: area.id,
-          start_time: format(area.timeIn, 'HH:mm:ss'),
-          end_time: area.timeOut ? format(area.timeOut, 'HH:mm:ss') : null
+          start_time: format(area.timeIn, 'HH:mm'),
+          end_time: area.timeOut ? format(area.timeOut, 'HH:mm') : null
         }
       });
 
-      console.log(data);
-       axios.post('/api/visits', data, {
+      axios.post('/api/visits', data, {
         headers: {
           "Content-Type": "multipart/form-data",
         }
@@ -1067,11 +1002,6 @@ export default function CheckIn() {
 
           setContainerTypeVisit('I');
           setContainerCustomer(false);
-          setContainerSubsidiary(false);
-          setContainerRUC(false);
-          setContainerSubsidiary(false);
-          setSubsidiary('');
-          setSubsidiaryId(null);
           setDisabledAddCustomer(false);
           setDocumentType('C');
           setDocument('');
@@ -1143,7 +1073,7 @@ export default function CheckIn() {
             >
               <FormLabel id="demo-radio-buttons-group-label"
               >Selecciona el tipo de visita</FormLabel>
-              
+
               <RadioGroup
                 aria-labelledby="buttons-group-label-type-visit"
                 defaultValue="female"
@@ -1160,11 +1090,11 @@ export default function CheckIn() {
                   />
                 </Stack>
               </RadioGroup>
-              
+
             </FormControl>
 
             {containerTypeVisit === 'I' ? (
-              <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} handleOnBlurDocument={handleOnBlurDocument} errors={errors} />
+              <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} handleOnBlurDocument={handleOnBlurDocument} errors={errors} documentAvailable={false} />
             )
               : (
                 containerBookingGroup ?
@@ -1285,37 +1215,6 @@ export default function CheckIn() {
                   handleChangeTelephone={handleChangeTelephone}
                   setIsLoading={setIsLoading}
                   errors={errors}
-                /> : null
-            }
-
-            {
-              containerRUC ?
-                <AddRUC
-                  subsidiary={subsidiary}
-                  setSubsidiary={setSubsidiary}
-                  subsidiaryId={subsidiaryId}
-                  setSubsidiaryId={setSubsidiaryId}
-                  email={email}
-                  setEmail={setEmail}
-                  telephone={telephone}
-                  setTelephone={setTelephone}
-                  provinceSelected={provinceSelected}
-                  districtSelected={districtSelected}
-                  townshipSelected={townshipSelected}
-                  errors={errors}
-                  disabledAddCustomer={disabledAddCustomer}
-                  handleChangeEmail={handleChangeEmail}
-                  handleOnBlurEmail={handleOnBlurEmail}
-                  handleChangeTelephone={handleChangeTelephone}
-                  setProvinceSelected={setProvinceSelected}
-                  setDistrictSelected={setDistrictSelected}
-                  setTownshipSelected={setTownshipSelected}
-                  idCustomer={idCustomer}
-                  setIsLoading={setIsLoading}
-                  toast={toast}
-                  containerSubsidiary={containerSubsidiary}
-                  setContainerSubsidiary={setContainerSubsidiary}
-                  setDisabledAddCustomer={setDisabledAddCustomer}
                 /> : null
             }
 
@@ -1473,6 +1372,7 @@ export default function CheckIn() {
         keepMounted
         onClose={() => {
           setIsFormatExcel(false);
+          window.location.reload();
         }}
         aria-describedby="alert-dialog-slide-description"
         fullWidth
@@ -1530,18 +1430,20 @@ export default function CheckIn() {
               margin: 2,
             }}
             onClick={() => {
+              window.location.reload(false);
               setIsFormatExcel(false);
             }}
           >Cerrar</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Feedback error visit */}
+      {/* Feedback error visit excel */}
       <Dialog
         open={isErrorExcel}
         TransitionComponent={Transition}
         keepMounted
         onClose={() => {
+          window.location.reload();
           setErrorsExcel([]);
           setIsErrorExcel(false);
         }}
@@ -1627,6 +1529,7 @@ export default function CheckIn() {
             onClick={() => {
               setIsErrorExcel(false);
               setErrorsExcel([]);
+              window.location.reload();
             }}
           >Cerrar</Button>
         </DialogActions>
@@ -1691,7 +1594,7 @@ export default function CheckIn() {
       </Dialog>
 
       {/* Modal reservation */}
-      {/*       <BootstrapDialog
+      <BootstrapDialog
         onClose={handleCloseDialog}
         aria-labelledby="customized-dialog-title"
         open={open}
@@ -1720,16 +1623,9 @@ export default function CheckIn() {
             Seleccionar
           </Button>
         </DialogActions>
-      </BootstrapDialog> */}
+      </BootstrapDialog>
 
-      <Backdrop
-        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-        open={isLoading}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
-
-      {/*       <SpeedDial
+      <SpeedDial
         ariaLabel="Herramientas"
         sx={{ position: 'fixed', bottom: 16, right: 16 }}
         icon={
@@ -1752,7 +1648,6 @@ export default function CheckIn() {
 
             setContainerTypeVisit('I');
             setContainerCustomer(false);
-            setContainerRUC(false);
             setDisabledAddCustomer(false);
             setDocumentType('C');
             setDocument('');
@@ -1800,7 +1695,14 @@ export default function CheckIn() {
             ))
           ) : null
         }
-      </SpeedDial> */}
+      </SpeedDial>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   );
 }

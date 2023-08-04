@@ -30,6 +30,8 @@ import {
   InputLabel,
   Select,
   FormHelperText,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
@@ -171,6 +173,8 @@ function applySortFilter(array, comparator, query) {
 
 const TechExpensesPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -240,6 +244,7 @@ const TechExpensesPage = () => {
   };
 
   const handleSubmitDialog = async (event) => {
+    setIsLoading(true);
     handleCloseDialog();
     if (id) {
       await axios.put(`/api/tech-expenses/${id}`, {
@@ -248,6 +253,7 @@ const TechExpensesPage = () => {
         'area_id': event.area,
         'amount': event.amount,
       });
+      setIsLoading(false);
     } else {
       await axios.post('/api/tech-expenses', {
         'name': event.name,
@@ -256,6 +262,7 @@ const TechExpensesPage = () => {
         'amount': event.amount,
         'user_id': localStorage.getItem('id'),
       });
+      setIsLoading(false);
     }
     showToastMessage();
     reset();
@@ -284,14 +291,17 @@ const TechExpensesPage = () => {
   const getTechExpenses = async () => {
     const response = await axios.get('/api/tech-expenses');
     setTechExpenses(response.data);
+    setIsLoading(false);
   }
 
   const getAreas = async () => {
     const response = await axios.get('/api/areas');
-    setAreas(response.data);
+    setAreas(response.data.filter(item => item.id < 9));
+    setIsLoading(false);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getTechExpenses();
     getAreas();
   }, []);
@@ -368,6 +378,7 @@ const TechExpensesPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                setIsLoading(true);
                                 if (active) (
                                   showToastMessageStatus('error', 'Gasto desactivado')
                                 )
@@ -383,6 +394,7 @@ const TechExpensesPage = () => {
                                 await axios.put(`/api/tech-expenses/${id}`, {
                                   active: !active
                                 });
+                                setIsLoading(false);
                               }
                             } />
                           </TableCell>
@@ -479,10 +491,6 @@ const TechExpensesPage = () => {
           />
         </Card>
       </Container>
-
-      {/* Toastify */}
-
-      <ToastContainer />
 
       {/* Dialog */}
 
@@ -625,6 +633,17 @@ const TechExpensesPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      {/* Toastify */}
+
+      <ToastContainer />
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

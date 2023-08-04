@@ -1,4 +1,4 @@
-import PropTypes from 'prop-types';
+import React, { useState } from 'react';
 import { NavLink as RouterLink } from 'react-router-dom';
 // @mui
 import { Box, List, ListItemText } from '@mui/material';
@@ -7,12 +7,8 @@ import { StyledNavItem, StyledNavItemIcon } from './styles';
 
 // ----------------------------------------------------------------------
 
-NavSection.propTypes = {
-  data: PropTypes.array,
-};
-
 export default function NavSection({ data = [], ...other }) {
-  const [roleId, setRoleId] = localStorage.getItem('role_id');
+  const [roleId, setRoleId] = useState(localStorage.getItem('role_id'));
 
   return (
     <Box {...other}>
@@ -27,9 +23,6 @@ export default function NavSection({ data = [], ...other }) {
 
 // ----------------------------------------------------------------------
 
-NavItem.propTypes = {
-  item: PropTypes.object,
-};
 
 function NavItem({ item }) {
   const { title, path, icon, info } = item;

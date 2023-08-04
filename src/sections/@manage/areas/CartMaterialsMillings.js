@@ -40,7 +40,7 @@ const CartMaterialsMillings = ({materials, deleteMaterialMilling, updateItemMill
                         </Typography>
                         </Stack>
                     </TableCell>
-                    <TableCell>{material.sale_price}</TableCell>
+                    <TableCell>$ {material.sale_price}</TableCell>
                     <TableCell>
                         <Button variant="contained"
                             color="error" onClick={

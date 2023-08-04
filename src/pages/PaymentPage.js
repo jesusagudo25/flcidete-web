@@ -66,11 +66,11 @@ import config from '../config.json';
 const TABLE_HEAD = [
   { id: 'id', label: 'Factura', alignRight: false },
   { id: 'name', label: 'Cliente', alignRight: false },
-  { id: 'description', label: 'Descripción', alignRight: false },
   { id: 'total', label: 'Total', alignRight: false },
   { id: 'balance', label: 'Saldo', alignRight: false },
   { id: 'created_at', label: 'Fecha de compra', alignRight: false },
   { id: 'status', label: 'Estado', alignRight: false },
+  { id: 'isActive', label: 'Activo', alignRight: false },
   { id: '' },
 ];
 
@@ -189,6 +189,19 @@ function applySortFilter(array, comparator, query) {
 
 function PaymentPage() {
 
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
   /* Invoices */
 
   const [id, setId] = useState(0);
@@ -214,6 +227,7 @@ function PaymentPage() {
 
   const handleCloseDialog = () => {
     setOpen(false);
+    setIsComplete(false);
   };
 
   const handleSubmitDialog = async (event) => {
@@ -234,6 +248,7 @@ function PaymentPage() {
     }
     handleCloseDialog();
     getPayments();
+    setIsComplete(false);
   };
 
   const handleRequestSort = (event, property) => {
@@ -303,7 +318,7 @@ function PaymentPage() {
                 {payments.length > 0 ? (
                   <TableBody>
                     {filteredInvoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id: uuid, customer, total, description, created_at: createdAt, payments, status } = row;
+                      const { id: uuid, customer, subsidiary, total, is_active: isActive, created_at: createdAt, payments: paymentsInvoice, status } = row;
                       return (
                         <TableRow hover key={uuid} tabIndex={-1} role="checkbox">
 
@@ -316,12 +331,7 @@ function PaymentPage() {
                           </TableCell>
 
                           <TableCell align="left">
-                            {customer.name}
-                          </TableCell>
-
-
-                          <TableCell align="left">
-                            {description}
+                            {subsidiary?.name || customer?.name || 'Por definir'}
                           </TableCell>
 
                           <TableCell align="left">
@@ -329,7 +339,7 @@ function PaymentPage() {
                           </TableCell>
 
                           <TableCell align="left">
-                            {payments.length > 1 ? payments[1].balance : payments[0].balance}
+                            {paymentsInvoice.length > 1 ? paymentsInvoice[1].balance : paymentsInvoice[0].balance}
                           </TableCell>
 
                           <TableCell align="left">
@@ -338,6 +348,30 @@ function PaymentPage() {
 
                           <TableCell align="left">
                             <Label color={status === 'F' ? 'success' : 'error'}>{sentenceCase(status === 'A' ? 'Por Cancelar' : 'Cancelado')}</Label>
+                          </TableCell>
+
+                          <TableCell align="left">
+                            <ButtonSwitch checked={isActive} inputProps={{ 'aria-label': 'ant design' }} onClick={
+                              async () => { 
+                                try {
+                                  setIsLoading(true);
+                                  await axios.put(`/api/invoices/${uuid}`, {
+                                    is_active: !isActive
+                                  }); 
+                                  setPayments(payments.map((payment) => {
+                                    if (payment.id === uuid) {
+                                      return { ...payment, is_active: !isActive };
+                                    }
+                                    return payment;
+                                  }));
+                                  setIsLoading(false);
+                                  if (isActive) {showToastMessageStatus('error', 'Factura desactivada')} else {showToastMessageStatus('success', 'Factura activada')}
+                                } catch (error) {
+                                  setIsLoading(false);
+                                  showToastMessageStatus('error', error.response.data.message)
+                                }
+                              }
+                            }  />
                           </TableCell>
 
                           <TableCell align="right">
@@ -354,7 +388,7 @@ function PaymentPage() {
                             <IconButton size="large" color="inherit" onClick={() => {
                               setOpen(true);
                               setId(uuid);
-                              setHistoryPayment(payments);
+                              setHistoryPayment(paymentsInvoice);
                               if (status === 'F') {
                                 setIsComplete(true);
                               }

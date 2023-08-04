@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
 import { LoadingButton } from '@mui/lab';
@@ -46,18 +46,9 @@ import {
 } from '@mui/material';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Visibility from '@mui/icons-material/Visibility';
-
-// date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -187,6 +178,8 @@ function applySortFilter(array, comparator, query) {
 
 const UsersPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* User */
 
   const [id, setId] = useState(0);
@@ -232,18 +225,21 @@ const UsersPage = () => {
 
   const handleSubmitDialog = async (event) => {
     event.preventDefault();
+    setIsLoading(true);
     if (id) {
-      if(containerPassword){
+      if (containerPassword) {
         await axios.put(`/api/users/${id}/password`, {
           password,
         });
+        setIsLoading(false);
       }
-      else{
+      else {
         await axios.put(`/api/users/${id}`, {
           name,
           email,
           'role_id': rolId,
         });
+        setIsLoading(false);
       }
     } else {
       await axios.post('/api/users', {
@@ -252,7 +248,9 @@ const UsersPage = () => {
         password,
         'role_id': rolId,
       });
+      setIsLoading(false);
     }
+    toast.success('Usuario guardado con éxito');
     handleCloseDialog();
     getUsers();
   };
@@ -280,14 +278,17 @@ const UsersPage = () => {
   const getUsers = async () => {
     const response = await axios.get('/api/users');
     setUsers(response.data);
+    setIsLoading(false);
   }
 
   const getRoles = async () => {
     const response = await axios.get('/api/roles');
     setRoles(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getUsers();
     getRoles();
   }, []);
@@ -355,6 +356,14 @@ const UsersPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if(active){
+                                  toast.error('Usuario desactivado');
+                                }
+                                else{
+                                  toast.success('Usuario activado');
+                                }
+                                
+                                setIsLoading(true);
                                 setUsers(users.map((user) => {
                                   if (user.id === id) {
                                     return { ...user, active: !active };
@@ -364,6 +373,7 @@ const UsersPage = () => {
                                 await axios.put(`/api/users/${id}`, {
                                   active: !active
                                 });
+                                setIsLoading(false);
                               }
                             } />
                           </TableCell>
@@ -635,6 +645,17 @@ const UsersPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      {/* Toastify */}
+
+      <ToastContainer />
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

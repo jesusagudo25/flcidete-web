@@ -24,7 +24,8 @@ const SearchSubsidiary = ({
   setDistrictSelected,
   setTownshipSelected,
   errors,
-  setDisabledAddCustomer
+  setDisabledAddCustomer,
+  setErrors,
 }) => {
 
   const previousController = useRef();
@@ -53,7 +54,7 @@ const SearchSubsidiary = ({
               district_id: item.district_id,
               township_id: item.township_id,
             }
-          } );
+          });
           setOptions(results);
         }
         )
@@ -108,7 +109,26 @@ const SearchSubsidiary = ({
         }
       }}
       onInputChange={(event, newInputValue) => {
-        if (newInputValue !== '') setSubsidiary(newInputValue);
+        if (newInputValue !== '') {
+          setSubsidiary(newInputValue);
+          setContainerSubsidiary(false);
+          setEmail('');
+          setTelephone('');
+          setProvinceSelected(9);
+          setDistrictSelected(60);
+          setTownshipSelected(492);
+          setDisabledAddCustomer(false);
+          setErrors(
+            {
+              subsidiary: '',
+              name: '',
+              correo: '',
+              telephone: '',
+              age_range: '',
+              type_sex: '',
+            }
+          )
+        }
         if (event) {
 
           if (event.target.value) {

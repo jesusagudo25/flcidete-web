@@ -28,6 +28,8 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
@@ -169,6 +171,8 @@ function applySortFilter(array, comparator, query) {
 }
 const MaterialsLaserPage = () => 
 {
+
+  const [isLoading, setIsLoading] = useState(false);
   /* Toastify */
 
   const showToastMessage = () => {
@@ -279,6 +283,7 @@ const MaterialsLaserPage = () =>
 
   const handleSubmitDialog = async (event) => {
     handleCloseDialog();
+    setIsLoading(true);
     if (id) {
       await axios.put(`/api/materials-laser/${id}`, {
         'name': event.name,
@@ -291,6 +296,7 @@ const MaterialsLaserPage = () =>
         'height': event.height,
         'area': event.width * event.height,
       });
+      setIsLoading(false);
     } else {
       await axios.post('/api/materials-laser', {
         'name': event.name.concat(' (', event.width, ' ft x', event.height, ' ft)'),
@@ -305,6 +311,7 @@ const MaterialsLaserPage = () =>
         'area': event.width * event.height,
         'quantity': event.quantity,
       });
+      setIsLoading(false);
     }
     showToastMessage();
     getMaterials();
@@ -332,8 +339,10 @@ const MaterialsLaserPage = () =>
   };
 
   const getMaterials = async () => {
+    setIsLoading(true);
     const response = await axios.get('/api/materials-laser');
     setMaterials(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -412,21 +421,29 @@ const MaterialsLaserPage = () =>
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
-                                if (active) (
-                                  showToastMessageStatus('error', 'Material desactivado')
-                                )
-                                else (
-                                  showToastMessageStatus('success', 'Material activado')
-                                )
-                                setMaterials(materials.map((material) => {
-                                  if (material.id === id) {
-                                    return { ...material, active: !active };
-                                  }
-                                  return material;
-                                }));
-                                await axios.put(`/api/materials-laser/${id}`, {
-                                  active: !active
-                                });
+                                try {
+                                  setIsLoading(true);
+                                  await axios.put(`/api/materials-laser/${id}`, {
+                                    active: !active
+                                  });
+                                  setIsLoading(false);
+                                  setMaterials(materials.map((material) => {
+                                    if (material.id === id) {
+                                      return { ...material, active: !active };
+                                    }
+                                    return material;
+                                  }));
+                                  if (active) (
+                                    showToastMessageStatus('error', 'Material desactivado')
+                                  )
+                                  else (
+                                    showToastMessageStatus('success', 'Material activado')
+                                  )
+
+                                } catch (error) {
+                                  setIsLoading(false);
+                                  showToastMessageStatus('error', 'Error al actualizar el estado')
+                                }
                               }
                             } />
                           </TableCell>
@@ -881,6 +898,13 @@ const MaterialsLaserPage = () =>
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

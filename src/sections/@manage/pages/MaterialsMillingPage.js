@@ -30,6 +30,8 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -169,6 +171,8 @@ function applySortFilter(array, comparator, query) {
 
 const MaterialsMillingPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -265,6 +269,7 @@ const MaterialsMillingPage = () => {
 
   const handleSubmitDialog = async (event) => {
     handleCloseDialog();
+    setIsLoading(true);
     if (id) {
       await axios.put(`/api/materials-milling/${id}`, {
         name: event.name,
@@ -274,6 +279,7 @@ const MaterialsMillingPage = () => {
         'sale_price': event.salePrice,
         'stock': event.stock,
       });
+      setIsLoading(false);
     } else {
       await axios.post('/api/materials-milling', {
         name: event.name,
@@ -284,6 +290,7 @@ const MaterialsMillingPage = () => {
         'stock': event.stock,
         'quantity': event.stock,
       });
+      setIsLoading(false);
     }
     reset();
     showToastMessage();
@@ -312,8 +319,10 @@ const MaterialsMillingPage = () => {
   };
 
   const getMaterials = async () => {
+    setIsLoading(true);
     const response = await axios.get('/api/materials-milling');
     setMaterials(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -387,21 +396,28 @@ const MaterialsMillingPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
-                                if (active) (
-                                  showToastMessageStatus('error', 'Material desactivado')
-                                )
-                                else (
-                                  showToastMessageStatus('success', 'Material activado')
-                                )
-                                setMaterials(materials.map((material) => {
-                                  if (material.id === id) {
-                                    return { ...material, active: !active };
-                                  }
-                                  return material;
-                                }));
-                                await axios.put(`/api/materials-milling/${id}`, {
-                                  active: !active
-                                });
+                                try {
+                                  setIsLoading(true);
+                                  await axios.put(`/api/materials-milling/${id}`, {
+                                    active: !active
+                                  });
+                                  setIsLoading(false);
+                                  if (active) (
+                                    showToastMessageStatus('error', 'Material desactivado')
+                                  )
+                                  else (
+                                    showToastMessageStatus('success', 'Material activado')
+                                  )
+                                  setMaterials(materials.map((material) => {
+                                    if (material.id === id) {
+                                      return { ...material, active: !active };
+                                    }
+                                    return material;
+                                  }));
+                                } catch (error) {
+                                  showToastMessageStatus('error', 'Error al actualizar el estado del material')
+                                  setIsLoading(false);
+                                }
                               }
                             } />
                           </TableCell>
@@ -762,6 +778,13 @@ const MaterialsMillingPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+      
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

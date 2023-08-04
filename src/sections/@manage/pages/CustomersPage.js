@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
+import { Link } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
 import {
@@ -42,16 +44,7 @@ import {
 } from '@mui/material';
 
 // components
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
-
-// date-fns
-import { format, lastDayOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
 import Scrollbar from '../../../components/scrollbar';
 
@@ -62,9 +55,6 @@ import config from '../../../config.json';
 const TABLE_HEAD = [
   { id: 'document', label: 'Documento', alignRight: false },
   { id: 'name', label: 'Nombre', alignRight: false },
-  { id: 'email', label: 'Correo', alignRight: false },
-  { id: 'age_range_id', label: 'Rango de edad', alignRight: false },
-  { id: 'type_sex_id', label: 'Género', alignRight: false },
   { id: 'active', label: 'Estado', alignRight: false },
   { id: '' },
 ];
@@ -184,6 +174,8 @@ function applySortFilter(array, comparator, query) {
 
 const CustomersPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Customer */
 
   const [id, setId] = useState(''); // Id
@@ -213,9 +205,9 @@ const CustomersPage = () => {
 
   const [page, setPage] = useState(0);
 
-  const [order, setOrder] = useState('asc');
+  const [order, setOrder] = useState('desc');
 
-  const [orderBy, setOrderBy] = useState('document');
+  const [orderBy, setOrderBy] = useState('id');
 
   const [filterDocument, setFilterDocument] = useState('');
 
@@ -239,52 +231,75 @@ const CustomersPage = () => {
   const handleCloseDialog = () => {
     setOpen(false);
     axios.get(`${config.GEOPTYAPI_URL}/api/province/9/districts`)
-    .then((response) => {
-      setDistricts(response.data);
-      setDistrictSelected(response.data[0].id);
-      axios.get(`${config.GEOPTYAPI_URL}/api/district/60/townships`)
-        .then((response) => {
-          setTownships(response.data);
-          setTownshipSelected(response.data[0].id);
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    })
-    .catch((error) => {
-      console.log(error);
-    });
+      .then((response) => {
+        setDistricts(response.data);
+        setDistrictSelected(response.data[0].id);
+        axios.get(`${config.GEOPTYAPI_URL}/api/district/60/townships`)
+          .then((response) => {
+            setTownships(response.data);
+            setTownshipSelected(response.data[0].id);
+          })
+          .catch((error) => {
+            console.log(error);
+          });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   };
 
   const handleSubmitDialog = async (event) => {
     event.preventDefault();
-    if (id) {
-      await axios.put(`/api/customers/${id}`, {
-        document_type: documentType,
-        document_number: documentNumber,
-        name,
-        email,
-        telephone,
-        age_range_id: ageRangeChecked,
-        type_sex_id: sexTypeChecked,
-        province_id: provinceSelected,
-        district_id: districtSelected,
-        township_id: townshipSelected,
-      });
-    } else {
-      await axios.post('/api/customers', {
-        document_type: documentType,
-        document_number: documentNumber,
-        name,
-        email,
-        telephone,
-        age_range_id: ageRangeChecked,
-        type_sex_id: sexTypeChecked,
-        province_id: provinceSelected,
-        district_id: districtSelected,
-        township_id: townshipSelected,
-      });
+    setIsLoading(true);
+    if (documentType === 'R') {
+      if (id) {
+        await axios.put(`/api/customers/${id}`, {
+          document_type: documentType,
+          document_number: documentNumber,
+          type_sex_id: 3,
+        });
+        setIsLoading(false);
+      } else {
+        await axios.post('/api/customers', {
+          document_type: documentType,
+          document_number: documentNumber,
+          type_sex_id: 3,
+        });
+        setIsLoading(false);
+      }
     }
+    else if (documentType !== 'R') {
+      if (id) {
+        await axios.put(`/api/customers/${id}`, {
+          document_type: documentType,
+          document_number: documentNumber,
+          name,
+          email,
+          telephone,
+          age_range_id: ageRangeChecked,
+          type_sex_id: sexTypeChecked,
+          province_id: provinceSelected,
+          district_id: districtSelected,
+          township_id: townshipSelected,
+        });
+        setIsLoading(false);
+      } else {
+        await axios.post('/api/customers', {
+          document_type: documentType,
+          document_number: documentNumber,
+          name,
+          email,
+          telephone,
+          age_range_id: ageRangeChecked,
+          type_sex_id: sexTypeChecked,
+          province_id: provinceSelected,
+          district_id: districtSelected,
+          township_id: townshipSelected,
+        });
+        setIsLoading(false);
+      }
+    }
+    toast.success('Cliente guardado con éxito');
     handleCloseDialog();
     getCustomers();
   };
@@ -311,12 +326,14 @@ const CustomersPage = () => {
   const getCustomers = async () => {
     const response = await axios.get('/api/customers');
     setCustomers(response.data);
+    setIsLoading(false);
   }
 
   const getAgeRanges = () => {
     axios.get('/api/age-ranges')
       .then(res => {
         setAgeRanges(res.data);
+        setIsLoading(false);
       }).catch(err => {
         console.log(err);
       }
@@ -327,6 +344,7 @@ const CustomersPage = () => {
     axios.get('/api/type-sexes')
       .then(res => {
         setSexTypes(res.data);
+        setIsLoading(false);
       }).catch(err => {
         console.log(err);
       }
@@ -334,9 +352,10 @@ const CustomersPage = () => {
   }
 
   const getProvinces = () => {
-    axios.get(`${config.GEOPTYAPI_URL}/api/provinces`)
+    axios.get(`${config.GEOPTYAPI_URL}/api/provinces/active`)
       .then((response) => {
         setProvinces(response.data);
+        setIsLoading(false);
       })
       .catch((error) => {
         console.log(error);
@@ -344,9 +363,10 @@ const CustomersPage = () => {
   };
 
   const getDistricts = (id) => {
-    axios.get(`${config.GEOPTYAPI_URL}/api/province/${id}/districts`)
+    axios.get(`${config.GEOPTYAPI_URL}/api/province/${id}/districts/active`)
       .then((response) => {
         setDistricts(response.data);
+        setIsLoading(false);
       })
       .catch((error) => {
         console.log(error);
@@ -354,9 +374,10 @@ const CustomersPage = () => {
   };
 
   const getTownships = (id) => {
-    axios.get(`${config.GEOPTYAPI_URL}/api/district/${id}/townships`)
+    axios.get(`${config.GEOPTYAPI_URL}/api/district/${id}/townships/active`)
       .then((response) => {
         setTownships(response.data);
+        setIsLoading(false);
       })
       .catch((error) => {
         console.log(error);
@@ -364,6 +385,7 @@ const CustomersPage = () => {
   };
 
   useEffect(() => {
+    setIsLoading(true);
     getCustomers();
     getAgeRanges();
     getTypeSexes();
@@ -411,7 +433,7 @@ const CustomersPage = () => {
                 {customers.length > 0 ? (
                   <TableBody>
                     {filteredCustomers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id, name, document_type: documentType, document_number: documentNumber, email, age_range: ageRange, type_sex: typeSx, active, province_id: provinceId, district_id: districtId, township_id: townshipId } = row;
+                      const { id, name, document_type: documentType, document_number: documentNumber, email, age_range: ageRange, type_sex: typeSx, subsidiaries, active, province_id: provinceId, district_id: districtId, township_id: townshipId } = row;
 
                       return (
                         <TableRow hover key={id} tabIndex={-1} role="checkbox">
@@ -424,25 +446,23 @@ const CustomersPage = () => {
                             </Stack>
                           </TableCell>
 
-                          <TableCell align="left">
-                            {name}
-                          </TableCell>
+
 
                           <TableCell align="left">
-                            {email || 'No especificado'}
+                            {name === null ? subsidiaries.length > 0 ? 'Empresa/Institución' : 'Empresa/Institución' : name}
                           </TableCell>
 
-                          <TableCell align="left">
-                            {ageRange.name}
-                          </TableCell>
-
-                          <TableCell align="left">
-                            {typeSx.name}
-                          </TableCell>
 
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                if(active) {
+                                  toast.error('Cliente desactivado con éxito')
+                                }
+                                else {
+                                  toast.success('Cliente activado con éxito')
+                                }
+                                setIsLoading(true);
                                 setCustomers(customers.map((customer) => {
                                   if (customer.id === id) {
                                     return { ...customer, active: !active };
@@ -452,38 +472,52 @@ const CustomersPage = () => {
                                 await axios.put(`/api/customers/${id}`, {
                                   active: !active
                                 });
+                                setIsLoading(false);
                               }
                             } />
                           </TableCell>
 
                           <TableCell align="right">
+                            {
+                              documentType === 'R' && (
+                                <Link to={`./${id}/subsidiaries`}>
+                                  <IconButton size="large" color="primary"
+                                  >
+                                    <Iconify icon={'mdi:account-multiple-plus'} />
+                                  </IconButton>
+                                </Link>
+                              )
+                            }
                             <IconButton size="large" color="inherit" onClick={() => {
                               setId(id);
-                              setName(name);
                               setDocumentType(documentType);
                               setDocumentNumber(documentNumber);
-                              setEmail(email);
-                              setAgeRangeChecked(ageRange.id);
-                              setSexTypeChecked(typeSx.id);
-                              setProvinceSelected(provinceId);
-                              setDistrictSelected(districtId);
-                              setTownshipSelected(townshipId);
-                              axios.get(`${config.GEOPTYAPI_URL}/api/province/${provinceId}/districts`)
-                              .then((response) => {
-                                setDistricts(response.data);
+
+                              if (documentType !== 'R') {
+                                setName(name);
+                                setEmail(email);
+                                setAgeRangeChecked(ageRange.id);
+                                setSexTypeChecked(typeSx.id);
+                                setProvinceSelected(provinceId);
                                 setDistrictSelected(districtId);
-                                axios.get(`${config.GEOPTYAPI_URL}/api/district/${districtId}/townships`)
+                                setTownshipSelected(townshipId);
+                                axios.get(`${config.GEOPTYAPI_URL}/api/province/${provinceId}/districts/active`)
                                   .then((response) => {
-                                    setTownships(response.data);
-                                    setTownshipSelected(townshipId);
+                                    setDistricts(response.data);
+                                    setDistrictSelected(districtId);
+                                    axios.get(`${config.GEOPTYAPI_URL}/api/district/${districtId}/townships/active`)
+                                      .then((response) => {
+                                        setTownships(response.data);
+                                        setTownshipSelected(townshipId);
+                                      })
+                                      .catch((error) => {
+                                        console.log(error);
+                                      });
                                   })
                                   .catch((error) => {
                                     console.log(error);
                                   });
-                              })
-                              .catch((error) => {
-                                console.log(error);
-                              });
+                              }
                               setOpen(true)
                             }}>
                               <Iconify icon={'mdi:pencil-box'} />
@@ -592,7 +626,10 @@ const CustomersPage = () => {
                 id="document-type-select"
                 label="Tipo de documento"
                 value={documentType}
-                onChange={(event) => setDocumentType(event.target.value)}
+                onChange={(event) => {
+                  setDocumentType(event.target.value);
+                  setDocumentNumber('');
+                }}
                 size="small"
               >
                 <MenuItem value={'C'}>Cédula</MenuItem>
@@ -607,147 +644,154 @@ const CustomersPage = () => {
               }} />
             </FormControl>
 
-            <FormControl sx={{ width: '48%' }}>
-              <TextField id="outlined-basic" label="Nombre" variant="outlined" value={name} size="small" onChange={(event) => {
-                setName(event.target.value)
-              }} />
-            </FormControl>
+            {
+              documentType !== 'R' && (
+                <>
+                  <FormControl sx={{ width: '48%' }}>
+                    <TextField id="outlined-basic" label="Nombre" variant="outlined" value={name} size="small" onChange={(event) => {
+                      setName(event.target.value)
+                    }} />
+                  </FormControl>
 
-            <FormControl sx={{ width: '48%' }}>
-              <TextField id="outlined-basic" label="Correo" variant="outlined" value={email} size="small" onChange={
-                (event) => {
-                  setEmail(event.target.value)
-                }
-              } />
-            </FormControl>
+                  <FormControl sx={{ width: '48%' }}>
+                    <TextField id="outlined-basic" label="Correo" variant="outlined" value={email} size="small" onChange={
+                      (event) => {
+                        setEmail(event.target.value)
+                      }
+                    } />
+                  </FormControl>
 
-            <FormControl sx={{ width: '48%' }}>
-              <TextField id="outlined-basic" label="Teléfono" variant="outlined" value={telephone} size="small" onChange={
-                (event) => {
-                  setTelephone(event.target.value)
-                }
-              } />
-            </FormControl>
+                  <FormControl sx={{ width: '48%' }}>
+                    <TextField id="outlined-basic" label="Teléfono" variant="outlined" value={telephone} size="small" onChange={
+                      (event) => {
+                        setTelephone(event.target.value)
+                      }
+                    } />
+                  </FormControl>
 
-            <FormControl sx={{ width: '48%' }}>
-              <FormLabel id="radio-buttons-group-label-gender">Genero</FormLabel>
-              <RadioGroup
-                row
-                aria-labelledby="radio-buttons-group-label-gender"
-                name="radio-buttons-group-gender"
-              >
-                {sexTypes.map((typeSex) => (
-                  <FormControlLabel control={<Radio value={typeSex.id}
-                    checked={parseInt(sexTypeChecked, 10) === typeSex.id} />}
-                    label={typeSex.name}
-                    key={typeSex.id}
-                    onChange={(event) => {
-                      setSexTypeChecked(event.target.value)
-                    }}
-                  />
-                ))
-                }
-              </RadioGroup>
-            </FormControl>
+                  <FormControl sx={{ width: '48%' }}>
+                    <FormLabel id="radio-buttons-group-label-gender">Genero</FormLabel>
+                    <RadioGroup
+                      row
+                      aria-labelledby="radio-buttons-group-label-gender"
+                      name="radio-buttons-group-gender"
+                    >
+                      {sexTypes.map((typeSex) => (
+                        <FormControlLabel control={<Radio value={typeSex.id}
+                          checked={parseInt(sexTypeChecked, 10) === typeSex.id} />}
+                          label={typeSex.name}
+                          key={typeSex.id}
+                          onChange={(event) => {
+                            setSexTypeChecked(event.target.value)
+                          }}
+                        />
+                      ))
+                      }
+                    </RadioGroup>
+                  </FormControl>
 
-            <FormControl sx={{ width: '48%' }}>
-              <FormLabel id="radio-buttons-group-label-age-range">Rango de edad</FormLabel>
-              <RadioGroup
-                row
-                aria-labelledby="radio-buttons-group-label-age-range"
-                name="radio-buttons-group-age-range"
-              >
-                {ageRanges.map((ageRange) => (
-                  <FormControlLabel control={<Radio value={ageRange.id}
-                    checked={parseInt(ageRangeChecked, 10) === ageRange.id} />}
-                    label={ageRange.name}
-                    key={ageRange.id}
-                    onChange={(event) => {
-                      setAgeRangeChecked(event.target.value)
-                    }}
-                  />
-                ))
-                }
-              </RadioGroup>
-            </FormControl>
+                  <FormControl sx={{ width: '48%' }}>
+                    <FormLabel id="radio-buttons-group-label-age-range">Rango de edad</FormLabel>
+                    <RadioGroup
+                      row
+                      aria-labelledby="radio-buttons-group-label-age-range"
+                      name="radio-buttons-group-age-range"
+                    >
+                      {ageRanges.map((ageRange) => (
+                        <FormControlLabel control={<Radio value={ageRange.id}
+                          checked={parseInt(ageRangeChecked, 10) === ageRange.id} />}
+                          label={ageRange.name}
+                          key={ageRange.id}
+                          onChange={(event) => {
+                            setAgeRangeChecked(event.target.value)
+                          }}
+                        />
+                      ))
+                      }
+                    </RadioGroup>
+                  </FormControl>
 
-            <FormControl sx={{ width: '48%' }}>
-              <InputLabel id="select-label-province">Provincia</InputLabel>
-              <Select
-                labelId="select-label-province"
-                id="select-province"
-                label="Provincia"
-                value={provinceSelected}
-                onChange={(e) => {
-                  setProvinceSelected(e.target.value);
-                  axios.get(`${config.GEOPTYAPI_URL}/api/province/${e.target.value}/districts`)
-                    .then((response) => {
-                      setDistricts(response.data);
-                      setDistrictSelected(response.data[0].id);
-                      axios.get(`${config.GEOPTYAPI_URL}/api/district/${response.data[0].id}/townships`)
-                        .then((response) => {
-                          setTownships(response.data);
-                          setTownshipSelected(response.data[0].id);
-                        })
-                        .catch((error) => {
-                          console.log(error);
-                        });
-                    })
-                    .catch((error) => {
-                      console.log(error);
-                    });
-                }}
-                size="small"
-              >
-                {provinces.map((province) => (
-                  <MenuItem key={province.id} value={province.id}>{province.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  <FormControl sx={{ width: '48%' }}>
+                    <InputLabel id="select-label-province">Provincia</InputLabel>
+                    <Select
+                      labelId="select-label-province"
+                      id="select-province"
+                      label="Provincia"
+                      value={provinceSelected}
+                      onChange={(e) => {
+                        setProvinceSelected(e.target.value);
+                        axios.get(`${config.GEOPTYAPI_URL}/api/province/${e.target.value}/districts/active`)
+                          .then((response) => {
+                            setDistricts(response.data);
+                            setDistrictSelected(response.data[0].id);
+                            axios.get(`${config.GEOPTYAPI_URL}/api/district/${response.data[0].id}/townships/active`)
+                              .then((response) => {
+                                setTownships(response.data);
+                                setTownshipSelected(response.data[0].id);
+                              })
+                              .catch((error) => {
+                                console.log(error);
+                              });
+                          })
+                          .catch((error) => {
+                            console.log(error);
+                          });
+                      }}
+                      size="small"
+                    >
+                      {provinces.map((province) => (
+                        <MenuItem key={province.id} value={province.id}>{province.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-            <FormControl sx={{ width: '48%' }}>
-              <InputLabel id="select-label-district">Distrito</InputLabel>
-              <Select
-                labelId="select-label-district"
-                id="select-district"
-                label="Distrito"
-                value={districtSelected}
-                onChange={(e) => {
-                  setDistrictSelected(e.target.value);
-                  axios.get(`${config.GEOPTYAPI_URL}/api/district/${e.target.value}/townships`)
-                    .then((response) => {
-                      setTownships(response.data);
-                      setTownshipSelected(response.data[0].id);
-                    })
-                    .catch((error) => {
-                      console.log(error);
-                    });
-                }}
-                size="small"
-              >
-                {districts.map((district) => (
-                  <MenuItem key={district.id} value={district.id}>{district.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  <FormControl sx={{ width: '48%' }}>
+                    <InputLabel id="select-label-district">Distrito</InputLabel>
+                    <Select
+                      labelId="select-label-district"
+                      id="select-district"
+                      label="Distrito"
+                      value={districtSelected}
+                      onChange={(e) => {
+                        setDistrictSelected(e.target.value);
+                        axios.get(`${config.GEOPTYAPI_URL}/api/district/${e.target.value}/townships/active`)
+                          .then((response) => {
+                            setTownships(response.data);
+                            setTownshipSelected(response.data[0].id);
+                          })
+                          .catch((error) => {
+                            console.log(error);
+                          });
+                      }}
+                      size="small"
+                    >
+                      {districts.map((district) => (
+                        <MenuItem key={district.id} value={district.id}>{district.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-            <FormControl sx={{ width: '48%' }}>
-              <InputLabel id="select-label-township">Corregimiento</InputLabel>
-              <Select
-                labelId="select-label-township"
-                id="select-township"
-                label="Corregimiento"
-                value={townshipSelected}
-                onChange={(e) => {
-                  setTownshipSelected(e.target.value);
-                }}
-                size="small"
-              >
-                {townships.map((township) => (
-                  <MenuItem key={township.id} value={township.id}>{township.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                  <FormControl sx={{ width: '48%' }}>
+                    <InputLabel id="select-label-township">Corregimiento</InputLabel>
+                    <Select
+                      labelId="select-label-township"
+                      id="select-township"
+                      label="Corregimiento"
+                      value={townshipSelected}
+                      onChange={(e) => {
+                        setTownshipSelected(e.target.value);
+                      }}
+                      size="small"
+                    >
+                      {townships.map((township) => (
+                        <MenuItem key={township.id} value={township.id}>{township.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </>
+              )
+            }
+
           </Stack>
         </DialogContent>
         <DialogActions>
@@ -759,6 +803,18 @@ const CustomersPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+
+      {/* Toastify */}
+
+      <ToastContainer />
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

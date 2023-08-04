@@ -33,11 +33,10 @@ const NOTIFICATIONS = [
     id: faker.datatype.uuid(),
     title: 'Jesus Agudo (TI Support)',
     description: 'Te recomiendo que revises el manual de usuario',
-    avatar: '/assets/images/avatars/avatar_2.jpg',
     type: 'friend_interactive',
     isUnRead: true,
     onClick: () => {
-      console.log('click');
+      window.open('http://localhost:3000/assets/manual.pdf', '_blank');
     },
   },
 ];
@@ -141,7 +140,7 @@ NotificationItem.propTypes = {
 };
 
 function NotificationItem({ notification }) {
-  const { avatar, title } = renderContent(notification);
+  const { title } = renderContent(notification);
 
   return (
     <ListItemButton
@@ -155,9 +154,6 @@ function NotificationItem({ notification }) {
       }}
       onClick={notification.onClick}
     >
-      <ListItemAvatar>
-        <Avatar sx={{ bgcolor: 'background.neutral' }}>{avatar}</Avatar>
-      </ListItemAvatar>
       <ListItemText
         primary={title}
       />
@@ -177,32 +173,8 @@ function renderContent(notification) {
     </Typography>
   );
 
-  if (notification.type === 'order_placed') {
-    return {
-      avatar: <img alt={notification.title} src="/assets/icons/ic_notification_package.svg" />,
-      title,
-    };
-  }
-  if (notification.type === 'order_shipped') {
-    return {
-      avatar: <img alt={notification.title} src="/assets/icons/ic_notification_shipping.svg" />,
-      title,
-    };
-  }
-  if (notification.type === 'mail') {
-    return {
-      avatar: <img alt={notification.title} src="/assets/icons/ic_notification_mail.svg" />,
-      title,
-    };
-  }
-  if (notification.type === 'chat_message') {
-    return {
-      avatar: <img alt={notification.title} src="/assets/icons/ic_notification_chat.svg" />,
-      title,
-    };
-  }
+
   return {
-    avatar: notification.avatar ? <img alt={notification.title} src={notification.avatar} /> : null,
     title,
   };
 }

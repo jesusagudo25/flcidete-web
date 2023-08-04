@@ -25,7 +25,7 @@ const CartVinyls = ({ vinyls, deleteVinyl, updateItemVinyl }) => {
                   {vinyl.name}
                 </Typography>
               </TableCell>
-              <TableCell >{vinyl.sale_price}</TableCell>
+              <TableCell >$ {vinyl.sale_price}</TableCell>
               <TableCell>{vinyl.area}</TableCell>
               <TableCell>
                 <Button variant="contained"

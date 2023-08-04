@@ -252,8 +252,6 @@ const NewSale = () => {
       data.township_id = townshipSelected;
     }
 
-    console.log(data);
-
     axios.post('api/invoices', data)
       .then((response) => {
         if (response.data.success) {
@@ -290,16 +288,20 @@ const NewSale = () => {
       setIsLoading(true);
 
       const data = {
+        items,
         total,
         id: localStorage.getItem('id'),
         observations,
-      }
-
+        typeInvoice,
+        payment,
+        balance,
+      };
+  
       /* User */
-      if (idCustomer) {
+      if (idCustomer && containerCustomer) {
         data.customer_id = idCustomer;
       }
-      else {
+      else if (idCustomer === null && containerCustomer) {
         data.document_type = documentType;
         data.document_number = document;
         data.name = name;
@@ -307,6 +309,29 @@ const NewSale = () => {
         data.telephone = telephone;
         data.age_range_id = parseInt(ageRangeSelected, 10);
         data.type_sex_id = parseInt(typeSexSelected, 10);
+        data.province_id = provinceSelected;
+        data.district_id = districtSelected;
+        data.township_id = townshipSelected;
+      }
+      else if (idCustomer && subsidiaryId) {
+        data.customer_id = idCustomer;
+        data.subsidiary_id = subsidiaryId;
+      }
+      else if (idCustomer && subsidiaryId === null) {
+        data.customer_id = idCustomer;
+        data.name = subsidiary;
+        data.email = email;
+        data.telephone = telephone;
+        data.province_id = provinceSelected;
+        data.district_id = districtSelected;
+        data.township_id = townshipSelected;
+      }
+      else if (idCustomer === null && subsidiaryId === null) {
+        data.document_type = documentType;
+        data.document_number = document;
+        data.name = subsidiary;
+        data.email = email;
+        data.telephone = telephone;
         data.province_id = provinceSelected;
         data.district_id = districtSelected;
         data.township_id = townshipSelected;
@@ -380,7 +405,11 @@ const NewSale = () => {
         errorsDisplay.name = 'Por favor, ingrese el nombre del cliente';
         flag = true;
       }
-      else if (subsidiary === '' && containerRUC === true) {
+      else if (subsidiary !== '' && containerRUC === true && subsidiaryId === null && containerSubsidiary === false) {
+        errorsDisplay.subsidiary = 'Por favor, ingrese el nombre de la division';
+        flag = true;
+      }
+      else if (subsidiary === '' && containerRUC === true && subsidiaryId === null && containerSubsidiary) {
         errorsDisplay.subsidiary = 'Por favor, ingrese el nombre de la division';
         flag = true;
       }
@@ -530,7 +559,10 @@ const NewSale = () => {
 
   const changeQuantity = (item, items, setItems, quantity) => {
     if (quantity > 0 && quantity <= 1000) item.quantity = quantity;
-    else if (quantity > 1000) item.quantity = 1000;
+    else if (quantity > 1000) {
+      item.quantity = 1000;
+      toast.error('La cantidad no puede ser mayor a 1000');
+    }
     else item.quantity = ''
 
     if (item.quantity > 0) {
@@ -643,6 +675,7 @@ const NewSale = () => {
           type_sex: '',
         }
       )
+      setContainerSubsidiary(false);
       if (event.target.value) {
         if (event.target.value.length > 3) {
           getDataAutoComplete(event.target.value);
@@ -1096,16 +1129,6 @@ const NewSale = () => {
     }
   }
 
-  const PRICE_HOUR = {
-    'Electrónica': 1,
-    'Mini Fresadora CNC': 8,
-    'Láser CNC': 10,
-    'Cortadora de Vinilo': 5,
-    'Impresión 3D en filamento': 2,
-    'Impresión 3D en resina': 4,
-    'Bordadora CNC': 5
-  }
-
   const PRICE_MINUTES = {
     'Mini Fresadora CNC': 0.15,
     'Láser CNC': 1,
@@ -1173,24 +1196,13 @@ const NewSale = () => {
       });
     }
 
-    const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
-
     let extra = itemSelected.details.extra ? parseFloat(itemSelected.details.extra) : 0;
 
-    let totalHours = 0;
-    let total = 0;
-    if (hoursArea > 0) {
-      totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = componentsTotal + totalHours;
-      itemSelected.details.cost_hours = totalHours;
-    }
-    else {
-      total = componentsTotal
-    }
+    let total = componentsTotal
 
     /* Extra */
     if (extra < -total) {
-      extra = -total;
+      extra = -total.toFixed(2);
       itemSelected.details.extra = extra;
       total += extra;
     }
@@ -1257,12 +1269,10 @@ const NewSale = () => {
       });
     }
 
-    const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
     const hours = itemSelected.details.hours ? parseInt(itemSelected.details.hours, 10) : 0;
     const minutes = itemSelected.details.minutes ? parseInt(itemSelected.details.minutes, 10) : 0;
     const minutesArea = (hours * 60) + minutes;
 
-    let totalHours = 0;
     let totalMinutes = 0;
     let total = 0;
 
@@ -1282,23 +1292,17 @@ const NewSale = () => {
 
       itemSelected.details.cost_hours = parseFloat(totalMinutes).toFixed(2);
     }
-    else if (hoursArea > 0) {
-      totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = materialsTotal + totalHours;
-      itemSelected.details.cost_hours = parseFloat(totalHours).toFixed(2);
-    }
     else {
       total = materialsTotal;
     }
 
     /* Extra */
     if (extra < -total) {
-      extra = -total;
+      extra = -total.toFixed(2);
       itemSelected.details.extra = extra;
       total += extra;
     }
     else {
-      console.log(total, extra);
       total += extra;
     }
 
@@ -1374,12 +1378,10 @@ const NewSale = () => {
       });
     }
 
-    const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
     const hours = itemSelected.details.hours ? parseInt(itemSelected.details.hours, 10) : 0;
     const minutes = itemSelected.details.minutes ? parseInt(itemSelected.details.minutes, 10) : 0;
     const minutesArea = (hours * 60) + minutes;
 
-    let totalHours = 0;
     let totalMinutes = 0;
     let total = 0;
 
@@ -1398,18 +1400,13 @@ const NewSale = () => {
       }
       itemSelected.details.cost_hours = parseFloat(totalMinutes).toFixed(2);
     }
-    else if (hoursArea > 0) {
-      totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = materialsTotal + totalHours;
-      itemSelected.details.cost_hours = parseFloat(totalHours).toFixed(2);
-    }
     else {
       total = materialsTotal
     }
 
     /* Extra */
     if (extra < -total) {
-      extra = -total;
+      extra = -total.toFixed(2);
       itemSelected.details.extra = extra;
       total += extra;
     }
@@ -1491,12 +1488,10 @@ const NewSale = () => {
       });
     }
 
-    const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
     const hours = itemSelected.details.hours ? parseInt(itemSelected.details.hours, 10) : 0;
     const minutes = itemSelected.details.minutes ? parseInt(itemSelected.details.minutes, 10) : 0;
     const minutesArea = (hours * 60) + minutes;
 
-    let totalHours = 0;
     let totalMinutes = 0;
     let total = 0;
 
@@ -1516,19 +1511,13 @@ const NewSale = () => {
 
       itemSelected.details.cost_hours = parseFloat(totalMinutes).toFixed(2);
     }
-    else if (hoursArea > 0) {
-      totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = vinylsTotal + totalHours;
-
-      itemSelected.details.cost_hours = parseFloat(totalHours).toFixed(2);
-    }
     else {
       total = vinylsTotal;
     }
 
     /* Extra */
     if (extra < -total) {
-      extra = -total;
+      extra = -total.toFixed(2);
       itemSelected.details.extra = extra;
       total += extra;
     }
@@ -1605,7 +1594,7 @@ const NewSale = () => {
 
     /* Extra */
     if (extra < -materialsTotal) {
-      extra = -materialsTotal;
+      extra = -materialsTotal.toFixed(2);
       itemSelected.details.extra = extra;
       total += extra;
     }
@@ -1644,7 +1633,6 @@ const NewSale = () => {
       itemSelected.total = 0;
     }
   };
-
 
   /* Filaments - methods */
 
@@ -1703,12 +1691,10 @@ const NewSale = () => {
       });
     }
 
-    const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
     const hours = itemSelected.details.hours ? parseInt(itemSelected.details.hours, 10) : 0;
     const minutes = itemSelected.details.minutes ? parseInt(itemSelected.details.minutes, 10) : 0;
     const minutesArea = (hours * 60) + minutes;
 
-    let totalHours = 0;
     let totalMinutes = 0;
     let total = 0;
 
@@ -1727,19 +1713,13 @@ const NewSale = () => {
       }
       itemSelected.details.cost_hour = parseFloat(totalMinutes).toFixed(2);
     }
-    else if (hoursArea > 0) {
-      totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = filamentsTotal + totalHours;
-
-      itemSelected.details.cost_hour = parseFloat(totalHours).toFixed(2);
-    }
     else {
       total = filamentsTotal
     }
 
     /* Extra */
     if (extra < -total) {
-      extra = -total;
+      extra = -total.toFixed(2);
       itemSelected.details.extra = extra;
       total += extra;
     }
@@ -1819,12 +1799,10 @@ const NewSale = () => {
       });
     }
 
-    const hoursArea = itemSelected.details.hours_area ? parseInt(itemSelected.details.hours_area, 10) : 0;
     const hours = itemSelected.details.hours ? parseInt(itemSelected.details.hours, 10) : 0;
     const minutes = itemSelected.details.minutes ? parseInt(itemSelected.details.minutes, 10) : 0;
     const minutesArea = (hours * 60) + minutes;
 
-    let totalHours = 0;
     let totalMinutes = 0;
     let total = 0;
 
@@ -1843,18 +1821,13 @@ const NewSale = () => {
       }
       itemSelected.details.cost_hour = parseFloat(totalMinutes).toFixed(2);
     }
-    else if (hoursArea > 0) {
-      totalHours = (hoursArea * PRICE_HOUR[itemSelected.name]);
-      total = resinsTotal + totalHours;
-      itemSelected.details.cost_hour = parseFloat(totalHours).toFixed(2);
-    }
     else {
       total = resinsTotal;
     }
 
     /* Extra */
     if (extra < -total) {
-      extra = -total;
+      extra = -total.toFixed(2);
       itemSelected.details.extra = extra;
       total += extra;
     }
@@ -1920,7 +1893,7 @@ const NewSale = () => {
 
     /* Extra */
     if (extra < -materialCost) {
-      extra = -materialCost;
+      extra = -materialCost.toFixed(2);
       itemSelected.details.extra = extra;
       materialCost += extra;
     }
@@ -1986,7 +1959,7 @@ const NewSale = () => {
         <Typography variant="subtitle1" gutterBottom marginBottom={4}>
           Ingrese los datos del cliente
         </Typography>
-        <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} handleOnBlurDocument={handleOnBlurDocument} errors={errors} />
+        <SearchCustomer options={options} documentType={documentType} handleChangeDocumentType={handleChangeDocumentType} handleChangeDocument={handleChangeDocument} handleChangeIdCustomer={handleChangeIdCustomer} document={document} handleOnBlurDocument={handleOnBlurDocument} errors={errors} documentAvailable />
 
         {
           containerCustomer ?
@@ -2048,6 +2021,7 @@ const NewSale = () => {
               containerSubsidiary={containerSubsidiary}
               setContainerSubsidiary={setContainerSubsidiary}
               setDisabledAddCustomer={setDisabledAddCustomer}
+              setErrors={setErrors}
             /> : null
         }
       </>
@@ -2197,7 +2171,6 @@ const NewSale = () => {
                     total: 0,
                     disabled: serviceCategory === 'ec'
                   });
-                  console.log(items);
                   setFlagItems(false);
                   calculateTotal(typeInvoice);
                   showToastMessageStatus('success', 'Servicio agregado correctamente');
@@ -2403,11 +2376,11 @@ const NewSale = () => {
         <FormControl fullWidth sx={{ mt: 2 }}>
           <TextField
             id="outlined-multiline-static"
-            label="Comentario"
+            label="Observación"
             InputLabelProps={{
               shrink: true,
             }}
-            placeholder="Ingrese un comentario a la orden"
+            placeholder="Ingrese una observación"
             multiline
             rows={4}
             variant="outlined"

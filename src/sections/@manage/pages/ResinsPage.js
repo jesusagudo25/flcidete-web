@@ -31,6 +31,8 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -172,6 +174,8 @@ function applySortFilter(array, comparator, query) {
 
 const ResinsPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -270,6 +274,7 @@ const ResinsPage = () => {
 
   const handleSubmitDialog = async (event) => {
     handleCloseDialog();
+    setIsLoading(true);
     if (id) {
       await axios.put(`/api/resins/${id}`, {
         name: event.name,
@@ -279,6 +284,7 @@ const ResinsPage = () => {
         'sale_price': event.salePrice,
         'purchased_weight': event.weight,
       });
+      setIsLoading(false);
     } else {
       await axios.post('/api/resins', {
         'name': event.name.concat(' (', event.weight, ' g)'),
@@ -290,6 +296,7 @@ const ResinsPage = () => {
         'current_weight': event.weight,
         'quantity': event.quantity,
       });
+      setIsLoading(false);
     }
     reset();
     showToastMessage();
@@ -317,8 +324,10 @@ const ResinsPage = () => {
   };
 
   const getResins = async () => {
+    setIsLoading(true);
     const response = await axios.get('/api/resins');
     setResins(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -809,6 +818,13 @@ const ResinsPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

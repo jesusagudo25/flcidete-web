@@ -2,10 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
-import { sentenceCase } from 'change-case';
 import axios from 'axios';
 // @mui
-import { LoadingButton } from '@mui/lab';
+import { ToastContainer, toast } from 'react-toastify';
 import {
   Card,
   Table,
@@ -44,15 +43,11 @@ import {
 } from '@mui/material';
 
 // components
-import { Link, useParams } from 'react-router-dom';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import Slide from '@mui/material/Slide';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useParams } from 'react-router-dom';
 import CloseIcon from '@mui/icons-material/Close';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
+import { format, lastDayOfMonth, set } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
@@ -184,7 +179,9 @@ function applySortFilter(array, comparator, query) {
 const VisitsCustomers = () => {
   const { id } = useParams()
 
-  
+  const [isLoading, setIsLoading] = useState(false);
+
+
   const [customers, setCustomers] = useState([]); // Lista de visitntes
 
   const [customerList, setCustomerList] = useState([]); // Lista de clientes autocompletar
@@ -252,11 +249,22 @@ const VisitsCustomers = () => {
   };
 
   const handleSubmitDialog = async (event) => {
+    setIsLoading(true);
     event.preventDefault();
+    
+    if (!customerId) {
+      toast.error('Debe seleccionar un cliente');
+      setIsLoading(false);
+      handleCloseDialog();
+      return;
+    }
+
     await axios.post('/api/visits/customers', {
       visit_id: id,
       customer_id: customerId
     });
+    setIsLoading(false);
+    toast.success('Visitante adicionado con éxito');
     handleCloseDialog();
     getCustomers();
   };
@@ -288,9 +296,11 @@ const VisitsCustomers = () => {
   const getCustomers = async () => {
     const response = await axios.get(`/api/visits/${id}`);
     setCustomers(response.data.customers);
+    setIsLoading(false);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getCustomers();
   }, []);
 
@@ -335,7 +345,6 @@ const VisitsCustomers = () => {
                   <TableBody>
                     {filteredCustomers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                       const { id: customerId, document_number: documentNumber, name, email } = row;
-
                       return (
                         <TableRow hover key={customerId} tabIndex={-1} role="checkbox">
 
@@ -357,10 +366,18 @@ const VisitsCustomers = () => {
                           <TableCell align="right">
                             <IconButton size="large" color="error" onClick={
                               async () => {
+                                setIsLoading(true);
                                 setCustomers(customers.filter((customer) => customer.id !== customerId));
-                                await axios.delete(`/api/visits/${id}/customers`, {
-                                  customer_id: customerId
-                                });
+                                try {
+                                  const response = await axios.put(`/api/visits/${id}/customers`, {
+                                    customer_id: customerId
+                                  });
+                                  setIsLoading(false);
+                                  toast.success('Visitante eliminado con éxito');
+                                } catch (error) {
+                                  console.log(error.response);
+                                  setIsLoading(false);
+                                }
                                 getCustomers();
                               }
                             }>
@@ -471,7 +488,6 @@ const VisitsCustomers = () => {
               >
                 <MenuItem value={'C'}>Cédula</MenuItem>
                 <MenuItem value={'P'}>Pasaporte</MenuItem>
-                <MenuItem value={'R'}>RUC</MenuItem>
               </Select>
             </FormControl>
 
@@ -531,6 +547,17 @@ const VisitsCustomers = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      {/* Toastify */}
+
+      <ToastContainer />
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

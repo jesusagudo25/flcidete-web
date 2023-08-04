@@ -30,6 +30,8 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -169,6 +171,8 @@ function applySortFilter(array, comparator, query) {
 }
 
 const FilamentsPage = () => {
+
+    const [isLoading, setIsLoading] = useState(false);
 
     /* Toastify */
 
@@ -316,8 +320,10 @@ const FilamentsPage = () => {
   };
 
   const getFilaments = async () => {
+    setIsLoading(true);
     const response = await axios.get('/api/filaments');
     setFilaments(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -395,21 +401,28 @@ const FilamentsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
-                                if (active) (
-                                  showToastMessageStatus('error', 'Filamento desactivado')
-                                )
-                                else (
-                                  showToastMessageStatus('success', 'Filamento activado')
-                                )
-                                setFilaments(filaments.map((filament) => {
-                                  if (filament.id === id) {
-                                    return { ...filament, active: !active };
-                                  }
-                                  return filament;
-                                }));
-                                await axios.put(`/api/filaments/${id}`, {
-                                  active: !active
-                                });
+                                try {
+                                  setIsLoading(true);
+                                  await axios.put(`/api/filaments/${id}`, {
+                                    active: !active
+                                  });
+                                  setFilaments(filaments.map((filament) => {
+                                    if (filament.id === id) {
+                                      return { ...filament, active: !active };
+                                    }
+                                    return filament;
+                                  }));
+                                  setIsLoading(false);
+                                  if (active) (
+                                    showToastMessageStatus('error', 'Filamento desactivado')
+                                  )
+                                  else (
+                                    showToastMessageStatus('success', 'Filamento activado')
+                                  )
+
+                                } catch (error) {
+                                  showToastMessageStatus('error', 'Error al actualizar el estado del filamento')
+                                }
                               }
                             } />
                           </TableCell>
@@ -808,6 +821,13 @@ const FilamentsPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

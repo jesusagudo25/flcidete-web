@@ -2,7 +2,6 @@ import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import { sentenceCase } from 'change-case';
 import React, { useState, useEffect } from 'react';
-import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
 import axios from 'axios';
 // @mui
@@ -14,7 +13,6 @@ import {
     Paper,
     Avatar,
     Popover,
-    Checkbox,
     TableRow,
     MenuItem,
     TableBody,
@@ -76,12 +74,8 @@ const options = [
         label: 'Ingresos y Egresos',
     },
     {
-        value: 'i',
-        label: 'Invetario',
-    },
-    {
         value: 'v',
-        label: 'Visitas Y Reservaciones',
+        label: 'Visitas',
     },
 ];
 
@@ -138,9 +132,9 @@ const ReportsPage = () => {
 
     const [page, setPage] = useState(0);
 
-    const [order, setOrder] = useState('asc');
+    const [order, setOrder] = useState('desc');
 
-    const [orderBy, setOrderBy] = useState('start_date');
+    const [orderBy, setOrderBy] = useState('id');
 
     const [filterDate, setFilterDate] = useState('');
 
@@ -294,7 +288,7 @@ const ReportsPage = () => {
                 </Typography>
 
                 <Card>
-                    <ReportListToolbar filterDate={filterDate} onFilterName={handleFilterByDate} />
+                    <ReportListToolbar filterDate={filterDate} onFilterDate={handleFilterByDate} />
 
                     <Scrollbar>
                         <TableContainer sx={{ minWidth: 800 }}>

@@ -10,18 +10,19 @@ import { Grid, Container, Typography,
 import Iconify from '../components/iconify';
 // sections
 import {
-  AppTasks,
-  AppNewsUpdate,
-  AppOrderTimeline,
   AppCurrentVisits,
   AppWebsiteVisits,
-  AppTrafficBySite,
   AppWidgetSummary,
   AppCurrentSubject,
   AppConversionRates,
 } from '../sections/@dashboard/app';
 
 // ----------------------------------------------------------------------
+
+const USDollar = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+});
 
 export default function DashboardAppPage() {
   const theme = useTheme();
@@ -30,10 +31,10 @@ export default function DashboardAppPage() {
   const [ageRangeByM, setAgeRangeByM] = useState([]);
   const [areasPopularity, setAreasPopularity] = useState([]);
   const [districtsPopularity, setDistrictsPopularity] = useState([]);
-  const [expensesByMonth, setExpensesByMonth] = useState(null);
-  const [invoicesByMonth, setInvoicesByMonth] = useState(null);
-  const [newCustomersByMonth, setNewCustomersByMonth] = useState(null);
-  const [paymentsByMonth, setPaymentsByMonth] = useState(null);
+  const [expensesByMonth, setExpensesByMonth] = useState(0);
+  const [invoicesByMonth, setInvoicesByMonth] = useState(0);
+  const [newCustomersByMonth, setNewCustomersByMonth] = useState(0);
+  const [visitsMonth, setVisitsMonth] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   const [data1, setData1] = useState([]); // <-- this is the state
@@ -56,19 +57,21 @@ export default function DashboardAppPage() {
       setExpensesByMonth(response.data.expenses);
       setInvoicesByMonth(response.data.invoicesMonth);
       setNewCustomersByMonth(response.data.newCustomers);
-      setPaymentsByMonth(response.data.payments);
+      setVisitsMonth(response.data.visitsMonth);
       
       /* Dinamico */
       
       incomeV.push(response.data.incomeExpenses.data.map((item) => item.income));
       expensesV.push(response.data.incomeExpenses.data.map((item) => item.expenses));
       labelV.push(response.data.incomeExpenses.labels);
+      
       areasV.push(response.data.areasPercentage.map((item) => {
         return {
           label: item.name,
           value: item.percentage,
         }
       }));
+
       districtsV.push(response.data.districtsTop.map((item) => {
         return {
           label: item.district_id,
@@ -76,10 +79,13 @@ export default function DashboardAppPage() {
         }
       }
       ));
+
       ageRangeByFV.push(response.data.ageRangeByF.map((item) => item.total));
       ageRangeByMV.push(response.data.ageRangeByM.map((item) => item.total));
 
     });
+
+    /* Para inicializar los estados */
     setData1(incomeV);
     setData2(expensesV);
     setLabelLine(labelV);
@@ -102,7 +108,7 @@ export default function DashboardAppPage() {
 
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="Ventas mensuales" total={invoicesByMonth} icon={'mdi:cash'} />
+            <AppWidgetSummary title="Ventas mensuales" total={`${USDollar.format(invoicesByMonth)}`} color="primary" icon={'mdi:cash'} />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
@@ -110,11 +116,11 @@ export default function DashboardAppPage() {
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="Pagos en curso" total={paymentsByMonth} color="warning" icon={'mdi:checkbox-marked-circle-plus-outline'} />
+            <AppWidgetSummary title="Visitas del mes" total={visitsMonth} color="warning" icon={'mdi:checkbox-marked-circle-plus-outline'} />
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <AppWidgetSummary title="Gastos técnicos" total={expensesByMonth} color="error" icon={'mdi:currency-usd-off'} />
+            <AppWidgetSummary title="Gastos técnicos" total={`${USDollar.format(expensesByMonth)}`} color="error" icon={'mdi:currency-usd'} />
           </Grid>
 
           <Grid item xs={12} md={6} lg={8}>

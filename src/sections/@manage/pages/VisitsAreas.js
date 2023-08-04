@@ -72,48 +72,6 @@ const TABLE_HEAD = [
 
 /* --------------------> */
 
-const ButtonSwitch = styled(Switch)(({ theme }) => ({
-    width: 28,
-    height: 16,
-    padding: 0,
-    display: 'flex',
-    '&:active': {
-        '& .MuiSwitch-thumb': {
-            width: 15,
-        },
-        '& .MuiSwitch-switchBase.Mui-checked': {
-            transform: 'translateX(9px)',
-        },
-    },
-    '& .MuiSwitch-switchBase': {
-        padding: 2,
-        '&.Mui-checked': {
-            transform: 'translateX(12px)',
-            color: '#fff',
-            '& + .MuiSwitch-track': {
-                opacity: 1,
-                backgroundColor: theme.palette.mode === 'dark' ? '#177ddc' : '#1890ff',
-            },
-        },
-    },
-    '& .MuiSwitch-thumb': {
-        boxShadow: '0 2px 4px 0 rgb(0 35 11 / 20%)',
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        transition: theme.transitions.create(['width'], {
-            duration: 200,
-        }),
-    },
-    '& .MuiSwitch-track': {
-        borderRadius: 16 / 2,
-        opacity: 1,
-        backgroundColor:
-            theme.palette.mode === 'dark' ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.25)',
-        boxSizing: 'border-box',
-    },
-}));
-
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     '& .MuiDialogContent-root': {
         padding: theme.spacing(2),
@@ -185,6 +143,8 @@ function applySortFilter(array, comparator, query) {
 
 const VisitsAreas = () => {
 
+    const [isLoading, setIsLoading] = useState(false);
+
     /* Toastify */
     const showToastMessageStatus = (type, message) => {
         if (type === 'success') {
@@ -208,7 +168,6 @@ const VisitsAreas = () => {
             });
         }
     };
-
 
     /* Datatable */
     const { id } = useParams()
@@ -272,34 +231,38 @@ const VisitsAreas = () => {
 
     const handleSubmitDialog = async (event) => {
         event.preventDefault();
+        setIsLoading(true);
         if (editAll) {
             const areas = selected.map((area) => {
                 return {
                     area_id: area,
-                    'start_time': format(startTime, 'HH:mm:ss'),
-                    'end_time': endTime ? format(endTime, 'HH:mm:ss') : null,
+                    'start_time': format(startTime, 'HH:mm'),
+                    'end_time': endTime ? format(endTime, 'HH:mm') : null,
                 }
             });
             await axios.post('api/visits/areas/update', {
                 visit_id: id,
                 areas,
             });
+            setIsLoading(false);
             showToastMessageStatus('success', 'Se actualizaron las áreas de visita correctamente');
         }
         else if (itemSelected.areaId) {
             await axios.put(`/api/visits/${id}/areas`, {
                 area_id: itemSelected.areaId,
-                'start_time': format(startTime, 'HH:mm:ss'),
-                'end_time': endTime ? format(endTime, 'HH:mm:ss') : null,
+                'start_time': format(startTime, 'HH:mm'),
+                'end_time': endTime ? format(endTime, 'HH:mm') : null,
             });
             showToastMessageStatus('success', 'Se actualizo el área de visita correctamente');
+            setIsLoading(false);
         } else {
             await axios.post('/api/visits/areas', {
                 visit_id: id,
                 area_id: area,
-                'start_time': format(startTime, 'HH:mm:ss'),
-                'end_time': endTime ? format(endTime, 'HH:mm:ss') : null,
+                'start_time': format(startTime, 'HH:mm'),
+                'end_time': endTime ? format(endTime, 'HH:mm') : null,
             });
+            setIsLoading(false);
             showToastMessageStatus('success', 'Se agrego el área de visita correctamente');
         }
         setEditAll(false);
@@ -361,14 +324,17 @@ const VisitsAreas = () => {
     const getListAreas = async () => {
         const response = await axios.get(`/api/areas`);
         setListAreas(response.data);
+        setIsLoading(false);
     }
 
     const getAreas = async () => {
         const response = await axios.get(`/api/visits/${id}/areas`);
         setAreas(response.data);
+        setIsLoading(false);
     }
 
     useEffect(() => {
+        setIsLoading(true);
         getAreas();
         getListAreas();
     }, []);
@@ -531,11 +497,6 @@ const VisitsAreas = () => {
                 </Card>
             </Container>
 
-            {/* Toastify */}
-
-            <ToastContainer />
-
-
             {/* Dialog */}
 
             <BootstrapDialog
@@ -654,6 +615,7 @@ const VisitsAreas = () => {
 
                 <MenuItem sx={{ color: 'error.main' }} onClick={
                     async () => {
+                        setIsLoading(true);
                         setOpenPopper(null);
                         setAreas(areas.filter((area) => area.id !== itemSelected.areaId));
                         await axios.get(`/api/visits/${id}/area/${itemSelected.areaId}`);
@@ -666,12 +628,25 @@ const VisitsAreas = () => {
                             endTime: '',
                             createdA: '',
                         });
+                        setIsLoading(false);
+                        toast.success('Área eliminada correctamente');
                     }
                 }>
                     <Iconify icon={'eva:trash-2-outline'} sx={{ mr: 2 }} />
                     Borrar
                 </MenuItem>
             </Popover>
+
+            {/* Toastify */}
+
+            <ToastContainer />
+
+            <Backdrop
+                sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                open={isLoading}
+            >
+                <CircularProgress color="inherit" />
+            </Backdrop>
         </>
     )
 }

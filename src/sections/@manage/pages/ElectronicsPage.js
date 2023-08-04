@@ -32,6 +32,8 @@ import {
   InputLabel,
   Select,
   FormHelperText,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -171,6 +173,8 @@ function applySortFilter(array, comparator, query) {
 }
 
 const ElectronicsPage = () => {
+
+  const [isLoading, setIsLoading] = useState(false);
 
   /* Toastify */
 
@@ -322,14 +326,17 @@ const ElectronicsPage = () => {
   const getComponents = async () => {
     const response = await axios.get('/api/components');
     setComponents(response.data);
+    setIsLoading(false);
   }
 
   const getCategories = async () => {
     const response = await axios.get('/api/component-categories');
     setCategories(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getComponents();
     getCategories();
   }, []);
@@ -418,21 +425,30 @@ const ElectronicsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
-                                if (active) (
-                                  showToastMessageStatus('error', 'Componente desactivado')
-                                )
-                                else (
-                                  showToastMessageStatus('success', 'Componente activado')
-                                )
-                                setComponents(components.map((component) => {
-                                  if (component.id === id) {
-                                    return { ...component, active: !active };
-                                  }
-                                  return component;
-                                }));
-                                await axios.put(`/api/components/${id}`, {
-                                  active: !active
-                                });
+                                try {
+                                  setIsLoading(true);
+                                  await axios.put(`/api/components/${id}`, {
+                                    active: !active
+                                  });
+                                  setComponents(components.map((component) => {
+                                    if (component.id === id) {
+                                      return { ...component, active: !active };
+                                    }
+                                    return component;
+                                  }));
+                                  setIsLoading(false);
+
+                                  if (active) (
+                                    showToastMessageStatus('error', 'Componente desactivado')
+                                  )
+                                  else (
+                                    showToastMessageStatus('success', 'Componente activado')
+                                  )
+
+                                } catch (error) {
+                                  setIsLoading(false);
+                                  showToastMessageStatus('error', error.response.data.message)
+                                }
                               }
                             } />
                           </TableCell>
@@ -822,6 +838,13 @@ const ElectronicsPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

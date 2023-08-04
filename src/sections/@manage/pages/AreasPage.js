@@ -26,6 +26,8 @@ import {
   styled,
   Switch,
   FormControl,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
 import { ToastContainer, toast } from 'react-toastify';
@@ -161,6 +163,8 @@ function applySortFilter(array, comparator, query) {
 
 const AreasPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -261,8 +265,10 @@ const AreasPage = () => {
   };
 
   const getAreas = async () => {
+    setIsLoading(true);
     const response = await axios.get('/api/areas');
-    setAreas(response.data);
+    setAreas(response.data.filter((area) => area.id !== 7 && area.id !== 9));
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -286,9 +292,7 @@ const AreasPage = () => {
           <Typography variant="h4" gutterBottom>
             Areas
           </Typography>
-          <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} onClick={handleCreateDialog}>
-            Agregar Área
-          </Button>
+
         </Stack>
 
         <Card>
@@ -324,6 +328,7 @@ const AreasPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                setIsLoading(true);
                                 if (active) (
                                   showToastMessageStatus('error', 'Área desactivada')
                                 )
@@ -339,6 +344,7 @@ const AreasPage = () => {
                                 await axios.put(`/api/areas/${id}`, {
                                   active: !active
                                 });
+                                setIsLoading(false);
                               }
                             } />
                           </TableCell>
@@ -358,15 +364,7 @@ const AreasPage = () => {
                             </a>
                               )
                             }
-                            <IconButton size="large" color="inherit" onClick={
-                              () => {
-                                setId(id);
-                                setValue('name', name);
-                                setOpen(true);
-                              }
-                            }>
-                              <Iconify icon={'mdi:pencil-box'} />
-                            </IconButton>
+
                           </TableCell>
                         </TableRow>
                       );
@@ -507,6 +505,13 @@ const AreasPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

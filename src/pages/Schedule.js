@@ -482,8 +482,8 @@ const Schedule = () => {
                     areas: areasSelected.filter((area) => area.id !== '').map((area) => {
                         return {
                             area_id: area.id,
-                            start_time: format(area.timeIn, 'HH:mm:ss'),
-                            end_time: format(area.timeOut, 'HH:mm:ss')
+                            start_time: format(area.timeIn, 'HH:mm'),
+                            end_time: format(area.timeOut, 'HH:mm')
                         }
                     }),
                     file: containerTypeVisit === 'G' ? selectedFile : null,
@@ -510,8 +510,8 @@ const Schedule = () => {
                     areas: areasSelected.filter((area) => area.id !== '').map((area) => {
                         return {
                             area_id: area.id,
-                            start_time: format(area.timeIn, 'HH:mm:ss'),
-                            end_time: format(area.timeOut, 'HH:mm:ss')
+                            start_time: format(area.timeIn, 'HH:mm'),
+                            end_time: format(area.timeOut, 'HH:mm')
                         }
                     }),
                     file: containerTypeVisit === 'G' ? selectedFile : null
@@ -544,8 +544,8 @@ const Schedule = () => {
 
         } else {
             setErrors(errorsDisplay);
-            
-            if(errorsDisplay.document || errorsDisplay.name) {
+
+            if (errorsDisplay.document || errorsDisplay.name) {
                 setValue(0);
             }
             else if (errorsDisplay.checkall || errorsDisplay.areas) {
@@ -563,7 +563,7 @@ const Schedule = () => {
     const getAreas = async () => {
         const response = await axios.get('/api/areas')
         setIsLoading(false);
-        setAreas(response.data);
+        setAreas(response.data.filter(item => item.id < 8));
         setAreasSelected(
             new Array(response.data.length).fill(
                 {
@@ -752,6 +752,7 @@ const Schedule = () => {
                 TransitionComponent={Transition}
                 keepMounted
                 onClose={() => {
+                    window.location.reload();
                     setIsFormatExcel(false);
                     setOpen(true);
                 }}
@@ -811,6 +812,7 @@ const Schedule = () => {
                             margin: 2,
                         }}
                         onClick={() => {
+                            window.location.reload();
                             setIsFormatExcel(false);
                             setOpen(true);
                         }}
@@ -824,6 +826,7 @@ const Schedule = () => {
                 TransitionComponent={Transition}
                 keepMounted
                 onClose={() => {
+                    window.location.reload();
                     setErrorsExcel([]);
                     setIsErrorExcel(false);
                     setOpen(true);
@@ -908,6 +911,7 @@ const Schedule = () => {
                             margin: 2,
                         }}
                         onClick={() => {
+                            window.location.reload();
                             setIsErrorExcel(false);
                             setErrorsExcel([]);
                             setOpen(true);
@@ -915,15 +919,6 @@ const Schedule = () => {
                     >Cerrar</Button>
                 </DialogActions>
             </Dialog>
-
-
-            {/* Loading */}
-            <Backdrop
-                sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
-                open={isLoading}
-            >
-                <CircularProgress color="inherit" />
-            </Backdrop>
 
 
             {/* Dialog */}
@@ -1094,7 +1089,6 @@ const Schedule = () => {
                                                 >
                                                     <MenuItem value={'C'}>Cédula</MenuItem>
                                                     <MenuItem value={'P'}>Pasaporte</MenuItem>
-                                                    <MenuItem value={'R'}>RUC</MenuItem>
                                                 </Select>
                                             </FormControl>
 
@@ -1485,6 +1479,14 @@ const Schedule = () => {
                         )
                 }
             </BootstrapDialog>
+
+            {/* Loading */}
+            <Backdrop
+                sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                open={isLoading}
+            >
+                <CircularProgress color="inherit" />
+            </Backdrop>
         </>
     )
 }

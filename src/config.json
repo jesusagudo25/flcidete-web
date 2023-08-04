@@ -1,5 +1,5 @@
 {
     "APP_URL": "http://localhost:3000",
     "APPBACK_URL": "http://127.0.0.1:8000",
-    "GEOPTYAPI_URL": "http://cloud.geoptyapi.xyz"
+    "GEOPTYAPI_URL": "http://127.0.0.1:8001"
 }

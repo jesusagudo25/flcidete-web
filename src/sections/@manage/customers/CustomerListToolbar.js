@@ -37,7 +37,7 @@ export default function CustomerListToolbar({ filterDocument, onFilterDocument }
       <StyledSearch
         value={filterDocument}
         onChange={onFilterDocument}
-        placeholder="Buscar Cliente..."
+        placeholder="Buscar"
         startAdornment={
           <InputAdornment position="start">
             <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled', width: 20, height: 20 }} />

@@ -3,7 +3,6 @@ import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { Controller, useForm } from "react-hook-form";
 import { ToastContainer, toast } from 'react-toastify';
 // @mui
 import {
@@ -31,6 +30,8 @@ import {
   FormControl,
   Select,
   InputLabel,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -173,6 +174,8 @@ function applySortFilter(array, comparator, query) {
 
 const VisitsPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Toastify */
 
   const showToastMessage = (type, message) => {
@@ -204,9 +207,9 @@ const VisitsPage = () => {
 
   const [page, setPage] = useState(0);
 
-  const [order, setOrder] = useState('asc');
+  const [order, setOrder] = useState('desc');
 
-  const [orderBy, setOrderBy] = useState('date');
+  const [orderBy, setOrderBy] = useState('id');
 
   const [filterName, setFilterName] = useState('');
 
@@ -218,11 +221,14 @@ const VisitsPage = () => {
 
   const handleSubmitDialog = async (event) => {
     event.preventDefault();
+    setIsLoading(true);
     await axios.put(`/api/visits/${id}`, {
       'id': id,
       'reason_visit_id': reason,
       'created_at': date instanceof Date ? format(date, 'yyyy-MM-dd') : date,
     });
+    setIsLoading(false);
+    toast.success('Visita actualizada con éxito');
     handleCloseDialog();
     getVisits();
   };
@@ -250,14 +256,17 @@ const VisitsPage = () => {
   const getVisits = async () => {
     const response = await axios.get('/api/visits');
     setVisits(response.data);
+    setIsLoading(false);
   }
 
   const getReasonVisit = async () => {
     const response = await axios.get(`/api/reason-visits/`);
     setReasonVisits(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getVisits();
     getReasonVisit();
   }, []);
@@ -339,6 +348,13 @@ const VisitsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                setIsLoading(true);
+                                if(active) {
+                                  toast.error('Visita desactivada');
+                                }
+                                else {
+                                  toast.success('Visita activada');
+                                }
                                 setVisits(visits.map((visit) => {
                                   if (visit.id === id) {
                                     return { ...visit, active: !active };
@@ -348,6 +364,7 @@ const VisitsPage = () => {
                                 await axios.put(`/api/visits/${id}`, {
                                   active: !active
                                 });
+                                setIsLoading(false);
                               }
                             } />
                           </TableCell>
@@ -497,6 +514,18 @@ const VisitsPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      
+      {/* Toastify */}
+
+      <ToastContainer />
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

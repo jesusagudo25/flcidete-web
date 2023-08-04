@@ -41,7 +41,6 @@ AppCurrentSubject.propTypes = {
 };
 
 export default function AppCurrentSubject({ title, subheader, chartData, chartColors, chartLabels, ...other }) {
-  console.log(chartData);
   const chartOptions = useChart({
     stroke: { width: 2 },
     fill: { opacity: 0.48 },

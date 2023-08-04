@@ -16,43 +16,31 @@ const navConfig = [
     title: 'Recepción',
     path: '/dashboard/check-in',
     icon: icon('ic_checkin'),
-    role: [3]
+    role: [1, 3]
   },
   {
     title: 'Control de salida',
     path: '/dashboard/check-out',
     icon: icon('ic_checkout'),
-    role: [3]
+    role: [1, 3]
   },
   {
     title: 'Ventas',
     path: '/dashboard/new-sale',
     icon: icon('ic_cart'),
-    role: [2,3]
+    role: [1, 2,3]
   },
   {
     title: 'Pagos',
     path: '/dashboard/payments',
     icon: icon('ic_payments'),
-    role: [2,3]
-  },
-  {
-    title: 'Control de atención',
-    path: '/dashboard/attend',
-    icon: icon('ic_attention'),
-    role: [2]
+    role: [1,2,3]
   },
   {
     title: 'Reportes',
     path: '/dashboard/reports',
     icon: icon('ic_reports'),
     role: [1]
-  },
-  {
-    title: 'Tareas',
-    path: '/dashboard/tasks',
-    icon: icon('ic_tasks'),
-    role: []
   },
   {
     title: 'Agenda',

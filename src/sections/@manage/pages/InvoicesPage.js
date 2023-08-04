@@ -44,9 +44,10 @@ import Slide from '@mui/material/Slide';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import CloseIcon from '@mui/icons-material/Close';
+import { ToastContainer, toast } from 'react-toastify';
 
 // date-fns
-import { format, lastDayOfMonth } from 'date-fns';
+import { format, lastDayOfMonth, sub } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Label from '../../../components/label';
 import Iconify from '../../../components/iconify';
@@ -62,6 +63,7 @@ const TABLE_HEAD = [
   { id: 'customer', label: 'Cliente', alignRight: false },
   { id: 'date', label: 'Fecha', alignRight: false },
   { id: 'total', label: 'Total', alignRight: false },
+  { id: 'isActive', label: 'Activo', alignRight: false },
   { id: '' },
 ];
 
@@ -178,6 +180,21 @@ function applySortFilter(array, comparator, query) {
 
 const InvoicesPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
+  const showToastMessageStatus = (type, message) => {
+    if (type === 'success') {
+      toast.success(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+    else {
+      toast.error(message, {
+        position: toast.POSITION.TOP_RIGHT
+      });
+    }
+  };
+
   /* Invoices */
 
   const [id, setId] = useState(0);
@@ -191,9 +208,9 @@ const InvoicesPage = () => {
 
   const [page, setPage] = useState(0);
 
-  const [order, setOrder] = useState('asc');
+  const [order, setOrder] = useState('desc');
 
-  const [orderBy, setOrderBy] = useState('date');
+  const [orderBy, setOrderBy] = useState('id');
 
   const [filterName, setFilterName] = useState('');
 
@@ -236,9 +253,11 @@ const InvoicesPage = () => {
   const getInvoices = async () => {
     const response = await axios.get('/api/invoices');
     setInvoices(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getInvoices();
   }, []);
 
@@ -278,8 +297,7 @@ const InvoicesPage = () => {
                 {invoices.length > 0 ? (
                   <TableBody>
                     {filteredInvoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                      const { id:uuid, receipt, customer, created_at: createdA, total } = row;
-
+                      const { id: uuid, receipt, customer, subsidiary, created_at: createdA, total, is_active: isActive } = row;
                       return (
                         <TableRow hover key={uuid} tabIndex={-1} role="checkbox">
 
@@ -296,7 +314,7 @@ const InvoicesPage = () => {
                           </TableCell>
 
                           <TableCell align="left">
-                            {customer.name}
+                            {subsidiary?.name || customer?.name || 'Por definir'}
                           </TableCell>
 
                           <TableCell align="left">
@@ -305,6 +323,31 @@ const InvoicesPage = () => {
 
                           <TableCell align="left">
                             {total}
+                          </TableCell>
+
+
+                          <TableCell align="left">
+                            <ButtonSwitch checked={isActive} inputProps={{ 'aria-label': 'ant design' }} onClick={
+                              async () => {
+                                try {
+                                  setIsLoading(true);
+                                  await axios.put(`/api/invoices/${uuid}`, {
+                                    is_active: !isActive
+                                  });
+                                  setInvoices(invoices.map((invoice) => {
+                                    if (invoice.id === uuid) {
+                                      return { ...invoice, is_active: !isActive };
+                                    }
+                                    return invoice;
+                                  }));
+                                  setIsLoading(false);
+                                  if (isActive) {showToastMessageStatus('error', 'Factura desactivada')} else {showToastMessageStatus('success', 'Factura activada')}
+                                } catch (error) {
+                                  setIsLoading(false);
+                                  showToastMessageStatus('error', error.response.data.message)
+                                }
+                              }
+                            } />
                           </TableCell>
 
                           <TableCell align="right">
@@ -403,6 +446,10 @@ const InvoicesPage = () => {
         </Card>
       </Container>
 
+      {/* Toastify */}
+
+      <ToastContainer />
+
       {/* Dialog */}
 
       <BootstrapDialog
@@ -440,6 +487,13 @@ const InvoicesPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

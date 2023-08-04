@@ -25,7 +25,7 @@ const CartMaterialsLaser = ({ materials, deleteMaterialLaser, updateItemLaser })
                   {material.name}
                 </Typography>
               </TableCell>
-              <TableCell >{material.sale_price}</TableCell>
+              <TableCell >$ {material.sale_price}</TableCell>
               <TableCell>{material.area}</TableCell>
               <TableCell>
                 <Button variant="contained"

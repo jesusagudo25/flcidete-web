@@ -12,7 +12,6 @@ import { useChart } from '../../../components/chart';
 AppConversionRates.propTypes = {
   title: PropTypes.string,
   subheader: PropTypes.string,
-  chartData: PropTypes.array.isRequired,
 };
 
 export default function AppConversionRates({ title, subheader, chartData, ...other }) {

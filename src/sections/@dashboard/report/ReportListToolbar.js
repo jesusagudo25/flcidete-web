@@ -39,8 +39,7 @@ ReportListToolbar.propTypes = {
 
 export default function ReportListToolbar({ filterDate, onFilterDate }) {
   return (
-    <StyledRoot
-    >
+    <StyledRoot>
       <StyledSearch
         value={filterDate}
         onChange={onFilterDate}

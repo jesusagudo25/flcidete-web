@@ -13,7 +13,6 @@ export {default as CartFilaments} from './CartFilaments'
 export {default as SearchResins} from './SearchResins'
 export {default as CartResins} from './CartResins'
 export {default as SearchSoftware} from './SearchSoftware'
-export {default as CartThreads} from './CartThreads'
 export {default as SuppliesListHead} from './SuppliesListHead'
 export {default as SuppliesListToolbar} from './SuppliesListToolbar'
 

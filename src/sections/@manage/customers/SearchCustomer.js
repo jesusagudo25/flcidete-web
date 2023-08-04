@@ -15,6 +15,7 @@ const SearchCustomer = ({
   document,
   handleOnBlurDocument,
   errors,
+  documentAvailable
 }) => {
 
   return (
@@ -37,7 +38,9 @@ const SearchCustomer = ({
         >
           <MenuItem value={'C'}>Cédula</MenuItem>
           <MenuItem value={'P'}>Pasaporte</MenuItem>
-          <MenuItem value={'R'}>RUC</MenuItem>
+          {
+            documentAvailable ? <MenuItem value={'R'}>RUC</MenuItem> : null
+          }
         </Select>
       </FormControl>
 

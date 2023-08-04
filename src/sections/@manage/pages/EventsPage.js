@@ -38,7 +38,9 @@ import {
   OutlinedInput,
   Tab,
   Tabs,
-  Grid
+  Grid,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -219,6 +221,8 @@ TabPanel.propTypes = {
 
 const EventsPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false); // Estado de carga de la página
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -278,9 +282,9 @@ const EventsPage = () => {
 
   const [page, setPage] = useState(0);
 
-  const [order, setOrder] = useState('asc');
+  const [order, setOrder] = useState('desc');
 
-  const [orderBy, setOrderBy] = useState('date');
+  const [orderBy, setOrderBy] = useState('id');
 
   const [filterName, setFilterName] = useState('');
 
@@ -377,8 +381,8 @@ const EventsPage = () => {
         name,
         initial_date: format(initialDate, 'yyyy-MM-dd'),
         final_date: format(finalDate, 'yyyy-MM-dd'),
-        initial_time: format(initialTime, 'HH:mm:ss'),
-        final_time: format(finalTime, 'HH:mm:ss'),
+        initial_time: format(initialTime, 'HH:mm'),
+        final_time: format(finalTime, 'HH:mm'),
         max_participants: maxParticipants,
         price,
         expenses,
@@ -395,8 +399,8 @@ const EventsPage = () => {
         name,
         initial_date: format(initialDate, 'yyyy-MM-dd'),
         final_date: format(finalDate, 'yyyy-MM-dd'),
-        initial_time: format(initialTime, 'HH:mm:ss'),
-        final_time: format(finalTime, 'HH:mm:ss'),
+        initial_time: format(initialTime, 'HH:mm'),
+        final_time: format(finalTime, 'HH:mm'),
         max_participants: maxParticipants,
         price,
         expenses,
@@ -439,16 +443,18 @@ const EventsPage = () => {
   const getEvents = async () => {
     const response = await axios.get('/api/events');
     setEvents(response.data);
+    setIsLoading(false);
   }
 
   const getCategories = async () => {
     const response = await axios.get('/api/event-categories');
     setCategories(response.data);
+    setIsLoading(false);
   }
 
   const getAreas = async () => {
     const response = await axios.get('/api/areas');
-    setAreas(response.data);
+    setAreas(response.data.filter(item => item.id < 8));
     setAreasSelected(
       new Array(response.data.length).fill(
         {
@@ -457,9 +463,11 @@ const EventsPage = () => {
         }
       )
     );
+    setIsLoading(false);
   }
 
   useEffect(() => {
+    setIsLoading(true);
     getEvents();
     getCategories();
     getAreas();
@@ -564,6 +572,7 @@ const EventsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
+                                setIsLoading(true);
                                 if (active) (
                                   showToastMessageStatus('error', 'Evento desactivado')
                                 )
@@ -579,6 +588,7 @@ const EventsPage = () => {
                                 await axios.put(`/api/events/${id}`, {
                                   active: !active
                                 });
+                                setIsLoading(false);
                               }
                             } />
                           </TableCell>
@@ -938,6 +948,13 @@ const EventsPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

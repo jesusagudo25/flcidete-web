@@ -40,7 +40,7 @@ const CartComponents = ({ components, deleteComponent, updateItemElectronic }) =
                             </Typography>
                             </Stack>
                         </TableCell>
-                        <TableCell>{component.sale_price}</TableCell>
+                        <TableCell>$ {component.sale_price}</TableCell>
                         <TableCell>
                             <Button variant="contained"
                                 color="error" onClick={

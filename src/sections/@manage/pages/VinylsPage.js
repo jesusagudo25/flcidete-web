@@ -30,6 +30,8 @@ import {
   FormControl,
   InputLabel,
   FormHelperText,
+  Backdrop,
+  CircularProgress,
 } from '@mui/material';
 
 // components
@@ -170,6 +172,8 @@ function applySortFilter(array, comparator, query) {
 
 const VinylsPage = () => {
 
+  const [isLoading, setIsLoading] = useState(false);
+
   /* Toastify */
 
   const showToastMessage = () => {
@@ -291,7 +295,6 @@ const VinylsPage = () => {
         'area': event.width * (event.height * 12),
       });
     } else {
-      console.log(event);
       await axios.post('/api/vinyls', {
         'name': event.name.concat(' (', event.width, ' in x', event.height, ' ft)'),
         'cost': event.cost,
@@ -333,8 +336,10 @@ const VinylsPage = () => {
   };
 
   const getVinyls = async () => {
+    setIsLoading(true);
     const response = await axios.get('/api/vinyls');
     setVinyls(response.data);
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -413,21 +418,27 @@ const VinylsPage = () => {
                           <TableCell align="left">
                             <ButtonSwitch checked={active} inputProps={{ 'aria-label': 'ant design' }} onClick={
                               async () => {
-                                if (active) (
-                                  showToastMessageStatus('error', 'Vinilo desactivado')
-                                )
-                                else (
-                                  showToastMessageStatus('success', 'Vinilo activado')
-                                )
-                                setVinyls(vinyls.map((vinyl) => {
-                                  if (vinyl.id === id) {
-                                    return { ...vinyl, active: !active };
-                                  }
-                                  return vinyl;
-                                }));
-                                await axios.put(`/api/vinyls/${id}`, {
-                                  active: !active
-                                });
+                                try {
+                                  setIsLoading(true);
+                                  await axios.put(`/api/vinyls/${id}`, {
+                                    active: !active
+                                  });
+                                  setVinyls(vinyls.map((vinyl) => {
+                                    if (vinyl.id === id) {
+                                      return { ...vinyl, active: !active };
+                                    }
+                                    return vinyl;
+                                  }));
+                                  setIsLoading(false);
+                                  if (active) (
+                                    showToastMessageStatus('error', 'Vinilo desactivado')
+                                  )
+                                  else (
+                                    showToastMessageStatus('success', 'Vinilo activado')
+                                  )
+                                } catch (error) {
+                                  showToastMessageStatus('error', 'Error al actualizar el estado del vinilo')
+                                }
                               }
                             } />
                           </TableCell>
@@ -879,6 +890,13 @@ const VinylsPage = () => {
           </Button>
         </DialogActions>
       </BootstrapDialog>
+
+      <Backdrop
+        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   )
 }

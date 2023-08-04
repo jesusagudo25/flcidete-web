@@ -231,10 +231,12 @@ const MaterialPrinterUpdate = () => {
 
   const handleSubmitDialog = async (event) => {
     handleCloseDialog();
+    const valor = containerEstimatedValue ? event.estimatedValue : event.cost;
     await axios.post('/api/printer-materials-updates', {
       'printer_material_id': id,
       cost: event.cost,
-      'estimated_value': containerEstimatedValue ? event.estimatedValue : event.cost,
+      'estimated_value': valor,
+      'purchase_price': (valor / ((width / 12) * (height * 3.28084))).toFixed(2),
       'sale_price': event.salePrice,
       'quantity': event.quantity,
     });

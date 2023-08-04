@@ -23,7 +23,7 @@ const CartMaterialsPrinter = ({ materials, deleteMaterialPrinter, updateItemMate
                       {materials.name}
                     </Typography>
                   </TableCell>
-                  <TableCell >{materials.sale_price}</TableCell>
+                  <TableCell >$ {materials.sale_price}</TableCell>
                   <TableCell>{materials.area}</TableCell>
                   <TableCell>
                     <Button variant="contained"

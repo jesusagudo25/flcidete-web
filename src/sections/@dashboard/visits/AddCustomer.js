@@ -40,7 +40,7 @@ const AddCustomer = ({
 
     const getProvinces = () => {
         setIsLoading(true);
-        axios.get(`${config.GEOPTYAPI_URL}/api/provinces`)
+        axios.get(`${config.GEOPTYAPI_URL}/api/provinces/active`)
             .then((response) => {
                 setProvinces(response.data);
                 setIsLoading(false);
@@ -52,7 +52,7 @@ const AddCustomer = ({
 
     const getDistricts = (id) => {
         setIsLoading(true);
-        axios.get(`${config.GEOPTYAPI_URL}/api/province/${id}/districts`)
+        axios.get(`${config.GEOPTYAPI_URL}/api/province/${id}/districts/active`)
             .then((response) => {
                 setIsLoading(false);
                 setDistricts(response.data);
@@ -64,7 +64,7 @@ const AddCustomer = ({
 
     const getTownships = (id) => {
         setIsLoading(true);
-        axios.get(`${config.GEOPTYAPI_URL}/api/district/${id}/townships`)
+        axios.get(`${config.GEOPTYAPI_URL}/api/district/${id}/townships/active`)
             .then((response) => {
                 setIsLoading(false);
                 setTownships(response.data);
@@ -173,11 +173,11 @@ const AddCustomer = ({
                     onChange={(e) => {
                         setIsLoading(true);
                         setProvinceSelected(e.target.value);
-                        axios.get(`${config.GEOPTYAPI_URL}/api/province/${e.target.value}/districts`)
+                        axios.get(`${config.GEOPTYAPI_URL}/api/province/${e.target.value}/districts/active`)
                             .then((response) => {
                                 setDistricts(response.data);
                                 setDistrictSelected(response.data[0].id);
-                                axios.get(`${config.GEOPTYAPI_URL}/api/district/${response.data[0].id}/townships`)
+                                axios.get(`${config.GEOPTYAPI_URL}/api/district/${response.data[0].id}/townships/active`)
                                     .then((response) => {
                                         setTownships(response.data);
                                         setTownshipSelected(response.data[0].id);
@@ -210,7 +210,7 @@ const AddCustomer = ({
                     onChange={(e) => {
                         setIsLoading(true);
                         setDistrictSelected(e.target.value);
-                        axios.get(`${config.GEOPTYAPI_URL}/api/district/${e.target.value}/townships`)
+                        axios.get(`${config.GEOPTYAPI_URL}/api/district/${e.target.value}/townships/active`)
                             .then((response) => {
                                 setIsLoading(false);
                                 setTownships(response.data);

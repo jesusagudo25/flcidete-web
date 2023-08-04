@@ -30,7 +30,6 @@ const SearchBooking = ({
                 >
                     <MenuItem value={'C'}>Cédula</MenuItem>
                     <MenuItem value={'P'}>Pasaporte</MenuItem>
-                    <MenuItem value={'R'}>RUC</MenuItem>
                 </Select>
             </FormControl>
 

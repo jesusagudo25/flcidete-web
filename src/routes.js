@@ -44,6 +44,10 @@ import { CheckOut } from './pages/CheckOut';
 import PaymentPage from './pages/PaymentPage';
 import MaterialsPrinterPage from './sections/@manage/pages/MaterialsPrinterPage';
 import MaterialPrinterUpdate from './sections/@manage/pages/MaterialPrinterUpdate';
+import SubsidiariesPage from './sections/@manage/pages/SubsidiariesPage';
+
+import { PrivateRoute } from './components/auth/PrivateRoute';
+import { PublicRoute } from './components/auth/PublicRoute';
 
 // ----------------------------------------------------------------------
 
@@ -51,7 +55,7 @@ export default function Router() {
   const routes = useRoutes([
     {
       path: '/dashboard',
-      element: <DashboardLayout />,
+      element: <PrivateRoute><DashboardLayout /></PrivateRoute>,
       children: [
         { element: <Navigate to="/dashboard/app" />, index: true },
         { path: 'app', element: <DashboardAppPage /> },
@@ -68,6 +72,7 @@ export default function Router() {
         { path: 'management/visits/:id/customers', element: <VisitsCustomers /> },
         { path: 'management/visits/:id/areas', element: <VisitsAreas /> },
         { path: 'management/customers', element: <CustomersPage /> },
+        { path: 'management/customers/:id/subsidiaries', element: <SubsidiariesPage /> },
         { path: 'management/users', element: <UsersPage /> },
         { path: 'management/observations', element: <ObservationsPage /> },
         
@@ -103,23 +108,23 @@ export default function Router() {
     },
     {
       path: 'login',
-      element: <LoginPage />,
+      element: <PublicRoute><LoginPage /></PublicRoute>,
     },
     {
       path: 'register',
-      element: <RegisterPage />,
+      element: <PublicRoute><RegisterPage /></PublicRoute>,
     },
     {
       path: 'forgot-password',
-      element: <ForgotPasswordPage />,
+      element: <PublicRoute><ForgotPasswordPage /></PublicRoute>,
     },
     {
       path: 'reset-password/:token',
-      element: <ResetPasswordPage />,
+      element: <PublicRoute><ResetPasswordPage /></PublicRoute>,
     },
     {
       path: '/user-activation/:token',
-      element: <UserActivationPage />,
+      element: <PublicRoute><UserActivationPage /></PublicRoute>,
     },
     {
       element: <SimpleLayout />,
