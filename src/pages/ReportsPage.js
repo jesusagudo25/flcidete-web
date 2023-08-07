@@ -202,6 +202,7 @@ const ReportsPage = () => {
         axios.get('/api/reports')
             .then((response) => {
                 setReports(response.data);
+                setIsLoading(false);
             })
             .catch((error) => {
                 console.log(error);
@@ -210,6 +211,7 @@ const ReportsPage = () => {
     };
 
     useEffect(() => {
+        setIsLoading(true);
         getReports();
     }, []);
 
@@ -549,6 +551,7 @@ const ReportsPage = () => {
                         Cancelar
                     </Button>
                     <Button onClick={() => {
+                        setIsLoading(true);
                         axios.post('/api/reports', {
                             start_date: format(startDate, 'yyyy-MM-dd'),
                             end_date: format(endDate, 'yyyy-MM-dd'),
@@ -562,6 +565,7 @@ const ReportsPage = () => {
                                     getReports();
                                     setOpenDialogType(false);
                                     setIsComplete(true);
+                                    setIsLoading(false);
                                 }
                             })
                             .catch((error) => {

@@ -323,7 +323,8 @@ const VisitsAreas = () => {
 
     const getListAreas = async () => {
         const response = await axios.get(`/api/areas`);
-        setListAreas(response.data);
+        setListAreas(response.data.filter(item => item.id < 8))
+        console.log(response.data);
         setIsLoading(false);
     }
 
