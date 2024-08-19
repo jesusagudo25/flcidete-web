@@ -1,7 +1,5 @@
-## Minimal [(Free version)](https://minimal-kit-react.vercel.app/)
-
 ## License
 
 ## Contact us
 
-Email Us: info@agudodev.com
+Email Us: jagudo2514@gmail.com
